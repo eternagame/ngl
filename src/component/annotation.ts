@@ -44,7 +44,7 @@ export default class Annotation {
    * @param {Integer} params.offsetY - 2d offset in y direction
    * @param {Boolean} params.visible - visibility flag
    */
-  constructor (readonly component: Component, readonly position: Vector3, content: string|HTMLElement, params: AnnotationParams = {}) {
+  constructor(readonly component: Component, readonly position: Vector3, content: string | HTMLElement, params: AnnotationParams = {}) {
     this.offsetX = defaults(params.offsetX, 0)
     this.offsetY = defaults(params.offsetY, 0)
     this.visible = defaults(params.visible, true)
@@ -78,7 +78,7 @@ export default class Annotation {
    * @param {String|Element} value - HTML content
    * @return {undefined}
    */
-  setContent (value: string|HTMLElement) {
+  setContent(value: string | HTMLElement) {
     const displayValue = this.element.style.display
     if (displayValue === 'none') {
       this.element.style.left = '-10000px'
@@ -111,26 +111,26 @@ export default class Annotation {
    * @param {Boolean} value - visibility flag
    * @return {undefined}
    */
-  setVisibility (value: boolean) {
+  setVisibility(value: boolean) {
     this.visible = value
     this.updateVisibility()
   }
 
-  getVisibility () {
+  getVisibility() {
     return this.visible && this.component.parameters.visible
   }
 
-  updateVisibility () {
+  updateVisibility() {
     this.element.style.display = this.getVisibility() ? 'block' : 'none'
   }
 
-  _updateViewerPosition () {
+  _updateViewerPosition() {
     this._viewerPosition
       .copy(this.position)
       .applyMatrix4(this.component.matrix)
   }
 
-  _update () {
+  _update() {
     if (!this.getVisibility()) return
 
     const s = this.element.style
@@ -166,7 +166,7 @@ export default class Annotation {
    * Safely remove the annotation
    * @return {undefined}
    */
-  dispose () {
+  dispose() {
     this.viewer.wrapper.removeChild(this.element)
     this.viewer.signals.ticked.remove(this._update, this)
     this.component.signals.matrixChanged.remove(this._updateViewerPosition, this)

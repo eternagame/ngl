@@ -20,6 +20,7 @@ export interface EllipsoidBufferData extends BufferData {
   majorAxis: Float32Array
   minorAxis: Float32Array
   radius: Float32Array
+  vScale: number
 }
 
 export const EllipsoidBufferDefaultParameters = Object.assign({
@@ -48,26 +49,29 @@ class EllipsoidBuffer extends GeometryBuffer {
   _majorAxis: Float32Array
   _minorAxis: Float32Array
   _radius: Float32Array
+  _vScale: number
 
-  constructor (data: EllipsoidBufferData, params: Partial<EllipsoidBufferParameters> = {}) {
+  constructor(data: EllipsoidBufferData, params: Partial<EllipsoidBufferParameters> = {}) {
     super(data, params, new IcosahedronBufferGeometry(1, defaults(params.sphereDetail, 2)))
 
     this.setAttributes(data, true)
   }
 
-  applyPositionTransform (matrix: Matrix4, i: number, i3: number) {
+  applyPositionTransform(matrix: Matrix4, i: number, i3: number) {
     target.fromArray(this._majorAxis as any, i3)
     up.fromArray(this._minorAxis as any, i3)
     matrix.lookAt(eye, target, up)
 
-    scale.set(this._radius[ i ], up.length(), target.length())
+    // console.log(this._vScale);
+    scale.set(this._radius[i] * this._vScale, up.length(), target.length()) //kkk
     matrix.scale(scale)
   }
 
-  setAttributes (data: Partial<EllipsoidBufferData> = {}, initNormals?: boolean) {
+  setAttributes(data: Partial<EllipsoidBufferData> = {}, initNormals?: boolean) {
     if (data.radius) this._radius = data.radius
     if (data.majorAxis) this._majorAxis = data.majorAxis
     if (data.minorAxis) this._minorAxis = data.minorAxis
+    this._vScale = defaults(data.vScale, 1)
 
     super.setAttributes(data, initNormals)
   }

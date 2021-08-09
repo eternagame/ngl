@@ -17,13 +17,13 @@ import AtomProxy from '../proxy/atom-proxy';
 import { AtomDataParams, BondDataParams, BondDataFields, AtomDataFields, BondData, AtomData } from '../structure/structure-data';
 import StructureView from '../structure/structure-view';
 import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer';
-import SphereGeometryBuffer from '../buffer/spheregeometry-buffer';
+//  import SphereGeometryBuffer from '../buffer/spheregeometry-buffer';
 // @ts-ignore: unused import Surface required for declaration only
 import Surface from '../surface/surface';
 import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
-// import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants'
+import { AtomPicker, BondPicker } from '../utils/picker'
 
-export interface BallAndStickRepresentationParameters extends StructureRepresentationParameters {
+export interface EBallAndStickRepresentationParameters extends StructureRepresentationParameters {
   sphereDetail: number
   radialSegments: number
   openEnded: boolean
@@ -35,15 +35,14 @@ export interface BallAndStickRepresentationParameters extends StructureRepresent
   multipleBond: 'off' | 'symmetric' | 'offset'
   bondSpacing: number
   bondScale: number
-  vScale: number
-  extSugar: boolean
+  linewidth: number
 }
 
 /**
  * Ball And Stick representation parameter object. Extends {@link RepresentationParameters} and
  * {@link StructureRepresentationParameters}.
  *
- * @typedef {Object} BallAndStickRepresentationParameters - ball and stick representation parameters
+ * @typedef {Object} EBallAndStickRepresentationParameters - ball and stick representation parameters
  *
  * @property {Integer} sphereDetail - sphere quality (icosahedron subdivisions)
  * @property {Integer} radialSegments - cylinder quality (number of segments)
@@ -65,11 +64,11 @@ export interface BallAndStickRepresentationParameters extends StructureRepresent
  *
  * @example
  * stage.loadFile( "rcsb://1crn" ).then( function( o ){
- *     o.addRepresentation( "ball+stick" );
+ *     o.addRepresentation( "eball+stick" );
  *     o.autoView();
  * } );
  */
-class BallAndStickRepresentation extends StructureRepresentation {
+class EBallAndStickRepresentation extends StructureRepresentation {
   protected sphereDetail: number
   protected radialSegments: number
   protected openEnded: boolean
@@ -82,6 +81,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
   protected bondSpacing: number
   protected bondScale: number
   protected linewidth: number
+  protected extSugar: boolean
 
   protected lineBuffer: WideLineBuffer
   /**
@@ -90,10 +90,10 @@ class BallAndStickRepresentation extends StructureRepresentation {
    * @param {Viewer} viewer - a viewer object
    * @param {BallAndStickRepresentationParameters} params - ball and stick representation parameters
    */
-  constructor(structure: Structure, viewer: Viewer, params: Partial<BallAndStickRepresentationParameters>) {
+  constructor(structure: Structure, viewer: Viewer, params: Partial<EBallAndStickRepresentationParameters>) {
     super(structure, viewer, params)
 
-    this.type = 'ball+stick'
+    this.type = 'eball+stick'
 
     this.parameters = Object.assign({
 
@@ -134,7 +134,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
     this.init(params)
   }
 
-  init(params: Partial<BallAndStickRepresentationParameters>) {
+  init(params: Partial<EBallAndStickRepresentationParameters>) {
     var p = params || {}
     p.radiusType = defaults(p.radiusType, 'size')
     p.radiusSize = defaults(p.radiusSize, 0.15)
@@ -147,6 +147,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
     this.bondSpacing = defaults(p.bondSpacing, 1.0)
     this.bondScale = defaults(p.bondScale, 0.4)
     this.linewidth = defaults(p.linewidth, 2)
+    this.extSugar = defaults(p.extSugar, true)
 
     super.init(p)
   }
@@ -162,10 +163,6 @@ class BallAndStickRepresentation extends StructureRepresentation {
     return p
   }
 
-  getAtomData(sview: StructureView, what?: AtomDataFields, params?: Partial<AtomDataParams>): AtomData {
-    return sview.getAtomData(this.getAtomParams(what, params))
-  }
-
   getBondParams(what?: BondDataFields, params?: Partial<BondDataParams>) {
     params = Object.assign({
       multipleBond: this.multipleBond,
@@ -176,8 +173,63 @@ class BallAndStickRepresentation extends StructureRepresentation {
     return super.getBondParams(what, params)
   }
 
+  getAtomData(sview: StructureView, what?: AtomDataFields, params?: Partial<AtomDataParams>): AtomData {
+    let tmpData = sview.getAtomData(this.getAtomParams(what, params))
+    var count = 0;
+    if (tmpData) {
+      tmpData.index?.forEach(element => {
+        let atomProxy = sview.getAtomProxy(element);
+        if (atomProxy.isExtCandidate(this.extSugar)) {
+          count++;
+        }
+      });
+    }
+    const atomData: AtomData = {}
+    const atomCount = count
+
+    let position = new Float32Array(atomCount * 3)
+    let color = new Float32Array(atomCount * 3)
+    let picking = new AtomPicker(new Float32Array(atomCount), sview.getStructure())
+    let radius = new Float32Array(atomCount)
+    let index = new Uint32Array(atomCount)
+
+    if (tmpData.index) {
+      var k = 0;
+      for (var i = 0; i < tmpData.index.length; i++) {
+        let atomProxy = sview.getAtomProxy(tmpData.index[i]);
+        if (atomProxy.isExtCandidate(this.extSugar)) {
+          index[k] = tmpData.index[i];
+          if (tmpData.position) {
+            position[3 * k] = tmpData.position[3 * i];
+            position[3 * k + 1] = tmpData.position[3 * i + 1];
+            position[3 * k + 2] = tmpData.position[3 * i + 2];
+          }
+          if (tmpData.color) {
+            color[k * 3] = tmpData.color[i * 3];
+            color[k * 3 + 1] = tmpData.color[i * 3 + 1];
+            color[k * 3 + 2] = tmpData.color[i * 3 + 2];
+          }
+          if (tmpData.radius) {
+            radius[k] = tmpData.radius[i];
+          }
+          if (tmpData.picking) {
+            picking.array![k] = tmpData.picking.array![i];
+          }
+          k++;
+        }
+      }
+    }
+    atomData.position = position;
+    atomData.color = color;
+    atomData.radius = radius;
+    atomData.index = index;
+    atomData.picking = picking;
+
+    return atomData
+  }
+
   getBondData(sview: StructureView, what?: BondDataFields, params?: Partial<BondDataParams>): BondData {
-    return sview.getBondData(this.getBondParams(what, params))
+    return sview.getBackBondData(this.getBondParams(what, params), this.extSugar)
   }
 
   createData(sview: StructureView) {
@@ -214,7 +266,6 @@ class BallAndStickRepresentation extends StructureRepresentation {
         )
 
         bufferList.push(sphereBuffer as SphereGeometryBuffer)
-
       }
     }
 
@@ -224,84 +275,84 @@ class BallAndStickRepresentation extends StructureRepresentation {
   }
 
   updateData(what: BondDataFields | AtomDataFields, data: StructureRepresentationData) {
-    if (this.multipleBond !== 'off' && what && what.radius) {
-      what.position = true
-    }
+    // if (this.multipleBond !== 'off' && what && what.radius) {
+    //   what.position = true
+    // }
 
-    const bondData = this.getBondData(data.sview as StructureView, what)
+    // const bondData = this.getBondData(data.sview as StructureView, what)
 
-    if (this.lineOnly) {
-      const lineData: Partial<CylinderBufferData> = {}
+    // if (this.lineOnly) {
+    //   const lineData: Partial<CylinderBufferData> = {}
 
-      if (!what || what.position) {
-        Object.assign(lineData, {
-          position1: bondData.position1,
-          position2: bondData.position2
-        })
-      }
+    //   if (!what || what.position) {
+    //     Object.assign(lineData, {
+    //       position1: bondData.position1,
+    //       position2: bondData.position2
+    //     })
+    //   }
 
-      if (!what || what.color) {
-        Object.assign(lineData, {
-          color: bondData.color,
-          color2: bondData.color2
-        })
-      }
+    //   if (!what || what.color) {
+    //     Object.assign(lineData, {
+    //       color: bondData.color,
+    //       color2: bondData.color2
+    //     })
+    //   }
 
-      data.bufferList[0].setAttributes(lineData)
-    } else {
-      var cylinderData: Partial<CylinderBufferData> = {}
+    //   data.bufferList[0].setAttributes(lineData)
+    // } else {
+    //   var cylinderData: Partial<CylinderBufferData> = {}
 
-      if (!what || what.position) {
-        Object.assign(cylinderData, {
-          position1: bondData.position1,
-          position2: bondData.position2
-        })
-      }
+    //   if (!what || what.position) {
+    //     Object.assign(cylinderData, {
+    //       position1: bondData.position1,
+    //       position2: bondData.position2
+    //     })
+    //   }
 
-      if (!what || what.color) {
-        Object.assign(cylinderData, {
-          color: bondData.color,
-          color2: bondData.color2
-        })
-      }
+    //   if (!what || what.color) {
+    //     Object.assign(cylinderData, {
+    //       color: bondData.color,
+    //       color2: bondData.color2
+    //     })
+    //   }
 
-      if (!what || what.radius) {
-        Object.assign(cylinderData, {
-          radius: bondData.radius
-        })
-      }
+    //   if (!what || what.radius) {
+    //     Object.assign(cylinderData, {
+    //       radius: bondData.radius
+    //     })
+    //   }
 
-      data.bufferList[0].setAttributes(cylinderData)
+    //   data.bufferList[0].setAttributes(cylinderData)
 
-      if (!this.cylinderOnly) {
-        var atomData = this.getAtomData(data.sview as StructureView, what)
+    //   if (!this.cylinderOnly) {
+    //     var atomData = this.getAtomData(data.sview as StructureView, what)
 
-        var sphereData: Partial<SphereBufferData> = {}
+    //     var sphereData: Partial<SphereBufferData> = {}
 
-        if (!what || what.position) {
-          Object.assign(sphereData, {
-            position: atomData.position
-          })
-        }
+    //     if (!what || what.position) {
+    //       Object.assign(sphereData, {
+    //         position: atomData.position
+    //       })
+    //     }
 
-        if (!what || what.color) {
-          Object.assign(sphereData, {
-            color: atomData.color
-          })
-        }
+    //     if (!what || what.color) {
+    //       Object.assign(sphereData, {
+    //         color: atomData.color
+    //       })
+    //     }
 
-        if (!what || what.radius) {
-          Object.assign(sphereData, {
-            radius: atomData.radius
-          })
-        }
+    //     if (!what || what.radius) {
+    //       Object.assign(sphereData, {
+    //         radius: atomData.radius
+    //       })
+    //     }
 
-        data.bufferList[1].setAttributes(sphereData)
-      }
-    }
+    //     data.bufferList[1].setAttributes(sphereData)
+    //   }
+    // }
   }
 
-  setParameters(params: Partial<BallAndStickRepresentationParameters> = {}) {
+  setParameters(params: Partial<EBallAndStickRepresentationParameters> = {}) {
     let rebuild = false
     const what: AtomDataFields = {}
 
@@ -318,6 +369,6 @@ class BallAndStickRepresentation extends StructureRepresentation {
   }
 }
 
-RepresentationRegistry.add('ball+stick', BallAndStickRepresentation)
+RepresentationRegistry.add('eball+stick', EBallAndStickRepresentation)
 
-export default BallAndStickRepresentation
+export default EBallAndStickRepresentation

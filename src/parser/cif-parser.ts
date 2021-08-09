@@ -26,33 +26,33 @@ const reQuotedWhitespace = /'((?:(?!'\s).)*)'|"((?:(?!"\s).)*)"|(\S+)/g
 const reDoubleQuote = /"/g
 const reTrimQuotes = /^['"]+|['"]+$/g
 
-interface Cif {[k: string]: any}
+interface Cif { [k: string]: any }
 
-function trimQuotes (str: string) {
-  if (str && str[0] === str[ str.length - 1 ] && (str[0] === "'" || str[0] === '"')) {
+function trimQuotes(str: string) {
+  if (str && str[0] === str[str.length - 1] && (str[0] === "'" || str[0] === '"')) {
     return str.substring(1, str.length - 1)
   } else {
     return str
   }
 }
 
-function ensureArray (dict: {[k: string]: any[]}, field: string) {
-  if (!Array.isArray(dict[ field ])) {
+function ensureArray(dict: { [k: string]: any[] }, field: string) {
+  if (!Array.isArray(dict[field])) {
     Object.keys(dict).forEach(function (key) {
-      dict[ key ] = [ dict[ key ] ]
+      dict[key] = [dict[key]]
     })
   }
 }
 
-function hasValue (d: string) {
+function hasValue(d: string) {
   return d !== '?'
 }
 
-function cifDefaults (value: string, defaultValue: string) {
+function cifDefaults(value: string, defaultValue: string) {
   return hasValue(value) ? value : defaultValue
 }
 
-function getBondOrder (valueOrder: string) {
+function getBondOrder(valueOrder: string) {
   switch (valueOrder.toLowerCase()) {
     case '?': // assume single bond
     case 'sing':
@@ -67,7 +67,7 @@ function getBondOrder (valueOrder: string) {
   return 0
 }
 
-function parseChemComp (cif: Cif, structure: Structure, structureBuilder: StructureBuilder) {
+function parseChemComp(cif: Cif, structure: Structure, structureBuilder: StructureBuilder) {
   const atomStore = structure.atomStore
   const atomMap = structure.atomMap
 
@@ -85,7 +85,7 @@ function parseChemComp (cif: Cif, structure: Structure, structureBuilder: Struct
     }
   }
 
-  var atomnameDict: {[k: string]: number} = {}
+  var atomnameDict: { [k: string]: number } = {}
 
   if (cca) {
     ensureArray(cca, 'comp_id')
@@ -96,19 +96,19 @@ function parseChemComp (cif: Cif, structure: Structure, structureBuilder: Struct
     for (i = 0; i < n; ++i) {
       atomStore.growIfFull()
 
-      atomname = cca.atom_id[ i ].replace(reDoubleQuote, '')
-      element = cca.type_symbol[ i ]
+      atomname = cca.atom_id[i].replace(reDoubleQuote, '')
+      element = cca.type_symbol[i]
 
-      atomnameDict[ atomname ] = i
-      atomStore.atomTypeId[ i ] = atomMap.add(atomname, element)
+      atomnameDict[atomname] = i
+      atomStore.atomTypeId[i] = atomMap.add(atomname, element)
 
-      atomStore.x[ i ] = cca.model_Cartn_x[ i ]
-      atomStore.y[ i ] = cca.model_Cartn_y[ i ]
-      atomStore.z[ i ] = cca.model_Cartn_z[ i ]
-      atomStore.serial[ i ] = i
+      atomStore.x[i] = cca.model_Cartn_x[i]
+      atomStore.y[i] = cca.model_Cartn_y[i]
+      atomStore.z[i] = cca.model_Cartn_z[i]
+      atomStore.serial[i] = i
 
-      resname = cca.pdbx_component_comp_id[ i ]
-      resno = cca.pdbx_residue_numbering ? cca.pdbx_residue_numbering[ i ] : 1
+      resname = cca.pdbx_component_comp_id[i]
+      resno = cca.pdbx_residue_numbering ? cca.pdbx_residue_numbering[i] : 1
 
       structureBuilder.addAtom(0, '', '', resname, resno, true)
     }
@@ -118,18 +118,18 @@ function parseChemComp (cif: Cif, structure: Structure, structureBuilder: Struct
 
       atomStore.growIfFull()
 
-      atomname = cca.atom_id[ i ].replace(reDoubleQuote, '')
-      element = cca.type_symbol[ i ]
+      atomname = cca.atom_id[i].replace(reDoubleQuote, '')
+      element = cca.type_symbol[i]
 
-      atomStore.atomTypeId[ j ] = atomMap.add(atomname, element)
+      atomStore.atomTypeId[j] = atomMap.add(atomname, element)
 
-      atomStore.x[ j ] = cca.pdbx_model_Cartn_x_ideal[ i ]
-      atomStore.y[ j ] = cca.pdbx_model_Cartn_y_ideal[ i ]
-      atomStore.z[ j ] = cca.pdbx_model_Cartn_z_ideal[ i ]
-      atomStore.serial[ j ] = j
+      atomStore.x[j] = cca.pdbx_model_Cartn_x_ideal[i]
+      atomStore.y[j] = cca.pdbx_model_Cartn_y_ideal[i]
+      atomStore.z[j] = cca.pdbx_model_Cartn_z_ideal[i]
+      atomStore.serial[j] = j
 
-      resname = cca.pdbx_component_comp_id[ i ]
-      resno = cca.pdbx_residue_numbering ? cca.pdbx_residue_numbering[ i ] : 1
+      resname = cca.pdbx_component_comp_id[i]
+      resno = cca.pdbx_residue_numbering ? cca.pdbx_residue_numbering[i] : 1
 
       structureBuilder.addAtom(1, '', '', resname, resno, true)
     }
@@ -146,24 +146,26 @@ function parseChemComp (cif: Cif, structure: Structure, structureBuilder: Struct
     var ap2 = structure.getAtomProxy()
 
     for (i = 0; i < n; ++i) {
-      atomname1 = ccb.atom_id_1[ i ].replace(reDoubleQuote, '')
-      atomname2 = ccb.atom_id_2[ i ].replace(reDoubleQuote, '')
-      bondOrder = getBondOrder(ccb.value_order[ i ])
+      atomname1 = ccb.atom_id_1[i].replace(reDoubleQuote, '')
+      atomname2 = ccb.atom_id_2[i].replace(reDoubleQuote, '')
+      bondOrder = getBondOrder(ccb.value_order[i])
 
-      ap1.index = atomnameDict[ atomname1 ]
-      ap2.index = atomnameDict[ atomname2 ]
+      ap1.index = atomnameDict[atomname1]
+      ap2.index = atomnameDict[atomname2]
       structure.bondStore.growIfFull()
+      // console.log('11111111111111')
       structure.bondStore.addBond(ap1, ap2, bondOrder)
 
       ap1.index += na
       ap2.index += na
       structure.bondStore.growIfFull()
+      // console.log('22222222222222222')
       structure.bondStore.addBond(ap1, ap2, bondOrder)
     }
   }
 }
 
-function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureBuilder) {
+function parseCore(cif: Cif, structure: Structure, structureBuilder: StructureBuilder) {
   var atomStore = structure.atomStore
   var atomMap = structure.atomMap
 
@@ -189,26 +191,26 @@ function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureB
   for (let i = 0; i < n; ++i) {
     atomStore.growIfFull()
 
-    const atomname = cif.atom_site_label[ i ]
-    const element = cif.atom_site_type_symbol[ i ]
+    const atomname = cif.atom_site_label[i]
+    const element = cif.atom_site_type_symbol[i]
 
-    atomStore.atomTypeId[ i ] = atomMap.add(atomname, element)
+    atomStore.atomTypeId[i] = atomMap.add(atomname, element)
 
     v.set(
-      cif.atom_site_fract_x[ i ],
-      cif.atom_site_fract_y[ i ],
-      cif.atom_site_fract_z[ i ]
+      cif.atom_site_fract_x[i],
+      cif.atom_site_fract_y[i],
+      cif.atom_site_fract_z[i]
     )
     v.applyMatrix4(structure.unitcell.fracToCart)
     c.add(v)
 
-    atomStore.x[ i ] = v.x
-    atomStore.y[ i ] = v.y
-    atomStore.z[ i ] = v.z
+    atomStore.x[i] = v.x
+    atomStore.y[i] = v.y
+    atomStore.z[i] = v.z
     if (cif.atom_site_occupancy) {
-      atomStore.occupancy[ i ] = parseFloat(cif.atom_site_occupancy[ i ])
+      atomStore.occupancy[i] = parseFloat(cif.atom_site_occupancy[i])
     }
-    atomStore.serial[ i ] = i
+    atomStore.serial[i] = i
 
     structureBuilder.addAtom(0, '', '', 'HET', 1, true)
   }
@@ -219,12 +221,12 @@ function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureB
 
   const v2 = new Vector3()
   const v3 = new Vector3()
-  const ml = structure.biomolDict.SUPERCELL.partList[ 0 ].matrixList
+  const ml = structure.biomolDict.SUPERCELL.partList[0].matrixList
 
   let k = n
 
-  function covalent (idx: number) {
-    return atomMap.get(atomStore.atomTypeId[ idx ]).covalent
+  function covalent(idx: number) {
+    return atomMap.get(atomStore.atomTypeId[idx]).covalent
   }
   const identityMatrix = new Matrix4()
 
@@ -232,9 +234,9 @@ function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureB
     const covalentI = covalent(i)
 
     v.set(
-      atomStore.x[ i ],
-      atomStore.y[ i ],
-      atomStore.z[ i ]
+      atomStore.x[i],
+      atomStore.y[i],
+      atomStore.z[i]
     )
 
     ml.forEach(function (m) {
@@ -245,9 +247,9 @@ function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureB
 
       for (let j = 0; j < n; ++j) {
         v3.set(
-          atomStore.x[ j ],
-          atomStore.y[ j ],
-          atomStore.z[ j ]
+          atomStore.x[j],
+          atomStore.y[j],
+          atomStore.z[j]
         )
 
         const distSquared = v2.distanceToSquared(v3)
@@ -258,13 +260,13 @@ function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureB
         if (distSquared < (d1 * d1) && distSquared > (d2 * d2)) {
           atomStore.growIfFull()
 
-          atomStore.atomTypeId[ k ] = atomStore.atomTypeId[ i ]
-          atomStore.x[ k ] = v2.x
-          atomStore.y[ k ] = v2.y
-          atomStore.z[ k ] = v2.z
-          atomStore.occupancy[ k ] = atomStore.occupancy[ i ]
-          atomStore.serial[ k ] = k
-          atomStore.altloc[ k ] = 'A'.charCodeAt(0)
+          atomStore.atomTypeId[k] = atomStore.atomTypeId[i]
+          atomStore.x[k] = v2.x
+          atomStore.y[k] = v2.y
+          atomStore.z[k] = v2.z
+          atomStore.occupancy[k] = atomStore.occupancy[i]
+          atomStore.serial[k] = k
+          atomStore.altloc[k] = 'A'.charCodeAt(0)
 
           structureBuilder.addAtom(0, '', '', 'HET', 1, true)
 
@@ -276,7 +278,7 @@ function parseCore (cif: Cif, structure: Structure, structureBuilder: StructureB
   }
 }
 
-function processSecondaryStructure (cif: Cif, structure: Structure, asymIdDict: {[k: string]: string}) {
+function processSecondaryStructure(cif: Cif, structure: Structure, asymIdDict: { [k: string]: string }) {
   var helices: [string, number, string, string, number, string, number][] = []
   var sheets: [string, number, string, string, number, string][] = []
 
@@ -289,18 +291,18 @@ function processSecondaryStructure (cif: Cif, structure: Structure, asymIdDict: 
     ensureArray(sc, 'id')
 
     for (i = 0, il = sc.beg_auth_seq_id.length; i < il; ++i) {
-      var helixType = parseInt(sc.pdbx_PDB_helix_class[ i ])
+      var helixType = parseInt(sc.pdbx_PDB_helix_class[i])
       if (!Number.isNaN(helixType)) {
-        begIcode = sc.pdbx_beg_PDB_ins_code[ i ]
-        endIcode = sc.pdbx_end_PDB_ins_code[ i ]
+        begIcode = sc.pdbx_beg_PDB_ins_code[i]
+        endIcode = sc.pdbx_end_PDB_ins_code[i]
         helices.push([
-          asymIdDict[ sc.beg_label_asym_id[ i ] ],
-          parseInt(sc.beg_auth_seq_id[ i ]),
+          asymIdDict[sc.beg_label_asym_id[i]],
+          parseInt(sc.beg_auth_seq_id[i]),
           cifDefaults(begIcode, ''),
-          asymIdDict[ sc.end_label_asym_id[ i ] ],
-          parseInt(sc.end_auth_seq_id[ i ]),
+          asymIdDict[sc.end_label_asym_id[i]],
+          parseInt(sc.end_auth_seq_id[i]),
           cifDefaults(endIcode, ''),
-          (HelixTypes[ helixType ] || HelixTypes[0]).charCodeAt(0)
+          (HelixTypes[helixType] || HelixTypes[0]).charCodeAt(0)
         ])
       }
     }
@@ -313,14 +315,14 @@ function processSecondaryStructure (cif: Cif, structure: Structure, asymIdDict: 
     ensureArray(ssr, 'id')
 
     for (i = 0, il = ssr.beg_auth_seq_id.length; i < il; ++i) {
-      begIcode = ssr.pdbx_beg_PDB_ins_code[ i ]
-      endIcode = ssr.pdbx_end_PDB_ins_code[ i ]
+      begIcode = ssr.pdbx_beg_PDB_ins_code[i]
+      endIcode = ssr.pdbx_end_PDB_ins_code[i]
       sheets.push([
-        asymIdDict[ ssr.beg_label_asym_id[ i ] ],
-        parseInt(ssr.beg_auth_seq_id[ i ]),
+        asymIdDict[ssr.beg_label_asym_id[i]],
+        parseInt(ssr.beg_auth_seq_id[i]),
         cifDefaults(begIcode, ''),
-        asymIdDict[ ssr.end_label_asym_id[ i ] ],
-        parseInt(ssr.end_auth_seq_id[ i ]),
+        asymIdDict[ssr.end_label_asym_id[i]],
+        parseInt(ssr.end_auth_seq_id[i]),
         cifDefaults(endIcode, '')
       ])
     }
@@ -336,9 +338,9 @@ function processSecondaryStructure (cif: Cif, structure: Structure, asymIdDict: 
   }
 }
 
-function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: string]: string}) {
+function processSymmetry(cif: Cif, structure: Structure, asymIdDict: { [k: string]: string }) {
   // biomol & ncs processing
-  var operDict: {[k: string]: Matrix4} = {}
+  var operDict: { [k: string]: Matrix4 } = {}
   var biomolDict = structure.biomolDict
 
   if (cif.pdbx_struct_oper_list) {
@@ -349,25 +351,25 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
       var m = new Matrix4()
       var elms = m.elements
 
-      elms[ 0 ] = parseFloat(biomolOp[ 'matrix[1][1]' ][ i ])
-      elms[ 1 ] = parseFloat(biomolOp[ 'matrix[1][2]' ][ i ])
-      elms[ 2 ] = parseFloat(biomolOp[ 'matrix[1][3]' ][ i ])
+      elms[0] = parseFloat(biomolOp['matrix[1][1]'][i])
+      elms[1] = parseFloat(biomolOp['matrix[1][2]'][i])
+      elms[2] = parseFloat(biomolOp['matrix[1][3]'][i])
 
-      elms[ 4 ] = parseFloat(biomolOp[ 'matrix[2][1]' ][ i ])
-      elms[ 5 ] = parseFloat(biomolOp[ 'matrix[2][2]' ][ i ])
-      elms[ 6 ] = parseFloat(biomolOp[ 'matrix[2][3]' ][ i ])
+      elms[4] = parseFloat(biomolOp['matrix[2][1]'][i])
+      elms[5] = parseFloat(biomolOp['matrix[2][2]'][i])
+      elms[6] = parseFloat(biomolOp['matrix[2][3]'][i])
 
-      elms[ 8 ] = parseFloat(biomolOp[ 'matrix[3][1]' ][ i ])
-      elms[ 9 ] = parseFloat(biomolOp[ 'matrix[3][2]' ][ i ])
-      elms[ 10 ] = parseFloat(biomolOp[ 'matrix[3][3]' ][ i ])
+      elms[8] = parseFloat(biomolOp['matrix[3][1]'][i])
+      elms[9] = parseFloat(biomolOp['matrix[3][2]'][i])
+      elms[10] = parseFloat(biomolOp['matrix[3][3]'][i])
 
-      elms[ 3 ] = parseFloat(biomolOp[ 'vector[1]' ][ i ])
-      elms[ 7 ] = parseFloat(biomolOp[ 'vector[2]' ][ i ])
-      elms[ 11 ] = parseFloat(biomolOp[ 'vector[3]' ][ i ])
+      elms[3] = parseFloat(biomolOp['vector[1]'][i])
+      elms[7] = parseFloat(biomolOp['vector[2]'][i])
+      elms[11] = parseFloat(biomolOp['vector[3]'][i])
 
       m.transpose()
 
-      operDict[ id ] = m
+      operDict[id] = m
     })
   }
 
@@ -376,7 +378,7 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     ensureArray(gen, 'assembly_id')
 
     var getMatrixDict = function (expr: string) {
-      var matDict: {[k: string]: Matrix4} = {}
+      var matDict: { [k: string]: Matrix4 } = {}
 
       var l = expr.replace(/[()']/g, '').split(',')
 
@@ -384,14 +386,14 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
         if (e.includes('-')) {
           var es = e.split('-')
 
-          var j = parseInt(es[ 0 ])
-          var m = parseInt(es[ 1 ])
+          var j = parseInt(es[0])
+          var m = parseInt(es[1])
 
           for (; j <= m; ++j) {
-            matDict[ j ] = operDict[ j ]
+            matDict[j] = operDict[j]
           }
         } else {
-          matDict[ e ] = operDict[ e ]
+          matDict[e] = operDict[e]
         }
       })
 
@@ -399,21 +401,21 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     }
 
     gen.assembly_id.forEach(function (id: string, i: number) {
-      var md:{[k: string]: Matrix4} = {}
-      var oe = gen.oper_expression[ i ].replace(/['"]\(|['"]/g, '')
+      var md: { [k: string]: Matrix4 } = {}
+      var oe = gen.oper_expression[i].replace(/['"]\(|['"]/g, '')
 
       if (oe.includes(')(') || oe.indexOf('(') > 0) {
         oe = oe.split('(')
 
-        var md1 = getMatrixDict(oe[ 0 ])
-        var md2 = getMatrixDict(oe[ 1 ])
+        var md1 = getMatrixDict(oe[0])
+        var md2 = getMatrixDict(oe[1])
 
         Object.keys(md1).forEach(function (k1) {
           Object.keys(md2).forEach(function (k2) {
             var mat = new Matrix4()
 
-            mat.multiplyMatrices(md1[ k1 ], md2[ k2 ])
-            md[ k1 + 'x' + k2 ] = mat
+            mat.multiplyMatrices(md1[k1], md2[k2])
+            md[k1 + 'x' + k2] = mat
           })
         })
       } else {
@@ -422,21 +424,21 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
 
       var matrixList = []
       for (var k in md) {
-        matrixList.push(md[ k ])
+        matrixList.push(md[k])
       }
 
       var name = id
       if (/^(0|[1-9][0-9]*)$/.test(name)) name = 'BU' + name
 
-      var chainList = gen.asym_id_list[ i ].split(',')
+      var chainList = gen.asym_id_list[i].split(',')
       for (var j = 0, jl = chainList.length; j < jl; ++j) {
-        chainList[ j ] = asymIdDict[ chainList[ j ] ]
+        chainList[j] = asymIdDict[chainList[j]]
       }
 
-      if (biomolDict[ name ] === undefined) {
-        biomolDict[ name ] = new Assembly(name)
+      if (biomolDict[name] === undefined) {
+        biomolDict[name] = new Assembly(name)
       }
-      biomolDict[ name ].addPart(matrixList, chainList)
+      biomolDict[name].addPart(matrixList, chainList)
     })
   }
 
@@ -446,31 +448,31 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     ensureArray(ncsOp, 'id')
 
     var ncsName = 'NCS'
-    biomolDict[ ncsName ] = new Assembly(ncsName)
-    var ncsPart = biomolDict[ ncsName ].addPart()
+    biomolDict[ncsName] = new Assembly(ncsName)
+    var ncsPart = biomolDict[ncsName].addPart()
 
     ncsOp.id.forEach(function (id: string, i: number) {
       // ignore 'given' operators
-      if (ncsOp.code[ i ] === 'given') return
+      if (ncsOp.code[i] === 'given') return
 
       var m = new Matrix4()
       var elms = m.elements
 
-      elms[ 0 ] = parseFloat(ncsOp[ 'matrix[1][1]' ][ i ])
-      elms[ 1 ] = parseFloat(ncsOp[ 'matrix[1][2]' ][ i ])
-      elms[ 2 ] = parseFloat(ncsOp[ 'matrix[1][3]' ][ i ])
+      elms[0] = parseFloat(ncsOp['matrix[1][1]'][i])
+      elms[1] = parseFloat(ncsOp['matrix[1][2]'][i])
+      elms[2] = parseFloat(ncsOp['matrix[1][3]'][i])
 
-      elms[ 4 ] = parseFloat(ncsOp[ 'matrix[2][1]' ][ i ])
-      elms[ 5 ] = parseFloat(ncsOp[ 'matrix[2][2]' ][ i ])
-      elms[ 6 ] = parseFloat(ncsOp[ 'matrix[2][3]' ][ i ])
+      elms[4] = parseFloat(ncsOp['matrix[2][1]'][i])
+      elms[5] = parseFloat(ncsOp['matrix[2][2]'][i])
+      elms[6] = parseFloat(ncsOp['matrix[2][3]'][i])
 
-      elms[ 8 ] = parseFloat(ncsOp[ 'matrix[3][1]' ][ i ])
-      elms[ 9 ] = parseFloat(ncsOp[ 'matrix[3][2]' ][ i ])
-      elms[ 10 ] = parseFloat(ncsOp[ 'matrix[3][3]' ][ i ])
+      elms[8] = parseFloat(ncsOp['matrix[3][1]'][i])
+      elms[9] = parseFloat(ncsOp['matrix[3][2]'][i])
+      elms[10] = parseFloat(ncsOp['matrix[3][3]'][i])
 
-      elms[ 3 ] = parseFloat(ncsOp[ 'vector[1]' ][ i ])
-      elms[ 7 ] = parseFloat(ncsOp[ 'vector[2]' ][ i ])
-      elms[ 11 ] = parseFloat(ncsOp[ 'vector[3]' ][ i ])
+      elms[3] = parseFloat(ncsOp['vector[1]'][i])
+      elms[7] = parseFloat(ncsOp['vector[2]'][i])
+      elms[11] = parseFloat(ncsOp['vector[3]'][i])
 
       m.transpose()
 
@@ -478,7 +480,7 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     })
 
     if (ncsPart.matrixList.length === 0) {
-      delete biomolDict[ ncsName ]
+      delete biomolDict[ncsName]
     }
   }
 
@@ -503,9 +505,9 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     const c = parseFloat(cell.length_c)
 
     const box = new Float32Array(9)
-    box[ 0 ] = a
-    box[ 4 ] = b
-    box[ 8 ] = c
+    box[0] = a
+    box[4] = b
+    box[8] = c
     structure.boxes.push(box)
 
     unitcellDict.a = a
@@ -518,7 +520,7 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
 
   if (cif.symmetry) {
     unitcellDict.spacegroup = trimQuotes(
-      cif.symmetry[ 'space_group_name_H-M' ]
+      cif.symmetry['space_group_name_H-M']
     )
   }
 
@@ -529,21 +531,21 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     var origxMat = cif.database_PDB_matrix
     var origxElms = origx.elements
 
-    origxElms[ 0 ] = parseFloat(origxMat[ 'origx[1][1]' ])
-    origxElms[ 1 ] = parseFloat(origxMat[ 'origx[1][2]' ])
-    origxElms[ 2 ] = parseFloat(origxMat[ 'origx[1][3]' ])
+    origxElms[0] = parseFloat(origxMat['origx[1][1]'])
+    origxElms[1] = parseFloat(origxMat['origx[1][2]'])
+    origxElms[2] = parseFloat(origxMat['origx[1][3]'])
 
-    origxElms[ 4 ] = parseFloat(origxMat[ 'origx[2][1]' ])
-    origxElms[ 5 ] = parseFloat(origxMat[ 'origx[2][2]' ])
-    origxElms[ 6 ] = parseFloat(origxMat[ 'origx[2][3]' ])
+    origxElms[4] = parseFloat(origxMat['origx[2][1]'])
+    origxElms[5] = parseFloat(origxMat['origx[2][2]'])
+    origxElms[6] = parseFloat(origxMat['origx[2][3]'])
 
-    origxElms[ 8 ] = parseFloat(origxMat[ 'origx[3][1]' ])
-    origxElms[ 9 ] = parseFloat(origxMat[ 'origx[3][2]' ])
-    origxElms[ 10 ] = parseFloat(origxMat[ 'origx[3][3]' ])
+    origxElms[8] = parseFloat(origxMat['origx[3][1]'])
+    origxElms[9] = parseFloat(origxMat['origx[3][2]'])
+    origxElms[10] = parseFloat(origxMat['origx[3][3]'])
 
-    origxElms[ 3 ] = parseFloat(origxMat[ 'origx_vector[1]' ])
-    origxElms[ 7 ] = parseFloat(origxMat[ 'origx_vector[2]' ])
-    origxElms[ 11 ] = parseFloat(origxMat[ 'origx_vector[3]' ])
+    origxElms[3] = parseFloat(origxMat['origx_vector[1]'])
+    origxElms[7] = parseFloat(origxMat['origx_vector[2]'])
+    origxElms[11] = parseFloat(origxMat['origx_vector[3]'])
 
     origx.transpose()
 
@@ -557,21 +559,21 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
     var scaleMat = cif.atom_sites
     var scaleElms = scale.elements
 
-    scaleElms[ 0 ] = parseFloat(scaleMat[ 'fract_transf_matrix[1][1]' ])
-    scaleElms[ 1 ] = parseFloat(scaleMat[ 'fract_transf_matrix[1][2]' ])
-    scaleElms[ 2 ] = parseFloat(scaleMat[ 'fract_transf_matrix[1][3]' ])
+    scaleElms[0] = parseFloat(scaleMat['fract_transf_matrix[1][1]'])
+    scaleElms[1] = parseFloat(scaleMat['fract_transf_matrix[1][2]'])
+    scaleElms[2] = parseFloat(scaleMat['fract_transf_matrix[1][3]'])
 
-    scaleElms[ 4 ] = parseFloat(scaleMat[ 'fract_transf_matrix[2][1]' ])
-    scaleElms[ 5 ] = parseFloat(scaleMat[ 'fract_transf_matrix[2][2]' ])
-    scaleElms[ 6 ] = parseFloat(scaleMat[ 'fract_transf_matrix[2][3]' ])
+    scaleElms[4] = parseFloat(scaleMat['fract_transf_matrix[2][1]'])
+    scaleElms[5] = parseFloat(scaleMat['fract_transf_matrix[2][2]'])
+    scaleElms[6] = parseFloat(scaleMat['fract_transf_matrix[2][3]'])
 
-    scaleElms[ 8 ] = parseFloat(scaleMat[ 'fract_transf_matrix[3][1]' ])
-    scaleElms[ 9 ] = parseFloat(scaleMat[ 'fract_transf_matrix[3][2]' ])
-    scaleElms[ 10 ] = parseFloat(scaleMat[ 'fract_transf_matrix[3][3]' ])
+    scaleElms[8] = parseFloat(scaleMat['fract_transf_matrix[3][1]'])
+    scaleElms[9] = parseFloat(scaleMat['fract_transf_matrix[3][2]'])
+    scaleElms[10] = parseFloat(scaleMat['fract_transf_matrix[3][3]'])
 
-    scaleElms[ 3 ] = parseFloat(scaleMat[ 'fract_transf_vector[1]' ])
-    scaleElms[ 7 ] = parseFloat(scaleMat[ 'fract_transf_vector[2]' ])
-    scaleElms[ 11 ] = parseFloat(scaleMat[ 'fract_transf_vector[3]' ])
+    scaleElms[3] = parseFloat(scaleMat['fract_transf_vector[1]'])
+    scaleElms[7] = parseFloat(scaleMat['fract_transf_vector[2]'])
+    scaleElms[11] = parseFloat(scaleMat['fract_transf_vector[3]'])
 
     scale.transpose()
 
@@ -585,7 +587,7 @@ function processSymmetry (cif: Cif, structure: Structure, asymIdDict: {[k: strin
   }
 }
 
-function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: string]: string}) {
+function processConnections(cif: Cif, structure: Structure, asymIdDict: { [k: string]: string }) {
   // add connections
   var sc = cif.struct_conn
 
@@ -595,7 +597,7 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
     var reDoubleQuote = /"/g
     var ap1 = structure.getAtomProxy()
     var ap2 = structure.getAtomProxy()
-    var atomIndicesCache: {[k: string]: Uint32Array|undefined} = {}
+    var atomIndicesCache: { [k: string]: Uint32Array | undefined } = {}
 
     for (var i = 0, il = sc.id.length; i < il; ++i) {
       // ignore:
@@ -603,14 +605,14 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
       // mismat - mismatched base pairs
       // saltbr - ionic interaction
 
-      var connTypeId = sc.conn_type_id[ i ]
+      var connTypeId = sc.conn_type_id[i]
       if (connTypeId === 'hydrog' ||
-          connTypeId === 'mismat' ||
-          connTypeId === 'saltbr') continue
+        connTypeId === 'mismat' ||
+        connTypeId === 'saltbr') continue
 
       // ignore bonds between symmetry mates
-      if (sc.ptnr1_symmetry[ i ] !== '1_555' ||
-          sc.ptnr2_symmetry[ i ] !== '1_555') continue
+      if (sc.ptnr1_symmetry[i] !== '1_555' ||
+        sc.ptnr2_symmetry[i] !== '1_555') continue
 
       // process:
       // covale - covalent bond
@@ -624,16 +626,16 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
       // metalc - metal coordination
       // modres - covalent residue modification
 
-      var inscode1 = sc.pdbx_ptnr1_PDB_ins_code[ i ]
-      var altloc1 = sc.pdbx_ptnr1_label_alt_id[ i ]
+      var inscode1 = sc.pdbx_ptnr1_PDB_ins_code[i]
+      var altloc1 = sc.pdbx_ptnr1_label_alt_id[i]
       var sele1 = (
-        sc.ptnr1_auth_seq_id[ i ] +
+        sc.ptnr1_auth_seq_id[i] +
         (hasValue(inscode1) ? ('^' + inscode1) : '') +
-        ':' + asymIdDict[ sc.ptnr1_label_asym_id[ i ] ] +
-        '.' + sc.ptnr1_label_atom_id[ i ].replace(reDoubleQuote, '') +
+        ':' + asymIdDict[sc.ptnr1_label_asym_id[i]] +
+        '.' + sc.ptnr1_label_atom_id[i].replace(reDoubleQuote, '') +
         (hasValue(altloc1) ? ('%' + altloc1) : '')
       )
-      var atomIndices1 = atomIndicesCache[ sele1 ]
+      var atomIndices1 = atomIndicesCache[sele1]
       if (!atomIndices1) {
         var selection1 = new Selection(sele1)
         if (selection1.selection.error) {
@@ -641,19 +643,19 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
           continue
         }
         atomIndices1 = structure.getAtomIndices(selection1)
-        atomIndicesCache[ sele1 ] = atomIndices1
+        atomIndicesCache[sele1] = atomIndices1
       }
 
-      var inscode2 = sc.pdbx_ptnr2_PDB_ins_code[ i ]
-      var altloc2 = sc.pdbx_ptnr2_label_alt_id[ i ]
+      var inscode2 = sc.pdbx_ptnr2_PDB_ins_code[i]
+      var altloc2 = sc.pdbx_ptnr2_label_alt_id[i]
       var sele2 = (
-        sc.ptnr2_auth_seq_id[ i ] +
+        sc.ptnr2_auth_seq_id[i] +
         (hasValue(inscode2) ? ('^' + inscode2) : '') +
-        ':' + asymIdDict[ sc.ptnr2_label_asym_id[ i ] ] +
-        '.' + sc.ptnr2_label_atom_id[ i ].replace(reDoubleQuote, '') +
+        ':' + asymIdDict[sc.ptnr2_label_asym_id[i]] +
+        '.' + sc.ptnr2_label_atom_id[i].replace(reDoubleQuote, '') +
         (hasValue(altloc2) ? ('%' + altloc2) : '')
       )
-      var atomIndices2 = atomIndicesCache[ sele2 ]
+      var atomIndices2 = atomIndicesCache[sele2]
       if (!atomIndices2) {
         var selection2 = new Selection(sele2)
         if (selection2.selection.error) {
@@ -661,7 +663,7 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
           continue
         }
         atomIndices2 = structure.getAtomIndices(selection2)
-        atomIndicesCache[ sele2 ] = atomIndices2
+        atomIndicesCache[sele2] = atomIndices2
       }
 
       // cases with more than one atom per selection
@@ -689,12 +691,13 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
       }
 
       for (var j = 0; j < l; ++j) {
-        ap1.index = atomIndices1![ j % k ]
-        ap2.index = atomIndices2![ j ]
+        ap1.index = atomIndices1![j % k]
+        ap2.index = atomIndices2![j]
 
         if (ap1 && ap2) {
+          // console.log('333333333333333')
           structure.bondStore.addBond(
-            ap1, ap2, getBondOrder(sc.pdbx_value_order[ i ])
+            ap1, ap2, getBondOrder(sc.pdbx_value_order[i])
           )
         } else {
           Log.log('atoms for connection not found')
@@ -704,16 +707,16 @@ function processConnections (cif: Cif, structure: Structure, asymIdDict: {[k: st
   }
 }
 
-function processEntities (cif: Cif, structure: Structure, chainIndexDict: {[k: string]: Set<number>}) {
+function processEntities(cif: Cif, structure: Structure, chainIndexDict: { [k: string]: Set<number> }) {
   if (cif.entity) {
     ensureArray(cif.entity, 'id')
     var e = cif.entity
     var n = e.id.length
     for (var i = 0; i < n; ++i) {
-      var description = e.pdbx_description[ i ]
-      var type = e.type[ i ]
-      var chainIndexList: number[] = Array.from(chainIndexDict[ e.id[ i ] ])
-      structure.entityList[ i ] = new Entity(
+      var description = e.pdbx_description[i]
+      var type = e.type[i]
+      var chainIndexList: number[] = Array.from(chainIndexDict[e.id[i]])
+      structure.entityList[i] = new Entity(
         structure, i, description, type, chainIndexList
       )
     }
@@ -723,9 +726,9 @@ function processEntities (cif: Cif, structure: Structure, chainIndexDict: {[k: s
 //
 
 class CifParser extends StructureParser {
-  get type () { return 'cif' }
+  get type() { return 'cif' }
 
-  _parse () {
+  _parse() {
     // http://mmcif.wwpdb.org/
 
     Log.time('CifParser._parse ' + this.name)
@@ -745,19 +748,19 @@ class CifParser extends StructureParser {
     //
 
     var cif: Cif = {}
-    var asymIdDict: {[k: string]: string} = {}
-    var chainIndexDict:{[k: string]: Set<number>} = {}
+    var asymIdDict: { [k: string]: string } = {}
+    var chainIndexDict: { [k: string]: Set<number> } = {}
 
     var pendingString = false
-    var currentString: string|null = null
+    var currentString: string | null = null
     var pendingValue = false
     var pendingLoop = false
     var pendingName = false
     var loopPointers: string[][] = []
-    var currentLoopIndex: number|null = null
-    var currentCategory: string|null = null
-    var currentName: string|boolean|null = null
-    var first: boolean|null = null
+    var currentLoopIndex: number | null = null
+    var currentCategory: string | null = null
+    var currentName: string | boolean | null = null
+    var first: boolean | null = null
     var pointerNames: string[] = []
 
     var authAsymId: number, authSeqId: number,
@@ -775,7 +778,7 @@ class CifParser extends StructureParser {
     var modelIdx = 0
     var modelNum: number
 
-    function _parseChunkOfLines (_i: number, _n: number, lines: string[]) {
+    function _parseChunkOfLines(_i: number, _n: number, lines: string[]) {
       for (var i = _i; i < _n; ++i) {
         rawline = lines[i]
         line = rawline.trim()
@@ -804,13 +807,13 @@ class CifParser extends StructureParser {
               if (currentLoopIndex === loopPointers.length) {
                 currentLoopIndex = 0
               }
-              loopPointers[ currentLoopIndex as number ].push(currentString as string);
+              loopPointers[currentLoopIndex as number].push(currentString as string);
               (currentLoopIndex as number) += 1
             } else {
               if (currentName === false) {
-                cif[ currentCategory as string ] = currentString
+                cif[currentCategory as string] = currentString
               } else {
-                cif[ currentCategory as string ][ currentName as string ] = currentString //TODO currentname can equals null
+                cif[currentCategory as string][currentName as string] = currentString //TODO currentname can equals null
               }
             }
 
@@ -841,20 +844,20 @@ class CifParser extends StructureParser {
             // Log.log( "LOOP KEY", line );
 
             keyParts = line.split('.')
-            category = keyParts[ 0 ].substring(1)
-            name = keyParts[ 1 ]
+            category = keyParts[0].substring(1)
+            name = keyParts[1]
 
             if (keyParts.length === 1) {
               name = false
-              if (!cif[ category ]) cif[ category ] = []
-              loopPointers.push(cif[ category ])
+              if (!cif[category]) cif[category] = []
+              loopPointers.push(cif[category])
             } else {
-              if (!cif[ category ]) cif[ category ] = {}
-              if (cif[ category ][ name ]) {
+              if (!cif[category]) cif[category] = {}
+              if (cif[category][name]) {
                 if (Debug) Log.warn(category, name, 'already exists')
               } else {
-                cif[ category ][ name ] = []
-                loopPointers.push(cif[ category ][ name ])
+                cif[category][name] = []
+                loopPointers.push(cif[category][name])
                 pointerNames.push(name)
               }
             }
@@ -864,22 +867,22 @@ class CifParser extends StructureParser {
             first = true
           } else {
             var keyValuePair = line.match(reQuotedWhitespace)
-            var key = keyValuePair![ 0 ]
-            var value = keyValuePair![ 1 ]
+            var key = keyValuePair![0]
+            var value = keyValuePair![1]
             keyParts = key.split('.')
-            category = keyParts[ 0 ].substring(1)
-            name = keyParts[ 1 ]
+            category = keyParts[0].substring(1)
+            name = keyParts[1]
 
             if (keyParts.length === 1) {
               name = false
-              cif[ category ] = value
+              cif[category] = value
             } else {
-              if (!cif[ category ]) cif[ category ] = {}
+              if (!cif[category]) cif[category] = {}
 
-              if (cif[ category ][ name ]) {
+              if (cif[category][name]) {
                 if (Debug) Log.warn(category, name, 'already exists')
               } else {
-                cif[ category ][ name ] = value
+                cif[category][name] = value
               }
             }
 
@@ -923,7 +926,7 @@ class CifParser extends StructureParser {
 
                 first = false
 
-                modelNum = parseInt(ls[ pdbxPDBmodelNum ])
+                modelNum = parseInt(ls[pdbxPDBmodelNum])
 
                 if (asTrajectory) {
                   currentFrame = []
@@ -933,7 +936,7 @@ class CifParser extends StructureParser {
 
               //
 
-              const _modelNum = parseInt(ls[ pdbxPDBmodelNum ])
+              const _modelNum = parseInt(ls[pdbxPDBmodelNum])
 
               if (modelNum !== _modelNum) {
                 if (asTrajectory) {
@@ -955,19 +958,19 @@ class CifParser extends StructureParser {
 
               //
 
-              const atomname = ls[ labelAtomId ].replace(reDoubleQuote, '')
+              const atomname = ls[labelAtomId].replace(reDoubleQuote, '')
               if (cAlphaOnly && atomname !== 'CA') continue
 
-              const x = parseFloat(ls[ CartnX ])
-              const y = parseFloat(ls[ CartnY ])
-              const z = parseFloat(ls[ CartnZ ])
+              const x = parseFloat(ls[CartnX])
+              const y = parseFloat(ls[CartnY])
+              const z = parseFloat(ls[CartnZ])
 
               if (asTrajectory) {
                 const frameOffset = currentCoord * 3
 
-                currentFrame[ frameOffset + 0 ] = x
-                currentFrame[ frameOffset + 1 ] = y
-                currentFrame[ frameOffset + 2 ] = z
+                currentFrame[frameOffset + 0] = x
+                currentFrame[frameOffset + 1] = y
+                currentFrame[frameOffset + 2] = z
 
                 currentCoord += 1
 
@@ -976,52 +979,52 @@ class CifParser extends StructureParser {
 
               //
 
-              const resname = ls[ labelCompId ]
-              const resno = parseInt(ls[ authSeqId ])
-              let inscode = ls[ pdbxPDBinsCode ]
+              const resname = ls[labelCompId]
+              const resno = parseInt(ls[authSeqId])
+              let inscode = ls[pdbxPDBinsCode]
               inscode = (inscode === '?') ? '' : inscode
-              const chainname = ls[ authAsymId ]
-              const chainid = ls[ labelAsymId ]
-              const hetero = (ls[ groupPDB ][ 0 ] === 'H') ? 1 : 0
+              const chainname = ls[authAsymId]
+              const chainid = ls[labelAsymId]
+              const hetero = (ls[groupPDB][0] === 'H') ? 1 : 0
 
               //
 
-              const element = ls[ typeSymbol ]
-              const bfactor = parseFloat(ls[ bIsoOrEquiv ])
-              const occ = parseFloat(ls[ occupancy ])
-              let altloc = ls[ labelAltId ]
+              const element = ls[typeSymbol]
+              const bfactor = parseFloat(ls[bIsoOrEquiv])
+              const occ = parseFloat(ls[occupancy])
+              let altloc = ls[labelAltId]
               altloc = (altloc === '.') ? '' : altloc
 
               atomStore.growIfFull()
-              atomStore.atomTypeId[ idx ] = atomMap.add(atomname, element)
+              atomStore.atomTypeId[idx] = atomMap.add(atomname, element)
 
-              atomStore.x[ idx ] = x
-              atomStore.y[ idx ] = y
-              atomStore.z[ idx ] = z
-              atomStore.serial[ idx ] = parseInt(ls[ id ])
-              atomStore.bfactor[ idx ] = isNaN(bfactor) ? 0 : bfactor
-              atomStore.occupancy[ idx ] = isNaN(occ) ? 0 : occ
-              atomStore.altloc[ idx ] = altloc.charCodeAt(0)
+              atomStore.x[idx] = x
+              atomStore.y[idx] = y
+              atomStore.z[idx] = z
+              atomStore.serial[idx] = parseInt(ls[id])
+              atomStore.bfactor[idx] = isNaN(bfactor) ? 0 : bfactor
+              atomStore.occupancy[idx] = isNaN(occ) ? 0 : occ
+              atomStore.altloc[idx] = altloc.charCodeAt(0)
 
               sb.addAtom(modelIdx, chainname, chainid, resname, resno, hetero, undefined, inscode)
 
               if (Debug) {
                 // check if one-to-many (chainname-asymId) relationship is
                 // actually a many-to-many mapping
-                const assignedChainname = asymIdDict[ chainid ]
+                const assignedChainname = asymIdDict[chainid]
                 if (assignedChainname !== undefined && assignedChainname !== chainname) {
                   if (Debug) Log.warn(assignedChainname, chainname)
                 }
               }
               // chainname mapping: label_asym_id -> auth_asym_id
-              asymIdDict[ chainid ] = chainname
+              asymIdDict[chainid] = chainname
 
               // entity mapping: chainIndex -> label_entity_id
-              const entityId = ls[ labelEntityId ]
-              if (!chainIndexDict[ entityId ]) {
-                chainIndexDict[ entityId ] = new Set()
+              const entityId = ls[labelEntityId]
+              if (!chainIndexDict[entityId]) {
+                chainIndexDict[entityId] = new Set()
               }
-              chainIndexDict[ entityId ].add(s.chainStore.count - 1)
+              chainIndexDict[entityId].add(s.chainStore.count - 1)
 
               idx += 1
             } else {
@@ -1035,7 +1038,7 @@ class CifParser extends StructureParser {
               } */
 
               for (let j = 0; j < nn; ++j) {
-                loopPointers[ <number>currentLoopIndex + j ].push(ls![ j ])
+                loopPointers[<number>currentLoopIndex + j].push(ls![j])
               }
 
               (<number>currentLoopIndex) += nn
@@ -1048,17 +1051,17 @@ class CifParser extends StructureParser {
             const str = line.substring(1, line.length - 1)
 
             if (currentName === false) {
-              cif[ currentCategory as string ] = str
+              cif[currentCategory as string] = str
             } else {
-              cif[ currentCategory as string ][ currentName as string ] = str
+              cif[currentCategory as string][currentName as string] = str
             }
           } else if (pendingValue) {
             // Log.log( "NEWLINE VALUE", line );
 
             if (currentName === false) {
-              cif[ currentCategory as string ] = line
+              cif[currentCategory as string] = line
             } else {
-              cif[ currentCategory as string ][ currentName as string ] = line
+              cif[currentCategory as string][currentName as string] = line
             }
           } else {
             if (Debug) Log.log('CifParser._parse: unknown state', line)
@@ -1103,14 +1106,14 @@ class CifParser extends StructureParser {
           ensureArray(cif.pdbx_audit_revision_history, 'revision_date')
           const dates = cif.pdbx_audit_revision_history.revision_date.filter(hasValue)
           if (dates.length) {
-            s.header.releaseDate = dates[ 0 ]
+            s.header.releaseDate = dates[0]
           }
         }
         if (cif.pdbx_database_status.recvd_initial_deposition_date) {
           ensureArray(cif.pdbx_database_status, 'recvd_initial_deposition_date')
           const depDates = cif.pdbx_database_status.recvd_initial_deposition_date.filter(hasValue)
           if (depDates.length) {
-            s.header.depositionDate = depDates[ 0 ]
+            s.header.depositionDate = depDates[0]
           }
         }
       } else if (cif.database_PDB_rev) {
@@ -1118,14 +1121,14 @@ class CifParser extends StructureParser {
           ensureArray(cif.database_PDB_rev, 'date')
           const dates = cif.database_PDB_rev.date.filter(hasValue)
           if (dates.length) {
-            s.header.releaseDate = dates[ 0 ]
+            s.header.releaseDate = dates[0]
           }
         }
         if (cif.database_PDB_rev.date_original) {
           ensureArray(cif.database_PDB_rev, 'date_original')
           const depDates = cif.database_PDB_rev.date_original.filter(hasValue)
           if (depDates.length) {
-            s.header.depositionDate = depDates[ 0 ]
+            s.header.depositionDate = depDates[0]
           }
         }
       }
@@ -1157,6 +1160,7 @@ class CifParser extends StructureParser {
 
       sb.finalize()
       s.finalizeAtoms()
+      // console.log('kkk', s);
       calculateBonds(s)
       s.finalizeBonds()
 
