@@ -17,11 +17,11 @@ import AtomProxy from '../proxy/atom-proxy';
 import { AtomDataParams, BondDataParams, BondDataFields, AtomDataFields, BondData, AtomData } from '../structure/structure-data';
 import StructureView from '../structure/structure-view';
 import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer';
-//  import SphereGeometryBuffer from '../buffer/spheregeometry-buffer';
 // @ts-ignore: unused import Surface required for declaration only
 import Surface from '../surface/surface';
-import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
-import { AtomPicker, BondPicker } from '../utils/picker'
+// import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
+import { AtomPicker } from '../utils/picker'
+import SphereGeometryBuffer from '../buffer/spheregeometry-buffer'
 
 export interface EBallAndStickRepresentationParameters extends StructureRepresentationParameters {
   sphereDetail: number

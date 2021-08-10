@@ -14,7 +14,6 @@ import StructureView from '../structure/structure-view';
 import SphereGeometryBuffer from '../buffer/spheregeometry-buffer';
 import { AtomDataFields } from '../structure/structure-data';
 import SphereImpostorBuffer from '../buffer/sphereimpostor-buffer';
-import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
 
 /**
  * Spacefill Representation

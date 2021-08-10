@@ -20,7 +20,7 @@ import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer';
 import SphereGeometryBuffer from '../buffer/spheregeometry-buffer';
 // @ts-ignore: unused import Surface required for declaration only
 import Surface from '../surface/surface';
-import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
+// import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
 // import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants'
 
 export interface BallAndStickRepresentationParameters extends StructureRepresentationParameters {

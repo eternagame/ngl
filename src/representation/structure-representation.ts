@@ -63,8 +63,8 @@ abstract class StructureRepresentation extends Representation {
   protected defaultAssembly: string;
   protected needsBuild: boolean;
   protected ellipsoid: boolean;
-  protected majorAxis: [k: number];
-  protected minorAxis: [k: number];
+  protected majorAxis: number[];
+  protected minorAxis: number[];
 
   /**
    * Create Structure representation object

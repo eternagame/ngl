@@ -11,11 +11,9 @@ import { Structure } from '../ngl';
 import Viewer from '../viewer/viewer';
 import StructureView from '../structure/structure-view';
 import { AtomDataFields, AtomDataParams, BondDataFields, BondDataParams, BondData, AtomData } from '../structure/structure-data';
-import CylinderBuffer, { CylinderBufferData } from '../buffer/cylinder-buffer'
-import SphereBuffer, { SphereBufferData, SphereBufferParameters } from '../buffer/sphere-buffer'
 import EllipsoidBuffer, { EllipsoidBufferData } from '../buffer/ellipsoid-buffer'
 import WideLineBuffer from '../buffer/wideline-buffer'
-import { StructureRepresentationData, StructureRepresentationParameters } from './structure-representation';
+import { StructureRepresentationData } from './structure-representation';
 import { WideLineBufferData } from '../buffer/wideline-buffer'
 import AtomProxy from '../proxy/atom-proxy';
 
