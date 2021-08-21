@@ -89,7 +89,6 @@ class Picker {
    * @return {Vector3} the position
    */
   getPosition(pid: number, instance: any, component: Component) {
-    console.log('kkk', pid, this._getPosition(pid), instance, component);
     return this._applyTransformations(
       this._getPosition(pid), instance, component
     )

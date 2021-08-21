@@ -54,9 +54,9 @@ interface StructureRepresentationParametersMap {
   'axes': AxesRepresentationParameters,
   'backbone': BallAndStickRepresentationParameters,
   'ball+stick': BallAndStickRepresentationParameters,
-  'eball+stick': EBallAndStickRepresentationParameters,
+  'eball+stick': EBallAndStickRepresentationParameters, //kkk
   'base': BallAndStickRepresentationParameters,
-  'ebase': BallAndStickRepresentationParameters,
+  'ebase': BallAndStickRepresentationParameters, //kkk
   'cartoon': CartoonRepresentationParameters,
   'contact': ContactRepresentationParameters,
   'dihedral': DihedralRepresentationParameters,

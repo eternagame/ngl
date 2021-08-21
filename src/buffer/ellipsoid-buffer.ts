@@ -20,7 +20,8 @@ export interface EllipsoidBufferData extends BufferData {
   majorAxis: Float32Array
   minorAxis: Float32Array
   radius: Float32Array
-  vScale: number
+
+  vScale: number //kkk //scaling control parameter
 }
 
 export const EllipsoidBufferDefaultParameters = Object.assign({
@@ -62,8 +63,10 @@ class EllipsoidBuffer extends GeometryBuffer {
     up.fromArray(this._minorAxis as any, i3)
     matrix.lookAt(eye, target, up)
 
-    // console.log(this._vScale);
-    scale.set(this._radius[i] * this._vScale, up.length(), target.length()) //kkk
+    //kkk
+    //scale sphere in 3 axises to make ellipsoid
+    scale.set(this._radius[i] * this._vScale, up.length(), target.length())
+
     matrix.scale(scale)
   }
 
@@ -71,7 +74,7 @@ class EllipsoidBuffer extends GeometryBuffer {
     if (data.radius) this._radius = data.radius
     if (data.majorAxis) this._majorAxis = data.majorAxis
     if (data.minorAxis) this._minorAxis = data.minorAxis
-    this._vScale = defaults(data.vScale, 1)
+    this._vScale = defaults(data.vScale, 1) //kkk
 
     super.setAttributes(data, initNormals)
   }

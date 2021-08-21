@@ -90,9 +90,9 @@ import './representation/angle-representation'
 import './representation/axes-representation'
 import './representation/backbone-representation'
 import './representation/ballandstick-representation'
-import './representation/eballandstick-representation'
+import './representation/eballandstick-representation' //kkk
 import './representation/base-representation'
-import './representation/ebase-representation'
+import './representation/ebase-representation' //kkk
 import './representation/cartoon-representation'
 import './representation/contact-representation'
 import './representation/dihedral-representation'

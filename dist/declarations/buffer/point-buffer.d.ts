@@ -73,8 +73,18 @@ declare class PointBuffer extends Buffer {
         };
         side: {
             updateShader: boolean;
-            property: boolean;
-        };
+            property: boolean; /**
+             * @param  {Object} data - attribute object
+             * @param  {Float32Array} data.position - positions
+             * @param  {Float32Array} data.color - colors
+             * @param  {BufferParameters} params - parameter object
+             */
+        }; /**
+         * @param  {Object} data - attribute object
+         * @param  {Float32Array} data.position - positions
+         * @param  {Float32Array} data.color - colors
+         * @param  {BufferParameters} params - parameter object
+         */
         opacity: {
             uniform: boolean;
         };

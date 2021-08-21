@@ -122,23 +122,23 @@ export const StageDefaultParameters = {
   quality: 'medium' as RenderQualityType,
   workerDefault: true,
   sampleLevel: 0,
-  backgroundColor: 'black' as string | number,
+  backgroundColor: 'white' as string | number,
   rotateSpeed: 2.0,
   zoomSpeed: 1.2,
   panSpeed: 1.0,
   clipNear: 0,
   clipFar: 100,
-  clipDist: 10,
+  clipDist: 1,
   clipMode: 'scene',
   clipScale: 'relative',
-  fogNear: 50,
-  fogFar: 100,
+  fogNear: 500,
+  fogFar: 1000,
   cameraFov: 40,
   cameraEyeSep: 0.3,
   cameraType: 'perspective' as 'perspective' | 'orthographic' | 'stereo',
-  lightColor: 0xdddddd as string | number,
+  lightColor: 0xffffff as string | number,
   lightIntensity: 1.0,
-  ambientColor: 0xdddddd as string | number,
+  ambientColor: 0xffffff as string | number,
   ambientIntensity: 0.2,
   hoverTimeout: 0,
   tooltip: true,
@@ -201,19 +201,21 @@ class Stage {
   rockAnimation: Animation
 
   constructor(idOrElement: string | HTMLElement, params: Partial<StageParameters> = {}) {
-    this.viewer = new Viewer(idOrElement)
+    this.viewer = new Viewer(idOrElement, this)
     if (!this.viewer.renderer) return
 
     this.tooltip = document.createElement('div')
     Object.assign(this.tooltip.style, {
       display: 'none',
-      position: 'fixed',
+      // position: 'fixed',
+      position: 'relative', //kkk
       zIndex: '1000000',
       pointerEvents: 'none',
       backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
       color: 'lightgrey',
       padding: '8px',
-      fontFamily: 'sans-serif'
+      fontFamily: 'sans-serif',
+      overflowWrap: "anywhere"
     })
     this.viewer.container.appendChild(this.tooltip)
 

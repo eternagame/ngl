@@ -5,6 +5,7 @@
  */
 
 import { Signal } from 'signals'
+import Stage from '../stage/stage'
 import {
   PerspectiveCamera, OrthographicCamera, StereoCamera,
   Vector2, Box3, Vector3, Matrix4, Color,
@@ -16,9 +17,16 @@ import {
   Scene, Mesh, Group, Object3D, Uniform,
   Fog, SpotLight, AmbientLight,
   BufferGeometry, BufferAttribute,
-  LineSegments,
-  LinearEncoding, sRGBEncoding, TextureEncoding
+  LineSegments, //TextureLoader, IcosahedronGeometry,
+  LinearEncoding, sRGBEncoding, TextureEncoding, MeshBasicMaterial
 } from 'three'
+
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
+
 import '../shader/BasicLine.vert'
 import '../shader/BasicLine.frag'
 import '../shader/Quad.vert'
@@ -58,6 +66,8 @@ function onBeforeRender(this: Object3D, renderer: WebGLRenderer, scene: Scene, c
   const u = material.uniforms
   const updateList = []
 
+  if (!u) return; //KKK
+
   if (u.objectId) {
     u.objectId.value = SupportsReadPixelsFloat ? this.id : this.id / 255
     updateList.push('objectId')
@@ -69,7 +79,7 @@ function onBeforeRender(this: Object3D, renderer: WebGLRenderer, scene: Scene, c
     this.modelViewMatrix.multiplyMatrices(camera.matrixWorldInverse, this.matrixWorld)
   }
 
-  if (u.modelViewMatrixInverse) {
+  if (u && u.modelViewMatrixInverse) {
     u.modelViewMatrixInverse.value.getInverse(this.modelViewMatrix)
     updateList.push('modelViewMatrixInverse')
   }
@@ -206,11 +216,22 @@ export default class Viewer {
   rotationGroup: Group
   translationGroup: Group
   private modelGroup: Group
+  private selectGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
+  private selectGroup2: Group //kkk //add variable to implement outline highlight effect of the selected bases.
+  private markGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
   private pickingGroup: Group
   private backgroundGroup: Group
   private helperGroup: Group
 
   renderer: WebGLRenderer
+
+  composer: EffectComposer
+  selectOutlinePass: OutlinePass
+  // markOutlinePass: OutlinePass
+  effectFXAA: ShaderPass
+  flashCount: number = 0
+  baseColor: number = 0xFFFF00
+
   private supportsHalfFloat: boolean
 
   private pickingTarget: WebGLRenderTarget
@@ -246,7 +267,10 @@ export default class Viewer {
 
   private distVector = new Vector3()
 
-  constructor(idOrElement: string | HTMLElement) {
+  private stage: Stage;
+
+  constructor(idOrElement: string | HTMLElement, stage: Stage) {
+    this.stage = stage;
     this.signals = {
       ticked: new Signal(),
       rendered: new Signal()
@@ -382,6 +406,18 @@ export default class Viewer {
     this.modelGroup.name = 'modelGroup'
     this.translationGroup.add(this.modelGroup)
 
+    this.selectGroup = new Group()
+    this.selectGroup.name = 'selectGroup'
+    this.modelGroup.add(this.selectGroup);
+
+    this.selectGroup2 = new Group()
+    this.selectGroup2.name = 'selectGroup2'
+    this.modelGroup.add(this.selectGroup2);
+
+    this.markGroup = new Group()
+    this.markGroup.name = 'markGroup'
+    this.modelGroup.add(this.markGroup);
+
     this.pickingGroup = new Group()
     this.pickingGroup.name = 'pickingGroup'
     this.translationGroup.add(this.pickingGroup)
@@ -425,6 +461,7 @@ export default class Viewer {
       this.wrapper.innerHTML = WebglErrorMessage
       return false
     }
+
     this.renderer.setPixelRatio(dpr)
     this.renderer.setSize(width, height)
     this.renderer.autoClear = false
@@ -560,6 +597,39 @@ export default class Viewer {
     this.compositeScene.add(new Mesh(
       new PlaneGeometry(2, 2), this.compositeMaterial
     ))
+
+    //kkk
+    //variables for outline highlight rendering
+    this.composer = new EffectComposer(this.renderer);
+    const renderPass = new RenderPass(this.scene, this.camera);
+    this.composer.addPass(renderPass);
+
+    this.selectOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
+    this.selectOutlinePass.edgeStrength = 5;
+    this.selectOutlinePass.edgeGlow = 0.5;
+    this.selectOutlinePass.edgeThickness = 2;
+    this.composer.addPass(this.selectOutlinePass);
+
+    // this.markOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
+    // this.markOutlinePass.edgeStrength = 5;
+    // this.markOutlinePass.edgeGlow = 0.5;
+    // this.markOutlinePass.edgeThickness = 2;
+    // this.composer.addPass(this.markOutlinePass);
+
+    this.effectFXAA = new ShaderPass(FXAAShader);
+    this.effectFXAA.uniforms['resolution'].value.set(1 / this.width, 1 / this.height);
+    this.composer.addPass(this.effectFXAA);
+
+    setInterval(() => {
+      if (this.markGroup.children.length > 0) {
+        this.flashCount++;
+        this.markGroup.children.forEach((mesh: Mesh) => {
+          var mat = <MeshBasicMaterial>mesh.material;
+          mat.opacity = (this.flashCount % 2) * 0.6;
+        });
+        this.requestRender();
+      }
+    }, 500)
   }
 
   private _initHelper() {
@@ -638,7 +708,180 @@ export default class Viewer {
 
     if (Debug) this.updateHelper()
 
+    // console.log(this.pickingGroup);
+
     // Log.timeEnd( "Viewer.add" );
+  }
+
+  //kkk
+  //set base to highlight outline
+  selectEBaseObject(resno: number, color1?: number, color2?: number) {
+    let selGeometry = null;
+    var selectedObjects = [];
+    this.selectGroup.children.forEach((obj) => {
+      this.selectGroup.remove(obj);
+    });
+    this.modelGroup.children.forEach(group => {
+      if (group.name == 'meshGroup') {
+        let mesh: Mesh = <Mesh>group.children[0];
+        let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
+        if (geometry.name == 'ebase') {
+          let newPos = new Array<Vector3>(0);
+          let posInfo = geometry.getAttribute('position');
+          let posArray = <Float32Array>posInfo.array;
+          // posInfo.count
+          let idInfo = geometry.getAttribute('primitiveId');
+          let idArray = <Float32Array>idInfo.array;
+          var x0 = 0, y0 = 0, z0 = 0;
+          for (var i = 0; i < idArray.length; i++) {
+            if (idArray[i] == resno) {
+              newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+              x0 += posArray[i * 3];
+              y0 += posArray[i * 3 + 1];
+              z0 += posArray[i * 3 + 2];
+            }
+          }
+          x0 /= newPos.length;
+          y0 /= newPos.length;
+          z0 /= newPos.length;
+          selGeometry = new BufferGeometry();
+          selGeometry.setFromPoints(newPos);
+          selGeometry.translate(-x0, -y0, -z0);
+          selGeometry.scale(1.3, 1.3, 1.3);
+          selGeometry.translate(x0, y0, z0);
+        }
+      }
+    });
+    var color = color1 ? color1 : 0xFFFF00;
+    if (selGeometry) {
+      var mat = new MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false
+      });
+      var newMesh = new Mesh(selGeometry, mat);
+      this.selectGroup.add(newMesh);
+      selectedObjects.push(newMesh);
+    }
+    this.requestRender();
+  }
+
+  setBaseColor(color: number) {
+    this.baseColor = color;
+  }
+  selectEBaseObject2(resno: number, color1?: number, color2?: number) {
+    var selGeometry = null;
+    var selectedObjects = [];
+    this.selectGroup2.children.forEach((obj) => {
+      this.selectGroup2.remove(obj);
+    });
+    this.modelGroup.children.forEach(group => {
+      if (group.name == 'meshGroup') {
+        let mesh: Mesh = <Mesh>group.children[0];
+        let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
+        if (geometry.name == 'ebase') {
+          let newPos = new Array<Vector3>(0);
+          // let newNormal = new Array(0);
+          let posInfo = geometry.getAttribute('position');
+          let posArray = <Float32Array>posInfo.array;
+          // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
+          // posInfo.count
+          let idInfo = geometry.getAttribute('primitiveId');
+          let idArray = <Float32Array>idInfo.array;
+          var x0 = 0, y0 = 0, z0 = 0;
+          for (var i = 0; i < idArray.length; i++) {
+            if (idArray[i] == resno) {
+              newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+              x0 += posArray[i * 3];
+              y0 += posArray[i * 3 + 1];
+              z0 += posArray[i * 3 + 2];
+            }
+          }
+          x0 /= newPos.length;
+          y0 /= newPos.length;
+          z0 /= newPos.length;
+          selGeometry = new BufferGeometry();
+          selGeometry.setFromPoints(newPos);
+          this.stage.animationControls.move(new Vector3(x0, y0, z0))
+        }
+      }
+    });
+    if (selGeometry) {
+      var mat = new MeshBasicMaterial({
+        color: 0xFFFFFF,
+        transparent: true,
+        opacity: 0.0,
+        depthWrite: false,
+      });
+      var newMesh = new Mesh(selGeometry, mat);
+      this.selectGroup2.add(newMesh);
+      selectedObjects.push(newMesh);
+    }
+    if (color1) this.selectOutlinePass.visibleEdgeColor.set(color1);
+    if (color2) this.selectOutlinePass.hiddenEdgeColor.set(color2);
+    this.selectOutlinePass.selectedObjects = selectedObjects;
+    this.requestRender();
+  }
+  markEBaseObject(resno: number, color1?: number, color2?: number) {
+    var selectedObjects = [];
+    var bNew: boolean = true;
+    this.markGroup.children.forEach((obj) => {
+      if (parseInt(obj.name) == resno) {
+        this.markGroup.remove(obj);
+        bNew = false;
+      }
+      else {
+        selectedObjects.push(obj);
+      }
+    });
+    if (bNew) {
+      var selGeometry = null;
+      this.modelGroup.children.forEach(group => {
+        if (group.name == 'meshGroup') {
+          let mesh: Mesh = <Mesh>group.children[0];
+          let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
+          if (geometry.name == 'ebase') {
+            let newPos = new Array<Vector3>(0);
+            let posInfo = geometry.getAttribute('position');
+            let posArray = <Float32Array>posInfo.array;
+            let idInfo = geometry.getAttribute('primitiveId');
+            let idArray = <Float32Array>idInfo.array;
+            var x0 = 0, y0 = 0, z0 = 0;
+            for (var i = 0; i < idArray.length; i++) {
+              if (idArray[i] == resno) {
+                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+                x0 += posArray[i * 3];
+                y0 += posArray[i * 3 + 1];
+                z0 += posArray[i * 3 + 2];
+              }
+            }
+            x0 /= newPos.length;
+            y0 /= newPos.length;
+            z0 /= newPos.length;
+            selGeometry = new BufferGeometry();
+            selGeometry.setFromPoints(newPos);
+            this.stage.animationControls.move(new Vector3(x0, y0, z0))
+          }
+        }
+      });
+      if (selGeometry) {
+        var mat = new MeshBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.8,
+          depthWrite: false,
+        });
+        var newMesh = new Mesh(selGeometry, mat);
+        newMesh.name = resno.toString();
+        this.markGroup.add(newMesh);
+        selectedObjects.push(newMesh);
+      }
+    }
+    // if (color1) this.markOutlinePass.visibleEdgeColor.set(color1);
+    // if (color2) this.markOutlinePass.hiddenEdgeColor.set(color2);
+    // this.markOutlinePass.selectedObjects = selectedObjects;
+    this.requestRender();
   }
 
   addBuffer(buffer: Buffer, instance?: BufferInstance) {
@@ -956,6 +1199,11 @@ export default class Viewer {
     this.sampleTarget.setSize(dprWidth, dprHeight)
     this.holdTarget.setSize(dprWidth, dprHeight)
 
+    //kkk
+    // resize composer
+    this.composer.setSize(width, height);
+    this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
+
     this.requestRender()
   }
 
@@ -1253,13 +1501,17 @@ export default class Viewer {
   private __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     this.renderer.setRenderTarget(renderTarget || null)
     this.renderer.clear()
+
     this.__setVisibility(false, false, true, false)
     this.renderer.render(this.scene, camera)
     this.renderer.clear(false, true, true)
     this.updateInfo()
 
     this.__setVisibility(true, false, false, Debug)
-    this.renderer.render(this.scene, camera)
+    //kkk
+    //use composer rendering for outline highlighting effects
+    this.composer.render();
+    // this.renderer.render(this.scene, camera)
     this.renderer.setRenderTarget(null) // set back to default canvas
     this.updateInfo()
   }
@@ -1352,6 +1604,7 @@ export default class Viewer {
     } else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
       // TODO super sample broken for stereo camera
       this.__renderSuperSample(camera, renderTarget)
+      this.__renderModelGroup(camera, renderTarget)
     } else {
       this.__renderModelGroup(camera, renderTarget)
     }

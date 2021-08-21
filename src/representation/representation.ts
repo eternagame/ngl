@@ -101,7 +101,7 @@ class Representation {
   bufferList: Buffer[]
 
   lazy: boolean
-  lazyProps: { build: boolean, bufferParams: BufferParameters | {}, what: {}}
+  lazyProps: { build: boolean, bufferParams: BufferParameters | {}, what: {} }
   protected name: string
   protected clipNear: number
   protected clipRadius: number
@@ -136,13 +136,13 @@ class Representation {
   private quality: string
   visible: boolean
 
-  protected manualAttach: ()=> any
+  protected manualAttach: () => any
 
   protected toBePrepared: boolean
 
   [key: string]: any
 
-  constructor (object: any, viewer: Viewer, params: Partial<RepresentationParameters>) {
+  constructor(object: any, viewer: Viewer, params: Partial<RepresentationParameters>) {
     // eslint-disable-next-line no-unused-vars
     // const p = params || {}
 
@@ -270,7 +270,7 @@ class Representation {
     this.toBePrepared = false
   }
 
-  init (params: Partial<RepresentationParameters>) {
+  init(params: Partial<RepresentationParameters>) {
     const p = params || {}
 
     this.clipNear = defaults(p.clipNear, 0)
@@ -367,7 +367,7 @@ class Representation {
 
   }
 
-  getColorParams (p?: {[k: string]: any}): { scheme: string, [k: string]: any } & ColormakerParameters {
+  getColorParams(p?: { [k: string]: any }): { scheme: string, [k: string]: any } & ColormakerParameters {
     return Object.assign({
 
       scheme: this.colorScheme,
@@ -381,7 +381,7 @@ class Representation {
     }, p)
   }
 
-  getBufferParams (p: {[k: string]: any} = {}) {
+  getBufferParams(p: { [k: string]: any } = {}) {
     return Object.assign({
 
       clipNear: this.clipNear,
@@ -409,7 +409,7 @@ class Representation {
     }, p)
   }
 
-  setColor (value: number | string | Color | undefined , p?: Partial<RepresentationParameters>) {
+  setColor(value: number | string | Color | undefined, p?: Partial<RepresentationParameters>) {
     const types = Object.keys(ColormakerRegistry.getSchemes())
 
     if (typeof value === 'string' && types.includes(value.toLowerCase())) {
@@ -434,19 +434,19 @@ class Representation {
   }
 
   // TODO
-  prepare (cb: ()=> void) {
+  prepare(cb: () => void) {
 
   }
 
-  create () {
+  create() {
     // this.bufferList.length = 0;
   }
 
-  update (what?: any) {
+  update(what?: any) {
     this.build()
   }
 
-  build (updateWhat?: {[k: string]: boolean}) {
+  build(updateWhat?: { [k: string]: boolean }) {
     if (this.lazy && (!this.visible || !this.opacity)) {
       this.lazyProps.build = true
       return
@@ -469,7 +469,7 @@ class Representation {
     this.queue.push(updateWhat || false)
   }
 
-  make (updateWhat?: boolean, callback?: () => void) {
+  make(updateWhat?: boolean, callback?: () => void) {
     if (Debug) Log.time('Representation.make ' + this.type)
 
     const _make = () => {
@@ -501,7 +501,7 @@ class Representation {
     }
   }
 
-  attach (callback: () => void) {
+  attach(callback: () => void) {
     this.setVisibility(this.visible)
 
     callback()
@@ -513,7 +513,7 @@ class Representation {
    * @param {Boolean} [noRenderRequest] - whether or not to request a re-render from the viewer
    * @return {Representation} this object
    */
-  setVisibility (value: boolean, noRenderRequest?: boolean): Representation {
+  setVisibility(value: boolean, noRenderRequest?: boolean): Representation {
     this.visible = value
 
     if (this.visible && this.opacity) {
@@ -554,7 +554,7 @@ class Representation {
    * @param {Boolean} [rebuild] - whether or not to rebuild the representation
    * @return {Representation} this object
    */
-  setParameters (params: Partial<RepresentationParameters>, what:{[propName: string]: any} = {}, rebuild = false) {
+  setParameters(params: Partial<RepresentationParameters>, what: { [propName: string]: any } = {}, rebuild = false) {
     const p = params || {}
     const tp = this.parameters
     const bufferParams: BufferParameters = <any>{}
@@ -574,44 +574,44 @@ class Representation {
     this.setColor(p.color, p)
 
     for (let name in p) {
-      if (p[ name ] === undefined) continue
-      if (tp[ name ] === undefined) continue
+      if (p[name] === undefined) continue
+      if (tp[name] === undefined) continue
 
-      if (tp[ name ].int) p[ name ] = parseInt(p[ name ] as string)
-      if (tp[ name ].float) p[ name ] = parseFloat(p[ name ] as string)
+      if (tp[name].int) p[name] = parseInt(p[name] as string)
+      if (tp[name].float) p[name] = parseFloat(p[name] as string)
 
       // no value change
-      if (p[ name ] === this[ name ] && (
-        !p[ name ].equals || p[ name ].equals(this[ name ])
+      if (p[name] === this[name] && (
+        !p[name].equals || p[name].equals(this[name])
       )) continue
 
-      if (this[ name ] && this[ name ].copy && p[ name ].copy) {
-        this[ name ].copy(p[ name ])
-      } else if (this[ name ] && this[ name ].set) {
-        this[ name ].set(p[ name ])
+      if (this[name] && this[name].copy && p[name].copy) {
+        this[name].copy(p[name])
+      } else if (this[name] && this[name].set) {
+        this[name].set(p[name])
       } else {
-        this[ name ] = p[ name ]
+        this[name] = p[name]
       }
 
       // buffer param
-      if (tp[ name ].buffer) {
-        if (tp[ name ].buffer === true) {
-          (bufferParams[ name as keyof BufferParameters ] as any) = p[ name ]
+      if (tp[name].buffer) {
+        if (tp[name].buffer === true) {
+          (bufferParams[name as keyof BufferParameters] as any) = p[name]
         } else {
-          let key: (keyof BufferParameters) = tp[ name ].buffer;
-          (bufferParams[ key ] as any) = p[ name ]
+          let key: (keyof BufferParameters) = tp[name].buffer;
+          (bufferParams[key] as any) = p[name]
         }
       }
 
       // mark for update
-      if (tp[ name ].update) {
-        what[ tp[ name ].update ] = true
+      if (tp[name].update) {
+        what[tp[name].update] = true
       }
 
       // mark for rebuild
-      if (tp[ name ].rebuild &&
-          !(tp[ name ].rebuild === 'impostor' &&
-            ExtensionFragDepth && !this.disableImpostor)
+      if (tp[name].rebuild &&
+        !(tp[name].rebuild === 'impostor' &&
+          ExtensionFragDepth && !this.disableImpostor)
       ) {
         rebuild = true
       }
@@ -628,7 +628,7 @@ class Representation {
     return this
   }
 
-  updateParameters (bufferParams: BufferParameters | {} = {}, what?: any) {
+  updateParameters(bufferParams: BufferParameters | {} = {}, what?: any) {
     if (this.lazy && (!this.visible || !this.opacity) && bufferParams.hasOwnProperty('opacity') === false) {
       Object.assign(this.lazyProps.bufferParams, bufferParams)
       Object.assign(this.lazyProps.what, what)
@@ -646,7 +646,7 @@ class Representation {
     this.viewer.requestRender()
   }
 
-  getParameters () {
+  getParameters() {
     const params: Partial<RepresentationParameters> = {
       lazy: this.lazy,
       visible: this.visible,
@@ -654,15 +654,15 @@ class Representation {
     }
 
     Object.keys(this.parameters).forEach(name => {
-      if (this.parameters[ name ] !== null) {
-        params[ name ] = this[ name ]
+      if (this.parameters[name] !== null) {
+        params[name] = this[name]
       }
     })
 
     return params
   }
 
-  clear () {
+  clear() {
     this.bufferList.forEach(buffer => {
       this.viewer.remove(buffer)
       buffer.dispose()
@@ -672,7 +672,7 @@ class Representation {
     this.viewer.requestRender()
   }
 
-  dispose () {
+  dispose() {
     this.disposed = true
     this.queue.kill()
     this.tasks.dispose()

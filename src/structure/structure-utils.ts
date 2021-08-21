@@ -574,7 +574,6 @@ function getBondOrderFromTable(resname: string, atomname1: string, atomname2: st
 }
 
 export function calculateResidueBonds(r: ResidueProxy) {
-  // console.log('kkk', r);
   const structure = r.structure
   const a1 = structure.getAtomProxy()
   const a2 = structure.getAtomProxy()
@@ -672,7 +671,6 @@ export function calculateBondsWithin(structure: Structure, onlyAddRung = false) 
       }
 
       const bonds = r.getBonds()
-      // console.log('kkk', r, bonds);
       const atomIndices1 = bonds.atomIndices1
       const atomIndices2 = bonds.atomIndices2
       const bondOrders = bonds.bondOrders

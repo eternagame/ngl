@@ -1,6 +1,6 @@
 /**
- * @file Ball And Stick Representation
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @file Extended Ball And Stick Representation for Eterna game
+ * @author KKK
  * @private
  */
 
@@ -8,6 +8,8 @@ import { defaults } from '../utils'
 import { ExtensionFragDepth, RepresentationRegistry } from '../globals'
 import StructureRepresentation, { StructureRepresentationParameters, StructureRepresentationData } from './structure-representation'
 import SphereBuffer, { SphereBufferData, SphereBufferParameters } from '../buffer/sphere-buffer'
+import SphereGeometryBuffer from '../buffer/spheregeometry-buffer'
+
 import CylinderBuffer, { CylinderBufferData } from '../buffer/cylinder-buffer'
 import WideLineBuffer from '../buffer/wideline-buffer'
 import Viewer from '../viewer/viewer';
@@ -19,9 +21,7 @@ import StructureView from '../structure/structure-view';
 import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer';
 // @ts-ignore: unused import Surface required for declaration only
 import Surface from '../surface/surface';
-// import EllipsoidBuffer from '../buffer/ellipsoid-buffer'
 import { AtomPicker } from '../utils/picker'
-import SphereGeometryBuffer from '../buffer/spheregeometry-buffer'
 
 export interface EBallAndStickRepresentationParameters extends StructureRepresentationParameters {
   sphereDetail: number

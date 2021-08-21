@@ -1,6 +1,6 @@
 /**
- * @file Base Representation
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @file Extended Base Representation for Eterna game
+ * @author KKK
  * @private
  */
 
@@ -85,7 +85,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
       let rawBondData = sview.getBondData(p);
 
       var data = this.getBondData(sview);
-      console.log(data);
+      // console.log(data);
       var pos1 = data.position1;
       var pos2 = data.position2;
       var majorAxis = new Array();
@@ -283,6 +283,22 @@ class EBaseRepresentation extends BallAndStickRepresentation {
         // data.bufferList[1].setAttributes(sphereData)
       }
     }
+  }
+
+  attach(callback: () => void) {
+    const viewer = this.viewer
+    const bufferList = this.bufferList
+
+    this.dataList.forEach(function (data) {
+      data.bufferList.forEach(function (buffer) {
+        buffer.geometry.name = 'ebase'; //kkk // set geometry name for outline highlighting
+        bufferList.push(buffer)
+        viewer.add(buffer, data.instanceList)
+      })
+    })
+
+    this.setVisibility(this.visible)
+    callback()
   }
 
 }

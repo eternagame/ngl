@@ -1,6 +1,6 @@
 /**
- * @file Base Representation
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @file Extended Base Representation for Eterna game
+ * @author KKK
  * @private
  */
 import BallAndStickRepresentation, { BallAndStickRepresentationParameters } from './ballandstick-representation';
@@ -35,5 +35,6 @@ declare class EBaseRepresentation extends BallAndStickRepresentation {
         bufferList: any[];
     };
     updateData(what: BondDataFields | AtomDataFields, data: StructureRepresentationData): void;
+    attach(callback: () => void): void;
 }
 export default EBaseRepresentation;

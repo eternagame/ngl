@@ -1,6 +1,6 @@
 /**
- * @file Ball And Stick Representation
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @file Extended Ball And Stick Representation for Eterna game
+ * @author KKK
  * @private
  */
 import StructureRepresentation, { StructureRepresentationParameters, StructureRepresentationData } from './structure-representation';

@@ -44,6 +44,16 @@ export declare const ShapeDefaultParameters: {
         metalness: number;
         diffuse: number;
         diffuseInterior: boolean;
+        /**
+         * @param {String} name - name
+         * @param {Object} params - parameter object
+         * @param {Integer} params.aspectRatio - arrow aspect ratio, used for cylinder radius and cone length
+         * @param {Integer} params.sphereDetail - sphere quality (icosahedron subdivisions)
+         * @param {Integer} params.radialSegments - cylinder quality (number of segments)
+         * @param {Boolean} params.disableImpostor - disable use of raycasted impostors for rendering
+         * @param {Boolean} params.openEnded - capped or not
+         * @param {TextBufferParameters} params.labelParams - label parameters
+         */
         useInteriorColor: boolean;
         interiorColor: number;
         interiorDarkening: number;

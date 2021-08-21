@@ -57,8 +57,6 @@ declare abstract class StructureRepresentation extends Representation {
     protected defaultAssembly: string;
     protected needsBuild: boolean;
     protected ellipsoid: boolean;
-    protected majorAxis: number[];
-    protected minorAxis: number[];
     /**
      * Create Structure representation object
      * @param {Structure} structure - the structure to be represented

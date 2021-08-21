@@ -4,7 +4,11 @@
  * @private
  */
 import { Signal } from 'signals';
+import Stage from '../stage/stage';
 import { PerspectiveCamera, OrthographicCamera, Box3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, TextureEncoding } from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import '../shader/BasicLine.vert';
 import '../shader/BasicLine.frag';
 import '../shader/Quad.vert';
@@ -72,10 +76,18 @@ export default class Viewer {
     rotationGroup: Group;
     translationGroup: Group;
     private modelGroup;
+    private selectGroup;
+    private selectGroup2;
+    private markGroup;
     private pickingGroup;
     private backgroundGroup;
     private helperGroup;
     renderer: WebGLRenderer;
+    composer: EffectComposer;
+    selectOutlinePass: OutlinePass;
+    effectFXAA: ShaderPass;
+    flashCount: number;
+    baseColor: number;
     private supportsHalfFloat;
     private pickingTarget;
     private sampleTarget;
@@ -90,7 +102,8 @@ export default class Viewer {
     private boundingBoxLength;
     private info;
     private distVector;
-    constructor(idOrElement: string | HTMLElement);
+    private stage;
+    constructor(idOrElement: string | HTMLElement, stage: Stage);
     private _initParams;
     private _initCamera;
     private _initStats;
@@ -103,6 +116,10 @@ export default class Viewer {
     /** Set distance from origin (lookAt point); along the -z axis */
     set cameraDistance(d: number);
     add(buffer: Buffer, instanceList?: BufferInstance[]): void;
+    selectEBaseObject(resno: number, color1?: number, color2?: number): void;
+    setBaseColor(color: number): void;
+    selectEBaseObject2(resno: number, color1?: number, color2?: number): void;
+    markEBaseObject(resno: number, color1?: number, color2?: number): void;
     addBuffer(buffer: Buffer, instance?: BufferInstance): void;
     remove(buffer: Buffer): void;
     private _updateBoundingBox;

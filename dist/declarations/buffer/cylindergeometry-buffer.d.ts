@@ -18,6 +18,18 @@ export declare const CylinderGeometryBufferDefaultParameters: {
     clipRadius: number;
     clipCenter: Vector3;
     flatShaded: boolean;
+    /**
+     * Cylinder geometry buffer.
+     *
+     * @example
+     * var cylinderGeometryBuffer = new CylinderGeometryBuffer({
+     *   position1: new Float32Array([ 0, 0, 0 ]),
+     *   position2: new Float32Array([ 1, 1, 1 ]),
+     *   color: new Float32Array([ 1, 0, 0 ]),
+     *   color2: new Float32Array([ 0, 1, 0 ]),
+     *   radius: new Float32Array([ 1 ])
+     * });
+     */
     wireframe: boolean;
     roughness: number;
     metalness: number;
@@ -59,6 +71,18 @@ declare class CylinderGeometryBuffer extends GeometryBuffer {
         clipRadius: number;
         clipCenter: Vector3;
         flatShaded: boolean;
+        /**
+         * Cylinder geometry buffer.
+         *
+         * @example
+         * var cylinderGeometryBuffer = new CylinderGeometryBuffer({
+         *   position1: new Float32Array([ 0, 0, 0 ]),
+         *   position2: new Float32Array([ 1, 1, 1 ]),
+         *   color: new Float32Array([ 1, 0, 0 ]),
+         *   color2: new Float32Array([ 0, 1, 0 ]),
+         *   radius: new Float32Array([ 1 ])
+         * });
+         */
         wireframe: boolean;
         roughness: number;
         metalness: number;

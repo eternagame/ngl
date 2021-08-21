@@ -50,21 +50,21 @@ export interface StructureRepresentationData {
  */
 abstract class StructureRepresentation extends Representation {
 
-  protected selection: Selection;
-  protected dataList: StructureRepresentationData[];
-  structure: Structure;
-  structureView: StructureView;
+  protected selection: Selection
+  protected dataList: StructureRepresentationData[]
+  structure: Structure
+  structureView: StructureView
 
-  protected radiusType: RadiusType;
-  protected radiusData: { [k: number]: number };
-  protected radiusSize: number;
-  protected radiusScale: number;
-  protected assembly: string;
-  protected defaultAssembly: string;
-  protected needsBuild: boolean;
-  protected ellipsoid: boolean;
-  protected majorAxis: number[];
-  protected minorAxis: number[];
+  protected radiusType: RadiusType
+  protected radiusData: { [k: number]: number }
+  protected radiusSize: number
+  protected radiusScale: number
+  protected assembly: string
+  protected defaultAssembly: string
+  protected needsBuild: boolean
+  protected ellipsoid: boolean
+  // protected majorAxis: [k: number]
+  // protected minorAxis: [k: number]
 
   /**
    * Create Structure representation object
@@ -161,8 +161,8 @@ abstract class StructureRepresentation extends Representation {
     this.assembly = defaults(p.assembly, 'default')
     this.defaultAssembly = defaults(p.defaultAssembly, '')
     this.ellipsoid = defaults(p.ellipsoid, false);
-    this.majorAxis = defaults(p.majorAxis, [1, 1, 0])
-    this.minorAxis = defaults(p.minorAxis, [0.5, 0, 0.5])
+    // this.majorAxis = defaults(p.majorAxis, [1, 1, 0])
+    // this.minorAxis = defaults(p.minorAxis, [0.5, 0, 0.5])
 
 
     if (p.quality === 'auto') {

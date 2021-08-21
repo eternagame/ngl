@@ -153,13 +153,11 @@ function parseChemComp(cif: Cif, structure: Structure, structureBuilder: Structu
       ap1.index = atomnameDict[atomname1]
       ap2.index = atomnameDict[atomname2]
       structure.bondStore.growIfFull()
-      // console.log('11111111111111')
       structure.bondStore.addBond(ap1, ap2, bondOrder)
 
       ap1.index += na
       ap2.index += na
       structure.bondStore.growIfFull()
-      // console.log('22222222222222222')
       structure.bondStore.addBond(ap1, ap2, bondOrder)
     }
   }
@@ -683,8 +681,6 @@ function processConnections(cif: Cif, structure: Structure, asymIdDict: { [k: st
         atomIndices2 = tmpB
       }
 
-      // console.log( k, l );
-
       if (k === 0 || l === 0) {
         if (Debug) Log.warn('no atoms found for', sele1, sele2)
         continue
@@ -695,7 +691,6 @@ function processConnections(cif: Cif, structure: Structure, asymIdDict: { [k: st
         ap2.index = atomIndices2![j]
 
         if (ap1 && ap2) {
-          // console.log('333333333333333')
           structure.bondStore.addBond(
             ap1, ap2, getBondOrder(sc.pdbx_value_order[i])
           )
@@ -906,7 +901,8 @@ class CifParser extends StructureParser {
 
               if (first) {
                 authAsymId = pointerNames.indexOf('auth_asym_id')
-                authSeqId = pointerNames.indexOf('auth_seq_id')
+                // authSeqId = pointerNames.indexOf('auth_seq_id')
+                authSeqId = pointerNames.indexOf('label_seq_id') //kkk
                 labelAtomId = pointerNames.indexOf('label_atom_id')
                 labelCompId = pointerNames.indexOf('label_comp_id')
                 labelAsymId = pointerNames.indexOf('label_asym_id')
@@ -1160,7 +1156,6 @@ class CifParser extends StructureParser {
 
       sb.finalize()
       s.finalizeAtoms()
-      // console.log('kkk', s);
       calculateBonds(s)
       s.finalizeBonds()
 

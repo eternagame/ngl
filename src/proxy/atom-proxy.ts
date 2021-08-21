@@ -158,6 +158,7 @@ class AtomProxy {
     return this.residueType.resname
   }
   //kkk
+  //set resname 
   set resname(name) {
     this.residueType.resname = name;
   }
@@ -414,14 +415,19 @@ class AtomProxy {
   }
 
   //kkk
+  //decide whether the atom is in sugar section.
   isSugarAtom() {
     return this.atomname.includes("'") || this.atomname.includes("*");
   }
+  //kkk
+  //decide whether the atom is in sugar back bone.
   isSugarBondAtom() {
     return this.atomname.includes("C5'") || this.atomname.includes("C5*") || this.atomname.includes("O5'") || this.atomname.includes("O5*") ||
       this.atomname.includes("C4'") || this.atomname.includes("C4*") || this.atomname.includes("O4'") || this.atomname.includes("O4*") ||
       this.atomname.includes("C3'") || this.atomname.includes("C3*") || this.atomname.includes("O3'") || this.atomname.includes("O3*");
   }
+  //kkk
+  //decide whether the atom is in sugar back bone.
   isExtCandidate(bExtSugar?: boolean): boolean {
     var bExt: boolean = defaults(bExtSugar, true);
     if (this.isBackbone()) {
