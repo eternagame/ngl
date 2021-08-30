@@ -770,57 +770,63 @@ export default class Viewer {
   setBaseColor(color: number) {
     this.baseColor = color;
   }
-  selectEBaseObject2(resno: number, color1?: number, color2?: number) {
+  selectEBaseObject2(resno: number, bChange?: boolean, color1?: number, color2?: number) {
+    if (bChange == null) bChange = true;
     var selGeometry = null;
     var selectedObjects = [];
     this.selectGroup2.children.forEach((obj) => {
       this.selectGroup2.remove(obj);
     });
-    this.modelGroup.children.forEach(group => {
-      if (group.name == 'meshGroup') {
-        let mesh: Mesh = <Mesh>group.children[0];
-        let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
-        if (geometry.name == 'ebase') {
-          let newPos = new Array<Vector3>(0);
-          // let newNormal = new Array(0);
-          let posInfo = geometry.getAttribute('position');
-          let posArray = <Float32Array>posInfo.array;
-          // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
-          // posInfo.count
-          let idInfo = geometry.getAttribute('primitiveId');
-          let idArray = <Float32Array>idInfo.array;
-          var x0 = 0, y0 = 0, z0 = 0;
-          for (var i = 0; i < idArray.length; i++) {
-            if (idArray[i] == resno) {
-              newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-              x0 += posArray[i * 3];
-              y0 += posArray[i * 3 + 1];
-              z0 += posArray[i * 3 + 2];
+    if (resno >= 0) {
+      this.modelGroup.children.forEach(group => {
+        if (group.name == 'meshGroup') {
+          let mesh: Mesh = <Mesh>group.children[0];
+          let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
+          if (geometry.name == 'ebase') {
+            let newPos = new Array<Vector3>(0);
+            // let newNormal = new Array(0);
+            // let colorInfo = geometry.getAttribute('color');
+            let posInfo = geometry.getAttribute('position');
+            let posArray = <Float32Array>posInfo.array;
+            // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
+            // posInfo.count
+            let idInfo = geometry.getAttribute('primitiveId');
+            let idArray = <Float32Array>idInfo.array;
+            var x0 = 0, y0 = 0, z0 = 0;
+            for (var i = 0; i < idArray.length; i++) {
+              if (idArray[i] == resno) {
+                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+                x0 += posArray[i * 3];
+                y0 += posArray[i * 3 + 1];
+                z0 += posArray[i * 3 + 2];
+              }
+            }
+            if (newPos.length > 0) {
+              x0 /= newPos.length;
+              y0 /= newPos.length;
+              z0 /= newPos.length;
+              selGeometry = new BufferGeometry();
+              selGeometry.setFromPoints(newPos);
+              this.stage.animationControls.move(new Vector3(x0, y0, z0))
             }
           }
-          x0 /= newPos.length;
-          y0 /= newPos.length;
-          z0 /= newPos.length;
-          selGeometry = new BufferGeometry();
-          selGeometry.setFromPoints(newPos);
-          this.stage.animationControls.move(new Vector3(x0, y0, z0))
         }
-      }
-    });
-    if (selGeometry) {
-      var mat = new MeshBasicMaterial({
-        color: 0xFFFFFF,
-        transparent: true,
-        opacity: 0.0,
-        depthWrite: false,
       });
-      var newMesh = new Mesh(selGeometry, mat);
-      this.selectGroup2.add(newMesh);
-      selectedObjects.push(newMesh);
+      if (selGeometry) {
+        var mat = new MeshBasicMaterial({
+          color: 0xFFFFFF,
+          transparent: true,
+          opacity: 0.0,
+          depthWrite: false,
+        });
+        var newMesh = new Mesh(selGeometry, mat);
+        this.selectGroup2.add(newMesh);
+        selectedObjects.push(newMesh);
+      }
+      if (color1) this.selectOutlinePass.visibleEdgeColor.set(color1);
+      if (color2) this.selectOutlinePass.hiddenEdgeColor.set(color2);
+      if (bChange) this.selectOutlinePass.selectedObjects = selectedObjects;
     }
-    if (color1) this.selectOutlinePass.visibleEdgeColor.set(color1);
-    if (color2) this.selectOutlinePass.hiddenEdgeColor.set(color2);
-    this.selectOutlinePass.selectedObjects = selectedObjects;
     this.requestRender();
   }
   markEBaseObject(resno: number, color1?: number, color2?: number) {

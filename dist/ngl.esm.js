@@ -62204,61 +62204,69 @@
     Viewer.prototype.setBaseColor = function setBaseColor (color) {
         this.baseColor = color;
     };
-    Viewer.prototype.selectEBaseObject2 = function selectEBaseObject2 (resno, color1, color2) {
+    Viewer.prototype.selectEBaseObject2 = function selectEBaseObject2 (resno, bChange, color1, color2) {
           var this$1$1 = this;
 
+        if (bChange == null)
+            { bChange = true; }
         var selGeometry = null;
         var selectedObjects = [];
         this.selectGroup2.children.forEach(function (obj) {
             this$1$1.selectGroup2.remove(obj);
         });
-        this.modelGroup.children.forEach(function (group) {
-            if (group.name == 'meshGroup') {
-                var mesh = group.children[0];
-                var geometry = mesh.geometry;
-                if (geometry.name == 'ebase') {
-                    var newPos = new Array(0);
-                    // let newNormal = new Array(0);
-                    var posInfo = geometry.getAttribute('position');
-                    var posArray = posInfo.array;
-                    // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
-                    // posInfo.count
-                    var idInfo = geometry.getAttribute('primitiveId');
-                    var idArray = idInfo.array;
-                    var x0 = 0, y0 = 0, z0 = 0;
-                    for (var i = 0; i < idArray.length; i++) {
-                        if (idArray[i] == resno) {
-                            newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                            x0 += posArray[i * 3];
-                            y0 += posArray[i * 3 + 1];
-                            z0 += posArray[i * 3 + 2];
+        if (resno >= 0) {
+            this.modelGroup.children.forEach(function (group) {
+                if (group.name == 'meshGroup') {
+                    var mesh = group.children[0];
+                    var geometry = mesh.geometry;
+                    if (geometry.name == 'ebase') {
+                        var newPos = new Array(0);
+                        // let newNormal = new Array(0);
+                        // let colorInfo = geometry.getAttribute('color');
+                        var posInfo = geometry.getAttribute('position');
+                        var posArray = posInfo.array;
+                        // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
+                        // posInfo.count
+                        var idInfo = geometry.getAttribute('primitiveId');
+                        var idArray = idInfo.array;
+                        var x0 = 0, y0 = 0, z0 = 0;
+                        for (var i = 0; i < idArray.length; i++) {
+                            if (idArray[i] == resno) {
+                                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+                                x0 += posArray[i * 3];
+                                y0 += posArray[i * 3 + 1];
+                                z0 += posArray[i * 3 + 2];
+                            }
+                        }
+                        if (newPos.length > 0) {
+                            x0 /= newPos.length;
+                            y0 /= newPos.length;
+                            z0 /= newPos.length;
+                            selGeometry = new BufferGeometry();
+                            selGeometry.setFromPoints(newPos);
+                            this$1$1.stage.animationControls.move(new Vector3(x0, y0, z0));
                         }
                     }
-                    x0 /= newPos.length;
-                    y0 /= newPos.length;
-                    z0 /= newPos.length;
-                    selGeometry = new BufferGeometry();
-                    selGeometry.setFromPoints(newPos);
-                    this$1$1.stage.animationControls.move(new Vector3(x0, y0, z0));
                 }
-            }
-        });
-        if (selGeometry) {
-            var mat = new MeshBasicMaterial({
-                color: 0xFFFFFF,
-                transparent: true,
-                opacity: 0.0,
-                depthWrite: false,
             });
-            var newMesh = new Mesh(selGeometry, mat);
-            this.selectGroup2.add(newMesh);
-            selectedObjects.push(newMesh);
+            if (selGeometry) {
+                var mat = new MeshBasicMaterial({
+                    color: 0xFFFFFF,
+                    transparent: true,
+                    opacity: 0.0,
+                    depthWrite: false,
+                });
+                var newMesh = new Mesh(selGeometry, mat);
+                this.selectGroup2.add(newMesh);
+                selectedObjects.push(newMesh);
+            }
+            if (color1)
+                { this.selectOutlinePass.visibleEdgeColor.set(color1); }
+            if (color2)
+                { this.selectOutlinePass.hiddenEdgeColor.set(color2); }
+            if (bChange)
+                { this.selectOutlinePass.selectedObjects = selectedObjects; }
         }
-        if (color1)
-            { this.selectOutlinePass.visibleEdgeColor.set(color1); }
-        if (color2)
-            { this.selectOutlinePass.hiddenEdgeColor.set(color2); }
-        this.selectOutlinePass.selectedObjects = selectedObjects;
         this.requestRender();
     };
     Viewer.prototype.markEBaseObject = function markEBaseObject (resno, color1, color2) {

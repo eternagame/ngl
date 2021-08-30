@@ -118,7 +118,7 @@ export default class Viewer {
     add(buffer: Buffer, instanceList?: BufferInstance[]): void;
     selectEBaseObject(resno: number, color1?: number, color2?: number): void;
     setBaseColor(color: number): void;
-    selectEBaseObject2(resno: number, color1?: number, color2?: number): void;
+    selectEBaseObject2(resno: number, bChange?: boolean, color1?: number, color2?: number): void;
     markEBaseObject(resno: number, color1?: number, color2?: number): void;
     addBuffer(buffer: Buffer, instance?: BufferInstance): void;
     remove(buffer: Buffer): void;
