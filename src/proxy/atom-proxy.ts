@@ -157,8 +157,7 @@ class AtomProxy {
   get resname() {
     return this.residueType.resname
   }
-  //kkk
-  //set resname 
+  //kkk //set resname 
   set resname(name) {
     this.residueType.resname = name;
   }

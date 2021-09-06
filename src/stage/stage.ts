@@ -148,7 +148,8 @@ export type StageParameters = typeof StageDefaultParameters
 
 export interface StageLoadFileParams extends LoaderParameters {
   defaultRepresentation: boolean,
-  assembly: string
+  assembly: string,
+  etherna_pairs: number[] //kkk //add etherna pairs field
 }
 
 /**
@@ -454,6 +455,8 @@ class Stage {
   loadFile(path: string | File | Blob, params: Partial<StageLoadFileParams> = {}) {
     const p = Object.assign({}, this.defaultFileParams, params)
     const name = getFileInfo(path).name
+
+    this.viewer.setEthernaPairs(p.etherna_pairs); //kkk set etherna_pairs
 
     this.tasks.increment()
     this.log(`loading file '${name}'`)

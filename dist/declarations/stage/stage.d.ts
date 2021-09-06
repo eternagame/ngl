@@ -115,6 +115,7 @@ export declare type StageParameters = typeof StageDefaultParameters;
 export interface StageLoadFileParams extends LoaderParameters {
     defaultRepresentation: boolean;
     assembly: string;
+    etherna_pairs: number[];
 }
 /**
  * Stage class, central for creating molecular scenes with NGL.

@@ -103,7 +103,11 @@ export default class Viewer {
     private info;
     private distVector;
     private stage;
+    etherna_pairs: number[] | undefined;
+    etherna_sequence: string;
     constructor(idOrElement: string | HTMLElement, stage: Stage);
+    setEthernaPairs(pairs: number[] | undefined): void;
+    setEthernaSequence(sequence: string): void;
     private _initParams;
     private _initCamera;
     private _initStats;

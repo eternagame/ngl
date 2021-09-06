@@ -1166,6 +1166,8 @@ class CifParser extends StructureParser {
       }
       buildUnitcellAssembly(s)
 
+      console.log(secStruct, s);
+
       s.extraData.cif = cif
     }
 

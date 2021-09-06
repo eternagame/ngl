@@ -58053,6 +58053,9 @@ var Viewer = function Viewer(idOrElement, stage) {
           }
       };
       this.distVector = new Vector3$1();
+      //kkk
+      this.etherna_pairs = undefined;
+      this.etherna_sequence = '';
       this.stage = stage;
       this.signals = {
           ticked: new Signal(),
@@ -58102,6 +58105,14 @@ var Viewer = function Viewer(idOrElement, stage) {
   };
 
 var prototypeAccessors$x = { cameraDistance: { configurable: true } };
+  //kkk //setEthernaPairs
+  Viewer.prototype.setEthernaPairs = function setEthernaPairs (pairs) {
+      this.etherna_pairs = pairs;
+  };
+  //kkk //setEthernaPairs
+  Viewer.prototype.setEthernaSequence = function setEthernaSequence (sequence) {
+      this.etherna_sequence = sequence;
+  };
   Viewer.prototype._initParams = function _initParams () {
       this.parameters = {
           fogColor: new Color$1(0x000000),
@@ -72235,8 +72246,7 @@ prototypeAccessors$j.residueAtomOffset.get = function () {
 prototypeAccessors$j.resname.get = function () {
     return this.residueType.resname;
 };
-//kkk
-//set resname 
+//kkk //set resname 
 prototypeAccessors$j.resname.set = function (name) {
     this.residueType.resname = name;
 };
@@ -82631,6 +82641,7 @@ Stage.prototype.loadFile = function loadFile (path, params) {
 
     var p = Object.assign({}, this.defaultFileParams, params);
     var name = getFileInfo(path).name;
+    this.viewer.setEthernaPairs(p.etherna_pairs); //kkk set etherna_pairs
     this.tasks.increment();
     this.log(("loading file '" + name + "'"));
     var onLoadFn = function (object) {
@@ -87353,10 +87364,10 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
         else {
             var p = this.getBondParams({ position: true });
             var rawBondData = sview.getBondData(p);
-            var data = this.getBondData(sview);
-            // console.log(data);
-            var pos1 = data.position1;
-            var pos2 = data.position2;
+            var bondData = this.getBondData(sview);
+            this.fullBondData = bondData;
+            var pos1 = bondData.position1;
+            var pos2 = bondData.position2;
             var majorAxis = new Array();
             var minorAxis = new Array();
             if (pos1 && pos2) {
@@ -87380,8 +87391,8 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
                     majorAxis.push(z);
                     // console.log('major', x, y, z);
                     var x1, y1, z1, d1;
-                    if (data.picking && rawBondData.picking) {
-                        var atomIndex2 = data.picking.bondStore.atomIndex2;
+                    if (bondData.picking && rawBondData.picking) {
+                        var atomIndex2 = bondData.picking.bondStore.atomIndex2;
                         var id = atomIndex2[i];
                         var id2;
                         var n1;
@@ -87393,9 +87404,9 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
                         }
                         else
                             { id2 = id + 1; }
-                        var ap1 = new AtomProxy(data.picking.structure);
+                        var ap1 = new AtomProxy(bondData.picking.structure);
                         ap1.index = id;
-                        var ap2 = new AtomProxy(data.picking.structure);
+                        var ap2 = new AtomProxy(bondData.picking.structure);
                         ap2.index = id2;
                         var dx, dy, dz;
                         dx = ap2.x - ap1.x;
@@ -87429,32 +87440,128 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
                     minorAxis.push(y1 * r * wScale);
                     minorAxis.push(z1 * r * wScale);
                 }
-                var dataParam = this.getBondData(sview);
+                // console.log(bondData);
+                var dataParam = bondData;
                 dataParam.position = position;
-                dataParam.color = data.color;
+                dataParam.color = bondData.color;
                 dataParam.radius = radius;
                 dataParam.vScale = this.vScale;
                 dataParam.majorAxis = new Float32Array(majorAxis);
                 dataParam.minorAxis = new Float32Array(minorAxis);
                 var elilipsoidBuffer = new EllipsoidBuffer(dataParam);
+                elilipsoidBuffer.geometry.name = 'ebase';
                 bufferList.push(elilipsoidBuffer);
+                var pairsData = this.getPairData(bondData);
+                if (pairsData !== undefined) {
+                    var cylinderBuffer = new CylinderBuffer(pairsData, this.getBufferParams({
+                        openEnded: false,
+                        radialSegments: this.radialSegments,
+                        disableImpostor: this.disableImpostor,
+                        dullInterior: true
+                    }));
+                    bufferList.push(cylinderBuffer);
+                }
             }
-            // const cylinderBuffer = new CylinderBuffer(
-            //   (this.getBondData(sview) as CylinderBufferData),
-            //   this.getBufferParams({
-            //     openEnded: this.openEnded,
-            //     radialSegments: this.radialSegments,
-            //     disableImpostor: this.disableImpostor,
-            //     dullInterior: true
-            //   })
-            // )
-            // bufferList.push(cylinderBuffer as CylinderGeometryBuffer)
             if (!this.cylinderOnly) ;
         }
         return {
             bufferList: bufferList
         };
     };
+    EBaseRepresentation.prototype.getPairData = function getPairData (data) {
+        // console.log(data.picking);
+        if (this.viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
+            var bondData = {};
+            var pos1 = [];
+            var pos2 = [];
+            var colors = [];
+            var radius = [];
+            var pairMap = new Map();
+            for (var i = 0; i < this.viewer.etherna_pairs.length; i++) {
+                var pairNum = this.viewer.etherna_pairs[i];
+                if (pairNum < 0)
+                    { continue; }
+                if (pairMap.get(i) === pairNum || pairMap.get(pairNum) === i)
+                    { continue; }
+                pairMap.set(i, pairNum);
+                var strength = 0;
+                if (this.viewer.etherna_sequence.length > 0) {
+                    var seq = this.viewer.etherna_sequence;
+                    if (seq[i] == 'G' && seq[pairNum] == 'C' || seq[i] == 'C' && seq[pairNum] == 'G')
+                        { strength = 3; }
+                    else if (seq[i] == 'A' && seq[pairNum] == 'U' || seq[i] == 'U' && seq[pairNum] == 'A')
+                        { strength = 2; }
+                    else if (seq[i] == 'U' && seq[pairNum] == 'G' || seq[i] == 'G' && seq[pairNum] == 'U')
+                        { strength = 1; }
+                }
+                else if (data.picking) {
+                    var atomIndex2 = data.picking.bondStore.atomIndex2;
+                    var id1 = atomIndex2[i];
+                    var id2 = atomIndex2[pairNum];
+                    var ap1 = new AtomProxy(data.picking.structure);
+                    ap1.index = id1;
+                    var ap2 = new AtomProxy(data.picking.structure);
+                    ap2.index = id2;
+                    if (ap1.resname == 'G' && ap2.resname == 'C' || ap1.resname == 'C' && ap2.resname == 'G')
+                        { strength = 3; }
+                    else if (ap1.resname == 'A' && ap2.resname == 'U' || ap1.resname == 'U' && ap2.resname == 'A')
+                        { strength = 2; }
+                    else if (ap1.resname == 'U' && ap2.resname == 'G' || ap1.resname == 'G' && ap2.resname == 'U')
+                        { strength = 1; }
+                }
+                if (strength == 0)
+                    { continue; }
+                var x1 = data.position2[i * 3], y1 = data.position2[i * 3 + 1], z1 = data.position2[i * 3 + 2];
+                var x2 = data.position2[pairNum * 3], y2 = data.position2[pairNum * 3 + 1], z2 = data.position2[pairNum * 3 + 2];
+                var dx = x2 - x1;
+                x1 = x1 + dx / 20;
+                x2 = x2 - dx / 20;
+                var dy = y2 - y1;
+                y1 = y1 + dy / 20;
+                y2 = y2 - dy / 20;
+                var dz = z2 - z1;
+                z1 = z1 + dz / 20;
+                z2 = z2 - dz / 20;
+                pos1.push(x1);
+                pos1.push(y1);
+                pos1.push(z1);
+                pos2.push(x2);
+                pos2.push(y2);
+                pos2.push(z2);
+                radius.push(0.2 * strength);
+                if (strength == 3) {
+                    colors.push(1);
+                    colors.push(1);
+                    colors.push(1);
+                }
+                else if (strength == 2) {
+                    colors.push(0.85);
+                    colors.push(0.85);
+                    colors.push(0.85);
+                }
+                else {
+                    colors.push(0.7);
+                    colors.push(0.7);
+                    colors.push(0.7);
+                }
+            }
+            bondData.position1 = new Float32Array(pos1);
+            bondData.position2 = new Float32Array(pos2);
+            bondData.radius = new Float32Array(radius);
+            bondData.color = new Float32Array(colors);
+            bondData.color2 = new Float32Array(colors);
+            return bondData;
+        }
+        return undefined;
+    };
+    // update(what: BondDataFields | AtomDataFields) {
+    //   super.update(what);
+    //   this.dataList.forEach((data) => {
+    //     if (data.bufferList.length > 0) {
+    //       this.updateData(what, data)
+    //     }
+    //   }, this)
+    // }
     EBaseRepresentation.prototype.updateData = function updateData (what, data) {
         if (this.multipleBond !== 'off' && what && what.radius) {
             what.position = true;
@@ -87462,57 +87569,20 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
         if (data.bufferList == null)
             { return; }
         var bondData = this.getBondData(data.sview, what);
-        if (this.lineOnly) {
-            var lineData = {};
-            if (!what || what.position) {
-                Object.assign(lineData, {
-                    position1: bondData.position1,
-                    position2: bondData.position2
-                });
-            }
-            if (!what || what.color) {
-                Object.assign(lineData, {
-                    color: bondData.color,
-                    color2: bondData.color2
-                });
-            }
-            data.bufferList[0].setAttributes(lineData);
-        }
-        else {
-            var cylinderData = {};
-            if (!what || what.position) {
-                Object.assign(cylinderData, {
-                    position1: bondData.position1,
-                    position2: bondData.position2
-                });
-            }
-            if (!what || what.color) {
-                Object.assign(cylinderData, {
-                    color: bondData.color,
-                    color2: bondData.color2
-                });
-            }
-            if (!what || what.radius) {
-                Object.assign(cylinderData, {
-                    radius: bondData.radius
-                });
-            }
-            data.bufferList[0].setAttributes(cylinderData);
-            if (!this.cylinderOnly) ;
-        }
-    };
-    EBaseRepresentation.prototype.attach = function attach (callback) {
-        var viewer = this.viewer;
-        var bufferList = this.bufferList;
-        this.dataList.forEach(function (data) {
-            data.bufferList.forEach(function (buffer) {
-                buffer.geometry.name = 'ebase'; //kkk // set geometry name for outline highlighting
-                bufferList.push(buffer);
-                viewer.add(buffer, data.instanceList);
+        var ellipsoidData = {};
+        if (!what || what.color) {
+            Object.assign(ellipsoidData, {
+                color: bondData.color,
+                color2: bondData.color2
             });
-        });
-        this.setVisibility(this.visible);
-        callback();
+        }
+        data.bufferList[0].setAttributes(ellipsoidData);
+        if (data.bufferList[1]) {
+            var pairsData = this.getPairData(this.fullBondData);
+            if (pairsData !== undefined) {
+                data.bufferList[1].setAttributes(pairsData);
+            }
+        }
     };
 
     return EBaseRepresentation;
@@ -95688,6 +95758,7 @@ var CifParser = /*@__PURE__*/(function (StructureParser) {
                 assignSecondaryStructure(s, secStruct);
             }
             buildUnitcellAssembly(s);
+            console.log(secStruct, s);
             s.extraData.cif = cif;
         }
         if (Debug)

@@ -269,6 +269,10 @@ export default class Viewer {
 
   private stage: Stage;
 
+  //kkk
+  etherna_pairs: number[] | undefined = undefined;
+  etherna_sequence: string = '';
+
   constructor(idOrElement: string | HTMLElement, stage: Stage) {
     this.stage = stage;
     this.signals = {
@@ -320,6 +324,15 @@ export default class Viewer {
     this.setFog()
 
     this.animate = this.animate.bind(this)
+  }
+
+  //kkk //setEthernaPairs
+  setEthernaPairs(pairs: number[] | undefined) {
+    this.etherna_pairs = pairs;
+  }
+  //kkk //setEthernaPairs
+  setEthernaSequence(sequence: string) {
+    this.etherna_sequence = sequence;
   }
 
   private _initParams() {

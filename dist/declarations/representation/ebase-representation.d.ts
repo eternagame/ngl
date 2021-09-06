@@ -31,10 +31,11 @@ declare class EBaseRepresentation extends BallAndStickRepresentation {
     init(params: Partial<BallAndStickRepresentationParameters>): void;
     getAtomData(sview: StructureView, what?: AtomDataFields, params?: AtomDataParams): AtomData;
     getBondData(sview: StructureView, what?: BondDataFields, params?: BondDataParams): BondData;
+    private fullBondData;
     createData(sview: StructureView): {
         bufferList: any[];
     };
+    getPairData(data: BondData): BondData | undefined;
     updateData(what: BondDataFields | AtomDataFields, data: StructureRepresentationData): void;
-    attach(callback: () => void): void;
 }
 export default EBaseRepresentation;
