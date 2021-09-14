@@ -35,7 +35,7 @@ declare class EBaseRepresentation extends BallAndStickRepresentation {
     createData(sview: StructureView): {
         bufferList: any[];
     };
-    getPairData(data: BondData): BondData | undefined;
+    getPairData(data: BondData): BondData[] | null;
     updateData(what: BondDataFields | AtomDataFields, data: StructureRepresentationData): void;
 }
 export default EBaseRepresentation;

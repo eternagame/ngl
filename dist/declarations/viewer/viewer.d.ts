@@ -105,6 +105,7 @@ export default class Viewer {
     private stage;
     etherna_pairs: number[] | undefined;
     etherna_sequence: string;
+    fromOuter: boolean;
     constructor(idOrElement: string | HTMLElement, stage: Stage);
     setEthernaPairs(pairs: number[] | undefined): void;
     setEthernaSequence(sequence: string): void;
@@ -120,7 +121,7 @@ export default class Viewer {
     /** Set distance from origin (lookAt point); along the -z axis */
     set cameraDistance(d: number);
     add(buffer: Buffer, instanceList?: BufferInstance[]): void;
-    selectEBaseObject(resno: number, color1?: number, color2?: number): void;
+    selectEBaseObject(resno: number, fromViewer?: boolean, color1?: number): void;
     setBaseColor(color: number): void;
     selectEBaseObject2(resno: number, bChange?: boolean, color1?: number, color2?: number): void;
     markEBaseObject(resno: number, color1?: number, color2?: number): void;

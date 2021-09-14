@@ -214,7 +214,7 @@ class MouseActions {
       // check picking and send message that contain picking result
       var result = pickingProxy.checkBase();
       if (result.isBase) {
-        stage.viewer.selectEBaseObject(result.resno - 1, stage.viewer.baseColor);
+        stage.viewer.selectEBaseObject(result.resno - 1, true, stage.viewer.baseColor);
         window.dispatchEvent(new CustomEvent('picking', {
           detail: {
             'resno': result.resno,
@@ -254,7 +254,7 @@ export const MouseActionPresets = {
     ['drag-ctrl-left', MouseActions.panDrag],
     ['drag-ctrl-right', MouseActions.zRotateDrag],
     ['drag-shift-left', MouseActions.zoomDrag],
-    ['drag-middle', MouseActions.zoomFocusDrag],
+    // ['drag-middle', MouseActions.zoomFocusDrag], //kkk
 
     ['drag-ctrl-shift-right', MouseActions.panComponentDrag],
     ['drag-ctrl-shift-left', MouseActions.rotateComponentDrag],

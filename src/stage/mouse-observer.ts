@@ -306,8 +306,7 @@ class MouseObserver {
     this.buttons = getMouseButtons(event)
     this.pressed = true
     this._setCanvasPosition(event)
-    //kkk
-    //broadcast mouse down event in forms of custom event.
+    //kkk //broadcast mouse down event in forms of custom event.
     window.dispatchEvent(new CustomEvent('kkk', {
       detail: {
         'clientX': event.clientX,

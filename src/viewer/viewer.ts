@@ -3,7 +3,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @private
  */
-
+// import * as THREE from 'three';
 import { Signal } from 'signals'
 import Stage from '../stage/stage'
 import {
@@ -272,6 +272,7 @@ export default class Viewer {
   //kkk
   etherna_pairs: number[] | undefined = undefined;
   etherna_sequence: string = '';
+  fromOuter: boolean = false;
 
   constructor(idOrElement: string | HTMLElement, stage: Stage) {
     this.stage = stage;
@@ -369,10 +370,9 @@ export default class Viewer {
   private _initCamera() {
     const lookAt = new Vector3(0, 0, 0)
     const { width, height } = this
-
     this.perspectiveCamera = new PerspectiveCamera(
       this.parameters.cameraFov, width / height
-    )
+    );
     this.perspectiveCamera.position.z = this.parameters.cameraZ
     this.perspectiveCamera.lookAt(lookAt)
 
@@ -728,7 +728,20 @@ export default class Viewer {
 
   //kkk
   //set base to highlight outline
-  selectEBaseObject(resno: number, color1?: number, color2?: number) {
+  selectEBaseObject(resno: number, fromViewer?: boolean, color1?: number) {
+    var fromSelf = fromViewer ? fromViewer : true;
+    if (!fromSelf) {
+      if (resno >= 0) {
+        this.fromOuter = true;
+      }
+      else {
+        this.fromOuter = false;
+      }
+    }
+    if (this.fromOuter) return;
+
+    // console.log('AAAAAAAAAAAAAAAAAA', resno);
+    if (resno == -1) return;
     let selGeometry = null;
     var selectedObjects = [];
     this.selectGroup.children.forEach((obj) => {

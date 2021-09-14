@@ -17,6 +17,7 @@ import { StructureRepresentationData } from './structure-representation';
 import AtomProxy from '../proxy/atom-proxy';
 import CylinderBuffer, { CylinderBufferData } from '../buffer/cylinder-buffer'
 import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer'
+import ConeBuffer, { ConeBufferData } from '../buffer/cone-buffer'
 
 
 /**
@@ -85,10 +86,12 @@ class EBaseRepresentation extends BallAndStickRepresentation {
 
       bufferList.push(this.lineBuffer)
     } else {
-      let p = this.getBondParams({ position: true })
+      let p = this.getBondParams({ position: true, picking: true })
       let rawBondData = sview.getBondData(p);
 
       var bondData = this.getBondData(sview);
+      // console.log(bondData, rawBondData);
+      // console.log(bondData.picking, rawBondData.picking);
       this.fullBondData = bondData;
 
       var pos1 = bondData.position1;
@@ -181,18 +184,43 @@ class EBaseRepresentation extends BallAndStickRepresentation {
 
         bufferList.push(elilipsoidBuffer as EllipsoidBuffer)
 
-        var pairsData = this.getPairData(bondData);
-        if (pairsData !== undefined) {
-          const cylinderBuffer = new CylinderBuffer(
-            (pairsData as CylinderBufferData),
-            this.getBufferParams({
-              openEnded: false,//this.openEnded,
-              radialSegments: this.radialSegments,
-              disableImpostor: this.disableImpostor,
-              dullInterior: true
-            })
-          )
-          bufferList.push(cylinderBuffer as CylinderGeometryBuffer)
+        var pairsDatas = this.getPairData(bondData);
+        if (pairsDatas !== null) {
+          if (pairsDatas.length == 1) {
+            const cylinderBuffer = new CylinderBuffer(
+              (pairsDatas[0] as CylinderBufferData),
+              this.getBufferParams({
+                openEnded: false,//this.openEnded,
+                radialSegments: this.radialSegments,
+                disableImpostor: this.disableImpostor,
+                dullInterior: true
+              })
+            )
+            bufferList.push(cylinderBuffer as CylinderGeometryBuffer);
+          }
+          else {
+            const coneBuffer = new ConeBuffer(
+              (pairsDatas[0] as ConeBufferData),
+              this.getBufferParams({
+                openEnded: false,//this.openEnded,
+                radialSegments: this.radialSegments,
+                disableImpostor: this.disableImpostor,
+                dullInterior: true
+              })
+            )
+            bufferList.push(coneBuffer);
+
+            const coneBuffer2 = new ConeBuffer(
+              (pairsDatas[1] as ConeBufferData),
+              this.getBufferParams({
+                openEnded: false,//this.openEnded,
+                radialSegments: this.radialSegments,
+                disableImpostor: this.disableImpostor,
+                dullInterior: true
+              })
+            )
+            bufferList.push(coneBuffer2);
+          }
         }
       }
 
@@ -216,7 +244,6 @@ class EBaseRepresentation extends BallAndStickRepresentation {
   }
 
   getPairData(data: BondData) {
-    // console.log(data.picking);
     if (this.viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
       const bondData: BondData = {}
       var pos1 = [];
@@ -224,6 +251,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
       var colors: number[] = [];
       var radius: number[] = [];
       var pairMap = new Map();
+      var strengthArrray = [];
       for (var i = 0; i < this.viewer.etherna_pairs.length; i++) {
         var pairNum = this.viewer.etherna_pairs[i];
         if (pairNum < 0) continue;
@@ -259,14 +287,14 @@ class EBaseRepresentation extends BallAndStickRepresentation {
         var x1 = data.position2[i * 3], y1 = data.position2[i * 3 + 1], z1 = data.position2[i * 3 + 2];
         var x2 = data.position2[pairNum * 3], y2 = data.position2[pairNum * 3 + 1], z2 = data.position2[pairNum * 3 + 2];
         var dx = x2 - x1;
-        x1 = x1 + dx / 20;
-        x2 = x2 - dx / 20;
+        x1 = x1 + dx / 40;
+        x2 = x2 - dx / 40;
         var dy = y2 - y1;
-        y1 = y1 + dy / 20;
-        y2 = y2 - dy / 20;
+        y1 = y1 + dy / 40;
+        y2 = y2 - dy / 40;
         var dz = z2 - z1;
-        z1 = z1 + dz / 20;
-        z2 = z2 - dz / 20;
+        z1 = z1 + dz / 40;
+        z2 = z2 - dz / 40;
         pos1.push(x1);
         pos1.push(y1);
         pos1.push(z1);
@@ -275,20 +303,32 @@ class EBaseRepresentation extends BallAndStickRepresentation {
         pos2.push(z2);
 
         radius.push(0.2 * strength);
+        strengthArrray.push(strength);
+
         if (strength == 3) {
           colors.push(1);
           colors.push(1);
           colors.push(1);
         }
+        // else if (strength == 2) {
+        //   colors.push(0.5);
+        //   colors.push(0.8);
+        //   colors.push(0.8);
+        // }
+        // else {
+        //   colors.push(0.5);
+        //   colors.push(0.5);
+        //   colors.push(0.5);
+        // }
         else if (strength == 2) {
-          colors.push(0.85);
-          colors.push(0.85);
-          colors.push(0.85);
+          colors.push(143 / 255.0);//8F9DB0
+          colors.push(157 / 255.0);
+          colors.push(176 / 255.0);
         }
         else {
-          colors.push(0.7);
-          colors.push(0.7);
-          colors.push(0.7);
+          colors.push(84 / 255.0);//546986
+          colors.push(105 / 255.0);
+          colors.push(134 / 255.0);
         }
       }
       bondData.position1 = new Float32Array(pos1)
@@ -296,9 +336,47 @@ class EBaseRepresentation extends BallAndStickRepresentation {
       bondData.radius = new Float32Array(radius);
       bondData.color = new Float32Array(colors);
       bondData.color2 = new Float32Array(colors);
-      return bondData;
+      // return [bondData];
+
+      var weight = [0.0, 0.55, 0.8, 1.0];
+      var rweight = [0, 4, 4, 4];
+      var pos1 = [];
+      if (bondData.position1 && bondData.position2) {
+        for (var i = 0; i < bondData.position1.length / 3; i++) {
+          var strength = strengthArrray[i];
+          pos1.push(bondData.position1[3 * i] * (1 - weight[strength]) + bondData.position2[3 * i] * weight[strength]);
+          pos1.push(bondData.position1[3 * i + 1] * (1 - weight[strength]) + bondData.position2[3 * i + 1] * weight[strength]);
+          pos1.push(bondData.position1[3 * i + 2] * (1 - weight[strength]) + bondData.position2[3 * i + 2] * weight[strength]);
+          bondData.radius[i] = 0.2 * rweight[strength];
+        }
+      }
+      const bondData1: BondData = {};
+      bondData1.position1 = bondData.position1;
+      bondData1.position2 = new Float32Array(pos1);
+      bondData1.radius = bondData.radius;
+      bondData1.color = bondData.color;
+      bondData1.color2 = bondData.color2;
+
+      var pos2 = [];
+      if (bondData.position1 && bondData.position2) {
+        for (var i = 0; i < bondData.position1.length / 3; i++) {
+          var strength = strengthArrray[i];
+          pos2.push(bondData.position2[3 * i] * (1 - weight[strength]) + bondData.position1[3 * i] * weight[strength]);
+          pos2.push(bondData.position2[3 * i + 1] * (1 - weight[strength]) + bondData.position1[3 * i + 1] * weight[strength]);
+          pos2.push(bondData.position2[3 * i + 2] * (1 - weight[strength]) + bondData.position1[3 * i + 2] * weight[strength]);
+          bondData.radius[i] = 0.2 * rweight[strength];
+        }
+      }
+      const bondData2: BondData = {};
+      bondData2.position1 = bondData.position2;
+      bondData2.position2 = new Float32Array(pos2);
+      bondData2.radius = bondData.radius;
+      bondData2.color = bondData.color;
+      bondData2.color2 = bondData.color2;
+
+      return [bondData1, bondData2];
     }
-    return undefined;
+    return null;
   }
 
 
@@ -329,9 +407,14 @@ class EBaseRepresentation extends BallAndStickRepresentation {
     data.bufferList[0].setAttributes(ellipsoidData)
 
     if (data.bufferList[1]) {
-      var pairsData = this.getPairData(this.fullBondData);
-      if (pairsData !== undefined) {
-        data.bufferList[1].setAttributes(pairsData);
+      var pairsDatas = this.getPairData(this.fullBondData);
+      if (pairsDatas !== null) {
+        if (pairsDatas.length == 1)
+          data.bufferList[1].setAttributes(pairsDatas[0]);
+        else {
+          data.bufferList[1].setAttributes(pairsDatas[0]);
+          data.bufferList[2].setAttributes(pairsDatas[1]);
+        }
       }
     }
   }

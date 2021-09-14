@@ -58056,6 +58056,7 @@ var Viewer = function Viewer(idOrElement, stage) {
       //kkk
       this.etherna_pairs = undefined;
       this.etherna_sequence = '';
+      this.fromOuter = false;
       this.stage = stage;
       this.signals = {
           ticked: new Signal(),
@@ -58442,9 +58443,23 @@ var prototypeAccessors$x = { cameraDistance: { configurable: true } };
   };
   //kkk
   //set base to highlight outline
-  Viewer.prototype.selectEBaseObject = function selectEBaseObject (resno, color1, color2) {
+  Viewer.prototype.selectEBaseObject = function selectEBaseObject (resno, fromViewer, color1) {
         var this$1$1 = this;
 
+      var fromSelf = fromViewer ? fromViewer : true;
+      if (!fromSelf) {
+          if (resno >= 0) {
+              this.fromOuter = true;
+          }
+          else {
+              this.fromOuter = false;
+          }
+      }
+      if (this.fromOuter)
+          { return; }
+      // console.log('AAAAAAAAAAAAAAAAAA', resno);
+      if (resno == -1)
+          { return; }
       var selGeometry = null;
       this.selectGroup.children.forEach(function (obj) {
           this$1$1.selectGroup.remove(obj);
@@ -59575,8 +59590,7 @@ MouseObserver.prototype._onMousedown = function _onMousedown (event) {
     this.buttons = getMouseButtons(event);
     this.pressed = true;
     this._setCanvasPosition(event);
-    //kkk
-    //broadcast mouse down event in forms of custom event.
+    //kkk //broadcast mouse down event in forms of custom event.
     window.dispatchEvent(new CustomEvent('kkk', {
         detail: {
             'clientX': event.clientX,
@@ -70067,7 +70081,7 @@ MouseActions.tooltipPick = function tooltipPick (stage, pickingProxy) {
         // check picking and send message that contain picking result
         var result = pickingProxy.checkBase();
         if (result.isBase) {
-            stage.viewer.selectEBaseObject(result.resno - 1, stage.viewer.baseColor);
+            stage.viewer.selectEBaseObject(result.resno - 1, true, stage.viewer.baseColor);
             window.dispatchEvent(new CustomEvent('picking', {
                 detail: {
                     'resno': result.resno,
@@ -70105,7 +70119,7 @@ var MouseActionPresets = {
         ['drag-ctrl-left', MouseActions.panDrag],
         ['drag-ctrl-right', MouseActions.zRotateDrag],
         ['drag-shift-left', MouseActions.zoomDrag],
-        ['drag-middle', MouseActions.zoomFocusDrag],
+        // ['drag-middle', MouseActions.zoomFocusDrag], //kkk
         ['drag-ctrl-shift-right', MouseActions.panComponentDrag],
         ['drag-ctrl-shift-left', MouseActions.rotateComponentDrag],
         ['clickPick-right', MouseActions.measurePick],
@@ -87311,6 +87325,91 @@ var EllipsoidBuffer = /*@__PURE__*/(function (GeometryBuffer) {
 BufferRegistry.add('ellipsoid', EllipsoidBuffer);
 
 /**
+ * @file Cone Buffer
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @private
+ */
+var scale$4 = new Vector3$1();
+var eye$4 = new Vector3$1();
+var target$4 = new Vector3$1();
+var up$4 = new Vector3$1(0, 1, 0);
+function getGeo(params) {
+    if ( params === void 0 ) params = {};
+
+    var geo = new ConeBufferGeometry$1(1, // radius
+    1, // height
+    defaults(params.radialSegments, 60), // radialSegments
+    1, // heightSegments
+    defaults(params.openEnded, false) // openEnded
+    );
+    geo.applyMatrix4(new Matrix4$1().makeRotationX(-Math.PI / 2));
+    return geo;
+}
+var ConeBufferDefaultParameters = Object.assign({
+    radialSegments: 60,
+    openEnded: false
+}, BufferDefaultParameters);
+/**
+ * Cone geometry buffer.
+ *
+ * @example
+ * var coneBuffer = new ConeBuffer({
+ *   position1: new Float32Array([ 0, 0, 0 ]),
+ *   position2: new Float32Array([ 1, 1, 1 ]),
+ *   color: new Float32Array([ 1, 0, 0 ]),
+ *   color2: new Float32Array([ 0, 1, 0 ]),
+ *   radius: new Float32Array([ 1 ])
+ * });
+ */
+var ConeBuffer = /*@__PURE__*/(function (GeometryBuffer) {
+    function ConeBuffer(data, params) {
+        if ( params === void 0 ) params = {};
+
+        GeometryBuffer.call(this, {
+            position: new Float32Array(data.position1.length),
+            color: data.color,
+            picking: data.picking
+        }, params, getGeo(params));
+        this.updateNormals = true;
+        this._position = new Float32Array(data.position1.length);
+        this.setAttributes(data, true);
+    }
+
+    if ( GeometryBuffer ) ConeBuffer.__proto__ = GeometryBuffer;
+    ConeBuffer.prototype = Object.create( GeometryBuffer && GeometryBuffer.prototype );
+    ConeBuffer.prototype.constructor = ConeBuffer;
+
+    var prototypeAccessors = { defaultParameters: { configurable: true } };
+    prototypeAccessors.defaultParameters.get = function () { return ConeBufferDefaultParameters; };
+    ConeBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
+        eye$4.fromArray(this._position1, i3);
+        target$4.fromArray(this._position2, i3);
+        matrix.lookAt(eye$4, target$4, up$4);
+        var r = this._radius[i];
+        scale$4.set(r, r, eye$4.distanceTo(target$4));
+        matrix.scale(scale$4);
+    };
+    ConeBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
+        if ( data === void 0 ) data = {};
+
+        if (data.position1 && data.position2) {
+            calculateCenterArray(data.position1, data.position2, this._position);
+            this._position1 = data.position1;
+            this._position2 = data.position2;
+            data.position = this._position;
+        }
+        if (data.radius)
+            { this._radius = data.radius; }
+        GeometryBuffer.prototype.setAttributes.call(this, data, initNormals);
+    };
+
+    Object.defineProperties( ConeBuffer.prototype, prototypeAccessors );
+
+    return ConeBuffer;
+}(GeometryBuffer));
+BufferRegistry.add('cone', ConeBuffer);
+
+/**
  * @file Extended Base Representation for Eterna game
  * @author KKK
  * @private
@@ -87362,9 +87461,11 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
             bufferList.push(this.lineBuffer);
         }
         else {
-            var p = this.getBondParams({ position: true });
+            var p = this.getBondParams({ position: true, picking: true });
             var rawBondData = sview.getBondData(p);
             var bondData = this.getBondData(sview);
+            // console.log(bondData, rawBondData);
+            // console.log(bondData.picking, rawBondData.picking);
             this.fullBondData = bondData;
             var pos1 = bondData.position1;
             var pos2 = bondData.position2;
@@ -87451,15 +87552,33 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
                 var elilipsoidBuffer = new EllipsoidBuffer(dataParam);
                 elilipsoidBuffer.geometry.name = 'ebase';
                 bufferList.push(elilipsoidBuffer);
-                var pairsData = this.getPairData(bondData);
-                if (pairsData !== undefined) {
-                    var cylinderBuffer = new CylinderBuffer(pairsData, this.getBufferParams({
-                        openEnded: false,
-                        radialSegments: this.radialSegments,
-                        disableImpostor: this.disableImpostor,
-                        dullInterior: true
-                    }));
-                    bufferList.push(cylinderBuffer);
+                var pairsDatas = this.getPairData(bondData);
+                if (pairsDatas !== null) {
+                    if (pairsDatas.length == 1) {
+                        var cylinderBuffer = new CylinderBuffer(pairsDatas[0], this.getBufferParams({
+                            openEnded: false,
+                            radialSegments: this.radialSegments,
+                            disableImpostor: this.disableImpostor,
+                            dullInterior: true
+                        }));
+                        bufferList.push(cylinderBuffer);
+                    }
+                    else {
+                        var coneBuffer = new ConeBuffer(pairsDatas[0], this.getBufferParams({
+                            openEnded: false,
+                            radialSegments: this.radialSegments,
+                            disableImpostor: this.disableImpostor,
+                            dullInterior: true
+                        }));
+                        bufferList.push(coneBuffer);
+                        var coneBuffer2 = new ConeBuffer(pairsDatas[1], this.getBufferParams({
+                            openEnded: false,
+                            radialSegments: this.radialSegments,
+                            disableImpostor: this.disableImpostor,
+                            dullInterior: true
+                        }));
+                        bufferList.push(coneBuffer2);
+                    }
                 }
             }
             if (!this.cylinderOnly) ;
@@ -87469,7 +87588,6 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
         };
     };
     EBaseRepresentation.prototype.getPairData = function getPairData (data) {
-        // console.log(data.picking);
         if (this.viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
             var bondData = {};
             var pos1 = [];
@@ -87477,6 +87595,7 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
             var colors = [];
             var radius = [];
             var pairMap = new Map();
+            var strengthArrray = [];
             for (var i = 0; i < this.viewer.etherna_pairs.length; i++) {
                 var pairNum = this.viewer.etherna_pairs[i];
                 if (pairNum < 0)
@@ -87484,15 +87603,15 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
                 if (pairMap.get(i) === pairNum || pairMap.get(pairNum) === i)
                     { continue; }
                 pairMap.set(i, pairNum);
-                var strength = 0;
+                var strength$1 = 0;
                 if (this.viewer.etherna_sequence.length > 0) {
                     var seq = this.viewer.etherna_sequence;
                     if (seq[i] == 'G' && seq[pairNum] == 'C' || seq[i] == 'C' && seq[pairNum] == 'G')
-                        { strength = 3; }
+                        { strength$1 = 3; }
                     else if (seq[i] == 'A' && seq[pairNum] == 'U' || seq[i] == 'U' && seq[pairNum] == 'A')
-                        { strength = 2; }
+                        { strength$1 = 2; }
                     else if (seq[i] == 'U' && seq[pairNum] == 'G' || seq[i] == 'G' && seq[pairNum] == 'U')
-                        { strength = 1; }
+                        { strength$1 = 1; }
                 }
                 else if (data.picking) {
                     var atomIndex2 = data.picking.bondStore.atomIndex2;
@@ -87503,46 +87622,57 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
                     var ap2 = new AtomProxy(data.picking.structure);
                     ap2.index = id2;
                     if (ap1.resname == 'G' && ap2.resname == 'C' || ap1.resname == 'C' && ap2.resname == 'G')
-                        { strength = 3; }
+                        { strength$1 = 3; }
                     else if (ap1.resname == 'A' && ap2.resname == 'U' || ap1.resname == 'U' && ap2.resname == 'A')
-                        { strength = 2; }
+                        { strength$1 = 2; }
                     else if (ap1.resname == 'U' && ap2.resname == 'G' || ap1.resname == 'G' && ap2.resname == 'U')
-                        { strength = 1; }
+                        { strength$1 = 1; }
                 }
-                if (strength == 0)
+                if (strength$1 == 0)
                     { continue; }
                 var x1 = data.position2[i * 3], y1 = data.position2[i * 3 + 1], z1 = data.position2[i * 3 + 2];
                 var x2 = data.position2[pairNum * 3], y2 = data.position2[pairNum * 3 + 1], z2 = data.position2[pairNum * 3 + 2];
                 var dx = x2 - x1;
-                x1 = x1 + dx / 20;
-                x2 = x2 - dx / 20;
+                x1 = x1 + dx / 40;
+                x2 = x2 - dx / 40;
                 var dy = y2 - y1;
-                y1 = y1 + dy / 20;
-                y2 = y2 - dy / 20;
+                y1 = y1 + dy / 40;
+                y2 = y2 - dy / 40;
                 var dz = z2 - z1;
-                z1 = z1 + dz / 20;
-                z2 = z2 - dz / 20;
+                z1 = z1 + dz / 40;
+                z2 = z2 - dz / 40;
                 pos1.push(x1);
                 pos1.push(y1);
                 pos1.push(z1);
                 pos2.push(x2);
                 pos2.push(y2);
                 pos2.push(z2);
-                radius.push(0.2 * strength);
-                if (strength == 3) {
+                radius.push(0.2 * strength$1);
+                strengthArrray.push(strength$1);
+                if (strength$1 == 3) {
                     colors.push(1);
                     colors.push(1);
                     colors.push(1);
                 }
-                else if (strength == 2) {
-                    colors.push(0.85);
-                    colors.push(0.85);
-                    colors.push(0.85);
+                // else if (strength == 2) {
+                //   colors.push(0.5);
+                //   colors.push(0.8);
+                //   colors.push(0.8);
+                // }
+                // else {
+                //   colors.push(0.5);
+                //   colors.push(0.5);
+                //   colors.push(0.5);
+                // }
+                else if (strength$1 == 2) {
+                    colors.push(143 / 255.0); //8F9DB0
+                    colors.push(157 / 255.0);
+                    colors.push(176 / 255.0);
                 }
                 else {
-                    colors.push(0.7);
-                    colors.push(0.7);
-                    colors.push(0.7);
+                    colors.push(84 / 255.0); //546986
+                    colors.push(105 / 255.0);
+                    colors.push(134 / 255.0);
                 }
             }
             bondData.position1 = new Float32Array(pos1);
@@ -87550,9 +87680,44 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
             bondData.radius = new Float32Array(radius);
             bondData.color = new Float32Array(colors);
             bondData.color2 = new Float32Array(colors);
-            return bondData;
+            // return [bondData];
+            var weight = [0.0, 0.55, 0.8, 1.0];
+            var rweight = [0, 4, 4, 4];
+            var pos1 = [];
+            if (bondData.position1 && bondData.position2) {
+                for (var i = 0; i < bondData.position1.length / 3; i++) {
+                    var strength = strengthArrray[i];
+                    pos1.push(bondData.position1[3 * i] * (1 - weight[strength]) + bondData.position2[3 * i] * weight[strength]);
+                    pos1.push(bondData.position1[3 * i + 1] * (1 - weight[strength]) + bondData.position2[3 * i + 1] * weight[strength]);
+                    pos1.push(bondData.position1[3 * i + 2] * (1 - weight[strength]) + bondData.position2[3 * i + 2] * weight[strength]);
+                    bondData.radius[i] = 0.2 * rweight[strength];
+                }
+            }
+            var bondData1 = {};
+            bondData1.position1 = bondData.position1;
+            bondData1.position2 = new Float32Array(pos1);
+            bondData1.radius = bondData.radius;
+            bondData1.color = bondData.color;
+            bondData1.color2 = bondData.color2;
+            var pos2 = [];
+            if (bondData.position1 && bondData.position2) {
+                for (var i = 0; i < bondData.position1.length / 3; i++) {
+                    var strength = strengthArrray[i];
+                    pos2.push(bondData.position2[3 * i] * (1 - weight[strength]) + bondData.position1[3 * i] * weight[strength]);
+                    pos2.push(bondData.position2[3 * i + 1] * (1 - weight[strength]) + bondData.position1[3 * i + 1] * weight[strength]);
+                    pos2.push(bondData.position2[3 * i + 2] * (1 - weight[strength]) + bondData.position1[3 * i + 2] * weight[strength]);
+                    bondData.radius[i] = 0.2 * rweight[strength];
+                }
+            }
+            var bondData2 = {};
+            bondData2.position1 = bondData.position2;
+            bondData2.position2 = new Float32Array(pos2);
+            bondData2.radius = bondData.radius;
+            bondData2.color = bondData.color;
+            bondData2.color2 = bondData.color2;
+            return [bondData1, bondData2];
         }
-        return undefined;
+        return null;
     };
     // update(what: BondDataFields | AtomDataFields) {
     //   super.update(what);
@@ -87578,9 +87743,14 @@ var EBaseRepresentation = /*@__PURE__*/(function (BallAndStickRepresentation) {
         }
         data.bufferList[0].setAttributes(ellipsoidData);
         if (data.bufferList[1]) {
-            var pairsData = this.getPairData(this.fullBondData);
-            if (pairsData !== undefined) {
-                data.bufferList[1].setAttributes(pairsData);
+            var pairsDatas = this.getPairData(this.fullBondData);
+            if (pairsDatas !== null) {
+                if (pairsDatas.length == 1)
+                    { data.bufferList[1].setAttributes(pairsDatas[0]); }
+                else {
+                    data.bufferList[1].setAttributes(pairsDatas[0]);
+                    data.bufferList[2].setAttributes(pairsDatas[1]);
+                }
             }
         }
     };
@@ -93396,91 +93566,6 @@ var ValidationRepresentation = /*@__PURE__*/(function (StructureRepresentation) 
     return ValidationRepresentation;
 }(StructureRepresentation));
 RepresentationRegistry.add('validation', ValidationRepresentation);
-
-/**
- * @file Cone Buffer
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @private
- */
-var scale$4 = new Vector3$1();
-var eye$4 = new Vector3$1();
-var target$4 = new Vector3$1();
-var up$4 = new Vector3$1(0, 1, 0);
-function getGeo(params) {
-    if ( params === void 0 ) params = {};
-
-    var geo = new ConeBufferGeometry$1(1, // radius
-    1, // height
-    defaults(params.radialSegments, 60), // radialSegments
-    1, // heightSegments
-    defaults(params.openEnded, false) // openEnded
-    );
-    geo.applyMatrix4(new Matrix4$1().makeRotationX(-Math.PI / 2));
-    return geo;
-}
-var ConeBufferDefaultParameters = Object.assign({
-    radialSegments: 60,
-    openEnded: false
-}, BufferDefaultParameters);
-/**
- * Cone geometry buffer.
- *
- * @example
- * var coneBuffer = new ConeBuffer({
- *   position1: new Float32Array([ 0, 0, 0 ]),
- *   position2: new Float32Array([ 1, 1, 1 ]),
- *   color: new Float32Array([ 1, 0, 0 ]),
- *   color2: new Float32Array([ 0, 1, 0 ]),
- *   radius: new Float32Array([ 1 ])
- * });
- */
-var ConeBuffer = /*@__PURE__*/(function (GeometryBuffer) {
-    function ConeBuffer(data, params) {
-        if ( params === void 0 ) params = {};
-
-        GeometryBuffer.call(this, {
-            position: new Float32Array(data.position1.length),
-            color: data.color,
-            picking: data.picking
-        }, params, getGeo(params));
-        this.updateNormals = true;
-        this._position = new Float32Array(data.position1.length);
-        this.setAttributes(data, true);
-    }
-
-    if ( GeometryBuffer ) ConeBuffer.__proto__ = GeometryBuffer;
-    ConeBuffer.prototype = Object.create( GeometryBuffer && GeometryBuffer.prototype );
-    ConeBuffer.prototype.constructor = ConeBuffer;
-
-    var prototypeAccessors = { defaultParameters: { configurable: true } };
-    prototypeAccessors.defaultParameters.get = function () { return ConeBufferDefaultParameters; };
-    ConeBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
-        eye$4.fromArray(this._position1, i3);
-        target$4.fromArray(this._position2, i3);
-        matrix.lookAt(eye$4, target$4, up$4);
-        var r = this._radius[i];
-        scale$4.set(r, r, eye$4.distanceTo(target$4));
-        matrix.scale(scale$4);
-    };
-    ConeBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
-        if ( data === void 0 ) data = {};
-
-        if (data.position1 && data.position2) {
-            calculateCenterArray(data.position1, data.position2, this._position);
-            this._position1 = data.position1;
-            this._position2 = data.position2;
-            data.position = this._position;
-        }
-        if (data.radius)
-            { this._radius = data.radius; }
-        GeometryBuffer.prototype.setAttributes.call(this, data, initNormals);
-    };
-
-    Object.defineProperties( ConeBuffer.prototype, prototypeAccessors );
-
-    return ConeBuffer;
-}(GeometryBuffer));
-BufferRegistry.add('cone', ConeBuffer);
 
 /**
  * @file Geometry Group
