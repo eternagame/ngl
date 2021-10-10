@@ -24,7 +24,6 @@ export default class BondStore extends Store {
   }
 
   addBond (atom1: AtomProxy, atom2: AtomProxy, bondOrder?: number) {
-    // console.log('addBond', atom1, atom2);
     this.growIfFull()
 
     const i = this.count
@@ -44,7 +43,6 @@ export default class BondStore extends Store {
   }
 
   addBondIfConnected (atom1: AtomProxy, atom2: AtomProxy, bondOrder?: number) {
-    // console.log('addBond', atom1, atom2);
     if (atom1.connectedTo(atom2)) {
       this.addBond(atom1, atom2, bondOrder)
       return true

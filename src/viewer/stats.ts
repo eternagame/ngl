@@ -25,22 +25,22 @@ export default class Stats {
   startTime: number
   currentTime: number
 
-  constructor() {
+  constructor () {
     this.begin()
   }
 
-  update() {
+  update () {
     this.startTime = this.end()
     this.currentTime = this.startTime
     this.signals.updated.dispatch()
   }
 
-  begin() {
+  begin () {
     this.startTime = window.performance.now()
     this.lastFrames = this.frames
   }
 
-  end() {
+  end () {
     const time = window.performance.now()
 
     this.count += 1

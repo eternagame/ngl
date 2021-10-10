@@ -681,6 +681,8 @@ function processConnections(cif: Cif, structure: Structure, asymIdDict: { [k: st
         atomIndices2 = tmpB
       }
 
+      // console.log( k, l );
+
       if (k === 0 || l === 0) {
         if (Debug) Log.warn('no atoms found for', sele1, sele2)
         continue
@@ -1165,8 +1167,6 @@ class CifParser extends StructureParser {
         assignSecondaryStructure(s, secStruct)
       }
       buildUnitcellAssembly(s)
-
-      console.log(secStruct, s);
 
       s.extraData.cif = cif
     }

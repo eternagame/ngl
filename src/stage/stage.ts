@@ -74,6 +74,9 @@ declare global {
     msRequestFullscreen(): void
   }
 }
+export interface PixiRenderCallback {
+  (imgData: HTMLCanvasElement, width:number, height:number): void;
+}
 
 /**
  * Stage parameter object.
@@ -115,6 +118,11 @@ export interface StageSignals {
   hovered: Signal
 }
 
+//kkk
+interface PixiCifCheckerCallback {
+  (component: Structure | null): void;
+}
+
 export type RenderQualityType = 'auto' | 'low' | 'medium' | 'high'
 
 export const StageDefaultParameters = {
@@ -122,23 +130,23 @@ export const StageDefaultParameters = {
   quality: 'medium' as RenderQualityType,
   workerDefault: true,
   sampleLevel: 0,
-  backgroundColor: 'white' as string | number,
+  backgroundColor: 'black' as string | number,
   rotateSpeed: 2.0,
   zoomSpeed: 1.2,
   panSpeed: 1.0,
   clipNear: 0,
   clipFar: 100,
-  clipDist: 1,
+  clipDist: 10,
   clipMode: 'scene',
   clipScale: 'relative',
-  fogNear: 500,
-  fogFar: 1000,
+  fogNear: 50,
+  fogFar: 100,
   cameraFov: 40,
   cameraEyeSep: 0.3,
   cameraType: 'perspective' as 'perspective' | 'orthographic' | 'stereo',
-  lightColor: 0xffffff as string | number,
+  lightColor: 0xffffff as string | number, //kkk
   lightIntensity: 1.0,
-  ambientColor: 0xffffff as string | number,
+  ambientColor: 0xffffff as string | number, //kkk
   ambientIntensity: 0.2,
   hoverTimeout: 0,
   tooltip: true,
@@ -148,10 +156,9 @@ export type StageParameters = typeof StageDefaultParameters
 
 export interface StageLoadFileParams extends LoaderParameters {
   defaultRepresentation: boolean,
-  assembly: string,
+  assembly: string
   etherna_pairs: number[] //kkk //add etherna pairs field
 }
-
 /**
  * Stage class, central for creating molecular scenes with NGL.
  *
@@ -201,8 +208,10 @@ class Stage {
   spinAnimation: Animation
   rockAnimation: Animation
 
-  constructor(idOrElement: string | HTMLElement, params: Partial<StageParameters> = {}) {
-    this.viewer = new Viewer(idOrElement, this)
+  loadedComponent:Component //kkk
+
+  constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}, pixiCallback:PixiRenderCallback|undefined = undefined) {
+    this.viewer = new Viewer(idOrElement, this, pixiCallback) //kkk
     if (!this.viewer.renderer) return
 
     this.tooltip = document.createElement('div')
@@ -215,12 +224,12 @@ class Stage {
       backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
       color: 'lightgrey',
       padding: '8px',
-      fontFamily: 'sans-serif',
-      overflowWrap: "anywhere"
+      fontFamily: 'sans-serif'
     })
     this.viewer.container.appendChild(this.tooltip)
 
     this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement)
+    this.mouseObserver.viewer = this.viewer; //kkk
     this.viewerControls = new ViewerControls(this)
     this.trackballControls = new TrackballControls(this)
     this.pickingControls = new PickingControls(this)
@@ -470,6 +479,7 @@ class Stage {
       }
       this.tasks.decrement()
 
+      this.loadedComponent = component as Component; //kkk
       return component
     }
 
@@ -478,6 +488,37 @@ class Stage {
       const errorMsg = `error loading file: '${e}'`
       this.log(errorMsg)
       throw errorMsg  // throw so it can be catched
+    }
+
+    const ext = defaults(p.ext, getFileInfo(path).ext)
+    let promise: Promise<any>
+
+    if (ParserRegistry.isTrajectory(ext)) {
+      promise = Promise.reject(
+        new Error(`loadFile: ext '${ext}' is a trajectory and must be loaded into a structure component`)
+      )
+    } else {
+      promise = autoLoad(path, p)
+    }
+
+    return promise.then(onLoadFn, onErrorFn)
+  }
+
+  //kkk
+  static checkModelFile(path: string | File | Blob, callback: PixiCifCheckerCallback) {
+    var params: Partial<StageLoadFileParams> = {};
+    const p = Object.assign({}, {}, params)
+    // const name = getFileInfo(path).name
+
+    const onLoadFn = (object: Structure | Surface | Volume) => {
+      if(object instanceof Structure)
+        callback(object);
+      else 
+        callback(null);
+    }
+
+    const onErrorFn = (e: Error | string) => {
+      callback(null);
     }
 
     const ext = defaults(p.ext, getFileInfo(path).ext)
@@ -573,8 +614,9 @@ class Stage {
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  handleResize() {
-    this.viewer.handleResize()
+  //kkk
+  handleResize(width:number=0, height: number=0) {
+    this.viewer.handleResize(width, height)
   }
 
   /**
@@ -783,7 +825,7 @@ class Stage {
     const aspectFactor = (height < width ? 1 : aspect)
 
     distance = Math.abs(
-      ((distance * 0.5) / aspectFactor) / Math.sin(fov / 2)
+      ((distance * 0.5) / aspectFactor) / Math.sin(fov / 2) //kkk
     )
     distance += this.parameters.clipDist
     return -distance
@@ -836,7 +878,7 @@ class Stage {
     this.parameters.impostor = value
 
     const types = [
-      'spacefill', 'ball+stick', 'eball+stick', 'licorice', 'hyperball',
+      'spacefill', 'ball+stick', 'licorice', 'hyperball',
       'backbone', 'rocket', 'helixorient', 'contact', 'distance',
       'dot'
     ]
@@ -858,7 +900,7 @@ class Stage {
     ]
 
     const impostorTypes = [
-      'spacefill', 'ball+stick', 'eball+stick', 'licorice', 'hyperball',
+      'spacefill', 'ball+stick', 'licorice', 'hyperball',
       'backbone', 'rocket', 'helixorient', 'contact', 'distance',
       'dot'
     ]

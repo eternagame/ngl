@@ -56,6 +56,11 @@ class ViewerControls {
     return this.viewer.translationGroup.position
   }
 
+  //kkk
+  get rotationPosition () { 
+    return this.viewer.rotationGroup.position
+  }
+
   /**
    * scene rotation
    * @type {Quaternion}
@@ -79,8 +84,8 @@ class ViewerControls {
     const viewer = this.viewer
 
     tmpCanvasVector.copy(position)
-      .add(viewer.translationGroup.position)
       .applyMatrix4(viewer.rotationGroup.matrix)
+      .add(viewer.translationGroup.position)
       .project(viewer.camera)
 
     return canvasPosition.set(
@@ -143,6 +148,11 @@ class ViewerControls {
     this.viewer.translationGroup.position
       .add(ensureVector3(vector))
     this.changed()
+  }
+
+  intranslate (vector: Vector3|number[]) {
+    this.viewer.translationGroup.position
+      .add(ensureVector3(vector))
   }
 
   /**
@@ -228,9 +238,12 @@ class ViewerControls {
    * @param  {Matrix4|Array} matrix - rotation matrix
    * @return {undefined}
    */
-  applyMatrix (matrix: Matrix4|number[]) {
+  applyRotateMatrix (matrix: Matrix4|number[]) {
     this.viewer.rotationGroup.applyMatrix4(ensureMatrix4(matrix))
     this.changed()
+  }
+  inApplyRotateMatrix (matrix: Matrix4|number[]) {
+    this.viewer.rotationGroup.applyMatrix4(ensureMatrix4(matrix))
   }
 }
 

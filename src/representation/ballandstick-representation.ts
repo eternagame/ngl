@@ -20,7 +20,6 @@ import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer';
 import SphereGeometryBuffer from '../buffer/spheregeometry-buffer';
 // @ts-ignore: unused import Surface required for declaration only
 import Surface from '../surface/surface';
-// import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants'
 
 export interface BallAndStickRepresentationParameters extends StructureRepresentationParameters {
   sphereDetail: number
@@ -35,7 +34,7 @@ export interface BallAndStickRepresentationParameters extends StructureRepresent
   bondSpacing: number
   bondScale: number
   vScale: number //kkk //added for EBall representation 
-  extSugar: boolean
+  extSugar: boolean //kkk
 }
 
 /**
@@ -213,7 +212,6 @@ class BallAndStickRepresentation extends StructureRepresentation {
         )
 
         bufferList.push(sphereBuffer as SphereGeometryBuffer)
-
       }
     }
 

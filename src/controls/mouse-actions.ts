@@ -183,7 +183,7 @@ class MouseActions {
    */
   static movePick(stage: Stage, pickingProxy: PickingProxy) {
     if (pickingProxy) {
-      stage.animationControls.move(pickingProxy.position.clone())
+      // stage.animationControls.move(pickingProxy.position.clone())
     }
   }
 
@@ -197,6 +197,31 @@ class MouseActions {
     const tt = stage.tooltip
     const sp = stage.getParameters() as any
     if (sp.tooltip && pickingProxy) {
+
+      //kkk
+      function getTextWidth(text:string, font = getCanvasFontSize()):number {
+        const canvas:HTMLCanvasElement  =  document.createElement("canvas");
+        var context = canvas.getContext("2d");
+        if(context != null) {
+          context.font = font;
+          const metrics = context.measureText(text);
+          return metrics.width;
+        }
+        else return 0;
+      }
+      
+      function getCssStyle(element:HTMLElement, prop:string):string {
+          return window.getComputedStyle(element, null).getPropertyValue(prop);
+      }
+      
+      function getCanvasFontSize(el = document.body):string {
+        const fontWeight = getCssStyle(el, 'font-weight') || 'normal';
+        const fontSize = getCssStyle(el, 'font-size') || '16px';
+        const fontFamily = getCssStyle(el, 'font-family') || 'Times New Roman';
+        
+        return `${fontWeight} ${fontSize} ${fontFamily}`;
+      }
+
       const mp = pickingProxy.mouse.position
       tt.innerText = pickingProxy.getLabel()
 
@@ -204,11 +229,14 @@ class MouseActions {
       // tt.style.bottom = (window.innerHeight - mp.y + 3) + 'px'
       // tt.style.left = (mp.x + 3) + 'px'
       const rect = stage.viewer.container.getBoundingClientRect();
-      tt.style.bottom = (rect.top + window.scrollY + rect.height - mp.y + 3) + 'px'
-      tt.style.left = (mp.x - (rect.left + window.scrollX) + 3) + 'px'
-      tt.style.width = rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
+      tt.style.bottom = (rect.top + window.scrollY + rect.height - (mp.y + stage.viewer.top) + 3) + 'px'
+      tt.style.left = (mp.x + stage.viewer.left - (rect.left + window.scrollX) + 3) + 'px'
 
-      tt.style.display = 'block'
+      if(tt.innerText.length == 0) tt.style.display = 'none'
+      else {
+        tt.style.display = 'block'
+        tt.style.width = getTextWidth(tt.innerText, getCanvasFontSize(tt)) + 'px';//rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
+      }
 
       //kkk
       // check picking and send message that contain picking result
@@ -254,7 +282,7 @@ export const MouseActionPresets = {
     ['drag-ctrl-left', MouseActions.panDrag],
     ['drag-ctrl-right', MouseActions.zRotateDrag],
     ['drag-shift-left', MouseActions.zoomDrag],
-    // ['drag-middle', MouseActions.zoomFocusDrag], //kkk
+    // [ 'drag-middle', MouseActions.zoomFocusDrag ], //kkk
 
     ['drag-ctrl-shift-right', MouseActions.panComponentDrag],
     ['drag-ctrl-shift-left', MouseActions.rotateComponentDrag],

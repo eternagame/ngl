@@ -5,22 +5,23 @@
  */
 // import * as THREE from 'three';
 import { Signal } from 'signals'
-import Stage from '../stage/stage'
+import Stage, {PixiRenderCallback} from '../stage/stage' //kkk
 import {
   PerspectiveCamera, OrthographicCamera, StereoCamera,
   Vector2, Box3, Vector3, Matrix4, Color,
   WebGLRenderer, WebGLRenderTarget,
   NearestFilter, LinearFilter, AdditiveBlending,
   RGBAFormat, FloatType, /*HalfFloatType, */UnsignedByteType,
-  ShaderMaterial,
+  ShaderMaterial, 
   PlaneGeometry, Geometry,
   Scene, Mesh, Group, Object3D, Uniform,
   Fog, SpotLight, AmbientLight,
-  BufferGeometry, BufferAttribute,
+  BufferGeometry, BufferAttribute, //AxesHelper,
   LineSegments, //TextureLoader, IcosahedronGeometry,
   LinearEncoding, sRGBEncoding, TextureEncoding, MeshBasicMaterial
 } from 'three'
 
+//kkk
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
@@ -33,7 +34,7 @@ import '../shader/Quad.vert'
 import '../shader/Quad.frag'
 
 import {
-  Debug, Log, WebglErrorMessage, Browser,
+  Debug, Log, WebglErrorMessage, Browser, 
   setExtensionFragDepth, SupportsReadPixelsFloat, setSupportsReadPixelsFloat
 } from '../globals'
 import { degToRad } from '../math/math-utils'
@@ -179,6 +180,7 @@ export interface BufferInstance {
   matrix: Matrix4
 }
 
+//kkk
 /**
  * Viewer class
  * @class
@@ -216,21 +218,33 @@ export default class Viewer {
   rotationGroup: Group
   translationGroup: Group
   private modelGroup: Group
+
   private selectGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
   private selectGroup2: Group //kkk //add variable to implement outline highlight effect of the selected bases.
   private markGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
+
   private pickingGroup: Group
   private backgroundGroup: Group
   private helperGroup: Group
 
   renderer: WebGLRenderer
 
+  //kkk
+  left: number = 0;
+  top: number = 0;
   composer: EffectComposer
   selectOutlinePass: OutlinePass
   // markOutlinePass: OutlinePass
   effectFXAA: ShaderPass
   flashCount: number = 0
   baseColor: number = 0xFFFF00
+  ethernaMode:any = {
+    ethernaPickingMode:true, 
+    ethernaNucleotideBase: 1,
+    highColor: 0xFFFFFF,
+    mediumColor: 0x8F9DB0,
+    weakColor: 0x546986
+  } //kkk
 
   private supportsHalfFloat: boolean
 
@@ -267,46 +281,34 @@ export default class Viewer {
 
   private distVector = new Vector3()
 
-  private stage: Stage;
-
   //kkk
+  private stage: Stage;
   etherna_pairs: number[] | undefined = undefined;
   etherna_sequence: string = '';
   fromOuter: boolean = false;
+  pixiCallback: PixiRenderCallback | undefined;
 
-  constructor(idOrElement: string | HTMLElement, stage: Stage) {
-    this.stage = stage;
+  constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined) {
+    this.stage = stage;//kkk
     this.signals = {
       ticked: new Signal(),
       rendered: new Signal()
     }
 
-    if (typeof idOrElement === 'string') {
-      const elm = document.getElementById(idOrElement)
-      if (elm === null) {
-        this.container = document.createElement('div')
-      } else {
-        this.container = elm
-      }
-    } else if (idOrElement instanceof HTMLElement) {
-      this.container = idOrElement
-    } else {
-      this.container = document.createElement('div')
-    }
+    this.container = idOrElement
+    this.pixiCallback = pixiCallback;
 
-    if (this.container === document.body) {
-      this.width = window.innerWidth || 1
-      this.height = window.innerHeight || 1
-    } else {
-      const box = this.container.getBoundingClientRect()
-      this.width = box.width || 1
-      this.height = box.height || 1
-      this.container.style.overflow = 'hidden'
-    }
+    var box = this.container.getBoundingClientRect();
+    this.width = box.width;
+    this.height = box.height;
 
-    this.wrapper = document.createElement('div')
-    this.wrapper.style.position = 'relative'
-    this.container.appendChild(this.wrapper)
+    //kkk
+    if(pixiCallback) this.wrapper = this.container;
+    else {
+      this.wrapper = document.createElement('div')
+      this.wrapper.style.position = 'relative'
+      this.container.appendChild(this.wrapper)
+    }
 
     this._initParams()
     this._initStats()
@@ -317,6 +319,7 @@ export default class Viewer {
       Log.error('Viewer: could not initialize renderer')
       return
     }
+    this.setSize(this.width, this.height)
 
     this._initHelper()
 
@@ -327,18 +330,39 @@ export default class Viewer {
     this.animate = this.animate.bind(this)
   }
 
+  //kkk //setPosition
+  setPosition(x:number, y:number) {
+    this.left = x;
+    this.top = y;
+  }
   //kkk //setEthernaPairs
   setEthernaPairs(pairs: number[] | undefined) {
     this.etherna_pairs = pairs;
   }
   //kkk //setEthernaPairs
-  setEthernaSequence(sequence: string) {
+  setEthernaSequence(sequence: string, num: number) {
     this.etherna_sequence = sequence;
+    this.ethernaMode.ethernaNucleotideBase = num;
   }
+  //kkk
+  setEthernaToolTipMode(mode:boolean) {
+    this.ethernaMode.ethernaPickingMode = mode; 
+  }
+  //kkk
+  setHBondColor(colors:number[]) {
+    this.ethernaMode.highColor = colors[0];
+    this.ethernaMode.mediumColor = colors[1];
+    this.ethernaMode.weakColor = colors[2];
+  }
+  //kkk
+  setPixiCallback(callback: PixiRenderCallback) {
+    this.pixiCallback = callback;
+  }
+
 
   private _initParams() {
     this.parameters = {
-      fogColor: new Color(0x000000),
+      fogColor: new Color(0x222222),
       fogNear: 50,
       fogFar: 100,
 
@@ -347,7 +371,7 @@ export default class Viewer {
       cameraType: 'perspective',
       cameraFov: 40,
       cameraEyeSep: 0.3,
-      cameraZ: -80, // FIXME initial value should be automatically determined
+      cameraZ: -800, // FIXME initial value should be automatically determined
 
       clipNear: 0,
       clipFar: 100,
@@ -407,41 +431,42 @@ export default class Viewer {
       this.scene.name = 'scene'
     }
 
-    this.rotationGroup = new Group()
-    this.rotationGroup.name = 'rotationGroup'
-    this.scene.add(this.rotationGroup)
-
     this.translationGroup = new Group()
     this.translationGroup.name = 'translationGroup'
-    this.rotationGroup.add(this.translationGroup)
+    this.scene.add(this.translationGroup)
+
+    this.rotationGroup = new Group()
+    this.rotationGroup.name = 'rotationGroup'
+    this.translationGroup.add(this.rotationGroup)
 
     this.modelGroup = new Group()
     this.modelGroup.name = 'modelGroup'
-    this.translationGroup.add(this.modelGroup)
+    this.rotationGroup.add(this.modelGroup)
 
+    //kkk
     this.selectGroup = new Group()
     this.selectGroup.name = 'selectGroup'
     this.modelGroup.add(this.selectGroup);
-
+    //kkk
     this.selectGroup2 = new Group()
     this.selectGroup2.name = 'selectGroup2'
     this.modelGroup.add(this.selectGroup2);
-
+    //kkk
     this.markGroup = new Group()
     this.markGroup.name = 'markGroup'
     this.modelGroup.add(this.markGroup);
 
     this.pickingGroup = new Group()
     this.pickingGroup.name = 'pickingGroup'
-    this.translationGroup.add(this.pickingGroup)
+    this.rotationGroup.add(this.pickingGroup)
 
     this.backgroundGroup = new Group()
     this.backgroundGroup.name = 'backgroundGroup'
-    this.translationGroup.add(this.backgroundGroup)
+    this.rotationGroup.add(this.backgroundGroup)
 
     this.helperGroup = new Group()
     this.helperGroup.name = 'helperGroup'
-    this.translationGroup.add(this.helperGroup)
+    this.rotationGroup.add(this.helperGroup)
 
     // fog
 
@@ -458,11 +483,15 @@ export default class Viewer {
       this.parameters.ambientColor.getHex(), this.parameters.ambientIntensity
     )
     this.scene.add(this.ambientLight)
+
+    // const axesHelper = new AxesHelper( 50 );
+    // this.scene.add( axesHelper );
   }
 
   private _initRenderer() {
     const dpr = window.devicePixelRatio
-    const { width, height } = this
+    const width = this.width;
+    const height = this.height;
 
     try {
       this.renderer = new WebGLRenderer({
@@ -476,7 +505,7 @@ export default class Viewer {
     }
 
     this.renderer.setPixelRatio(dpr)
-    this.renderer.setSize(width, height)
+    this.renderer.setSize(this.width, this.height)
     this.renderer.autoClear = false
     this.renderer.sortObjects = true
     this.renderer.outputEncoding = this.parameters.rendererEncoding
@@ -500,10 +529,8 @@ export default class Viewer {
       this.renderer.extensions.get('OES_element_index_uint')
 
       setSupportsReadPixelsFloat(
-        (this.renderer.extensions.get('OES_texture_float') &&
-          this.renderer.extensions.get('WEBGL_color_buffer_float')) ||
-        (this.renderer.extensions.get('OES_texture_float') &&
-          testTextureSupport(gl.FLOAT))
+        (this.renderer.extensions.get('OES_texture_float') && this.renderer.extensions.get('WEBGL_color_buffer_float')) ||
+        (this.renderer.extensions.get('OES_texture_float') && testTextureSupport(gl.FLOAT))
       )
       // picking texture
 
@@ -522,11 +549,9 @@ export default class Viewer {
       this.supportsHalfFloat = true
     }
 
-    this.wrapper.appendChild(this.renderer.domElement)
-
-    const dprWidth = width * dpr
-    const dprHeight = height * dpr
-
+    //kkk
+    if(this.pixiCallback == undefined) 
+      this.wrapper.appendChild(this.renderer.domElement)
 
     if (Debug) {
       console.log(JSON.stringify({
@@ -540,6 +565,9 @@ export default class Viewer {
         'SupportsReadPixelsFloat': SupportsReadPixelsFloat
       }, null, 2))
     }
+
+    const dprWidth = width * dpr
+    const dprHeight = height * dpr
 
     this.pickingTarget = new WebGLRenderTarget(
       dprWidth, dprHeight,
@@ -580,10 +608,6 @@ export default class Viewer {
         magFilter: NearestFilter,
         format: RGBAFormat,
         type: UnsignedByteType
-        // using HalfFloatType or FloatType does not work on some Chrome 61 installations
-        // type: this.supportsHalfFloat ? HalfFloatType : (
-        //   SupportsReadPixelsFloat ? FloatType : UnsignedByteType
-        // )
       }
     )
     this.holdTarget.texture.encoding = this.parameters.rendererEncoding
@@ -719,7 +743,8 @@ export default class Viewer {
       this.pickingGroup.add(buffer.pickingGroup)
     }
 
-    if (Debug) this.updateHelper()
+    if (Debug) 
+    this.updateHelper()
 
     // console.log(this.pickingGroup);
 
@@ -729,7 +754,8 @@ export default class Viewer {
   //kkk
   //set base to highlight outline
   selectEBaseObject(resno: number, fromViewer?: boolean, color1?: number) {
-    var fromSelf = fromViewer ? fromViewer : true;
+    var fromSelf = true;
+    if (fromViewer !== undefined) fromSelf = fromViewer;
     if (!fromSelf) {
       if (resno >= 0) {
         this.fromOuter = true;
@@ -738,10 +764,10 @@ export default class Viewer {
         this.fromOuter = false;
       }
     }
-    if (this.fromOuter) return;
+    if (resno < 0) {
+      if (this.fromOuter) return;
+    }
 
-    // console.log('AAAAAAAAAAAAAAAAAA', resno);
-    if (resno == -1) return;
     let selGeometry = null;
     var selectedObjects = [];
     this.selectGroup.children.forEach((obj) => {
@@ -818,22 +844,22 @@ export default class Viewer {
             // posInfo.count
             let idInfo = geometry.getAttribute('primitiveId');
             let idArray = <Float32Array>idInfo.array;
-            var x0 = 0, y0 = 0, z0 = 0;
+            // var x0 = 0, y0 = 0, z0 = 0;
             for (var i = 0; i < idArray.length; i++) {
               if (idArray[i] == resno) {
                 newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                x0 += posArray[i * 3];
-                y0 += posArray[i * 3 + 1];
-                z0 += posArray[i * 3 + 2];
+                // x0 += posArray[i * 3];
+                // y0 += posArray[i * 3 + 1];
+                // z0 += posArray[i * 3 + 2];
               }
             }
             if (newPos.length > 0) {
-              x0 /= newPos.length;
-              y0 /= newPos.length;
-              z0 /= newPos.length;
               selGeometry = new BufferGeometry();
               selGeometry.setFromPoints(newPos);
-              this.stage.animationControls.move(new Vector3(x0, y0, z0))
+              // x0 /= newPos.length;
+              // y0 /= newPos.length;
+              // z0 /= newPos.length;
+              // this.stage.animationControls.move(new Vector3(x0, y0, z0)) //kkk
             }
           }
         }
@@ -855,6 +881,7 @@ export default class Viewer {
     }
     this.requestRender();
   }
+  //kkk mark&unmark base
   markEBaseObject(resno: number, color1?: number, color2?: number) {
     var selectedObjects = [];
     var bNew: boolean = true;
@@ -879,21 +906,21 @@ export default class Viewer {
             let posArray = <Float32Array>posInfo.array;
             let idInfo = geometry.getAttribute('primitiveId');
             let idArray = <Float32Array>idInfo.array;
-            var x0 = 0, y0 = 0, z0 = 0;
+            // var x0 = 0, y0 = 0, z0 = 0;
             for (var i = 0; i < idArray.length; i++) {
               if (idArray[i] == resno) {
                 newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                x0 += posArray[i * 3];
-                y0 += posArray[i * 3 + 1];
-                z0 += posArray[i * 3 + 2];
+                // x0 += posArray[i * 3];
+                // y0 += posArray[i * 3 + 1];
+                // z0 += posArray[i * 3 + 2];
               }
             }
-            x0 /= newPos.length;
-            y0 /= newPos.length;
-            z0 /= newPos.length;
+            // x0 /= newPos.length;
+            // y0 /= newPos.length;
+            // z0 /= newPos.length;
             selGeometry = new BufferGeometry();
             selGeometry.setFromPoints(newPos);
-            this.stage.animationControls.move(new Vector3(x0, y0, z0))
+            // this.stage.animationControls.move(new Vector3(x0, y0, z0))
           }
         }
       });
@@ -970,7 +997,7 @@ export default class Viewer {
   }
 
   remove(buffer: Buffer) {
-    this.translationGroup.children.forEach(function (group) {
+    this.rotationGroup.children.forEach(function (group) { //kkk
       group.remove(buffer.group)
       group.remove(buffer.wireframeGroup)
     })
@@ -980,7 +1007,8 @@ export default class Viewer {
     }
 
     this.updateBoundingBox()
-    if (Debug) this.updateHelper()
+    if (Debug) 
+    this.updateHelper()
 
     // this.requestRender();
   }
@@ -1038,7 +1066,8 @@ export default class Viewer {
 
   updateBoundingBox() {
     this._updateBoundingBox()
-    if (Debug) this.updateHelper()
+    if (Debug) 
+    this.updateHelper()
   }
 
   getPickingPixels() {
@@ -1110,15 +1139,6 @@ export default class Viewer {
   }
 
   setBackground(color?: Color | number | string) {
-    const p = this.parameters
-
-    if (color) p.backgroundColor.set(color as string)  // TODO
-
-    this.setFog(p.backgroundColor)
-    this.renderer.setClearColor(p.backgroundColor, 0)
-    this.renderer.domElement.style.backgroundColor = p.backgroundColor.getStyle()
-
-    this.requestRender()
   }
 
   setSampling(level: number) {
@@ -1209,8 +1229,8 @@ export default class Viewer {
   }
 
   setSize(width: number, height: number) {
-    this.width = width || 1
-    this.height = height || 1
+    this.width = width || 0
+    this.height = height || 0
 
     this.perspectiveCamera.aspect = this.width / this.height
     this.orthographicCamera.left = -this.width / 2
@@ -1239,13 +1259,13 @@ export default class Viewer {
     this.requestRender()
   }
 
-  handleResize() {
-    if (this.container === document.body) {
-      this.setSize(window.innerWidth, window.innerHeight)
-    } else {
+  handleResize(width:number, height: number) {
+    //kkk
+    if(width == 0 || height == 0) {
       const box = this.container.getBoundingClientRect()
       this.setSize(box.width, box.height)
     }
+    else this.setSize(width, height)
   }
 
   updateInfo(reset?: boolean) {
@@ -1282,6 +1302,7 @@ export default class Viewer {
       this.sampleLevel = 3
       this.renderPending = true
       this.render()
+
       this.isStill = true
       this.sampleLevel = currentSampleLevel
       if (Debug) Log.log('rendered still frame')
@@ -1373,6 +1394,7 @@ export default class Viewer {
 
     window.requestAnimationFrame(() => {
       this.render()
+
       this.stats.update()
     })
   }
@@ -1539,7 +1561,7 @@ export default class Viewer {
     this.renderer.clear(false, true, true)
     this.updateInfo()
 
-    this.__setVisibility(true, false, false, Debug)
+    this.__setVisibility(true, false, false, true)
     //kkk
     //use composer rendering for outline highlighting effects
     this.composer.render();
@@ -1633,12 +1655,18 @@ export default class Viewer {
   private __render(picking = false, camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     if (picking) {
       if (!this.lastRenderedPicking) this.__renderPickingGroup(camera)
-    } else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
+    } 
+    else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
       // TODO super sample broken for stereo camera
       this.__renderSuperSample(camera, renderTarget)
       this.__renderModelGroup(camera, renderTarget)
-    } else {
-      this.__renderModelGroup(camera, renderTarget)
+      //kkk
+      if(this.pixiCallback) this.pixiCallback(this.renderer.domElement, this.width, this.height)
+    } 
+    else {
+      this.__renderModelGroup(camera, renderTarget);
+      //kkk
+      if(this.pixiCallback) this.pixiCallback(this.renderer.domElement, this.width, this.height)
     }
   }
 
@@ -1684,5 +1712,87 @@ export default class Viewer {
 
   dispose() {
     this.renderer.dispose()
+  }
+
+  //kkk
+  getCanvasBoundPoints():Vector2[] {
+    if(this.stage.loadedComponent == undefined) return [];
+
+    var min = this.boundingBox.min;
+    var max = this.boundingBox.max;
+    var posArray = [
+      new Vector2(),
+      new Vector2(),
+      new Vector2(),
+      new Vector2(),
+      new Vector2(),
+      new Vector2(),
+      new Vector2(),
+      new Vector2()
+  ];
+    var points = [
+        new Vector3(),
+        new Vector3(),
+        new Vector3(),
+        new Vector3(),
+        new Vector3(),
+        new Vector3(),
+        new Vector3(),
+        new Vector3()
+    ];
+
+    points[ 0 ].set( min.x, min.y, min.z ); // 000
+    points[ 1 ].set( min.x, min.y, max.z ); // 001
+    points[ 2 ].set( min.x, max.y, min.z ); // 010
+    points[ 3 ].set( min.x, max.y, max.z ); // 011
+    points[ 4 ].set( max.x, min.y, min.z ); // 100
+    points[ 5 ].set( max.x, min.y, max.z ); // 101
+    points[ 6 ].set( max.x, max.y, min.z ); // 110
+    points[ 7 ].set( max.x, max.y, max.z ); // 111
+
+    for(var i=0;i<8;i++) {
+        var p3 = points[i];
+        p3 = p3.applyMatrix4(this.stage.loadedComponent.matrix);
+        var p2 = this.stage.viewerControls.getPositionOnCanvas(p3);
+        posArray[i].set(p2.x, p2.y);
+    }
+    return posArray;
+  }
+  isPointInBoundBox(x:number, y:number, bEulerSys:boolean=true):boolean {
+    return true;
+    // function polyContainsPt(pt:Vector2, poly:Vector2[]) {
+    //   var sign:number[] = [];
+    //   for(var i=0;i<poly.length;i++) {
+    //     var p1 = poly[i];
+    //     var p2 = poly[(i+1)%poly.length];
+    //     var v1 = p2.clone().sub(p1);
+    //     var v2 = pt.clone().sub(p1);
+    //     sign.push(Math.sign(v1.cross(v2)));
+    //   }
+    //   var prevSign = 0;
+    //   for(var i=0;i<sign.length;i++) {
+    //     if(sign[i] != 0) {
+    //       if(prevSign == 0) prevSign = sign[i];
+    //       else if(prevSign == -sign[i]) return false;
+    //     }
+    //   }
+    //   return true;
+    // }
+    // var pt = new Vector2(x, y);
+    // if(!bEulerSys) pt.y = this.height - pt.y;
+
+    // var ptArray = this.getCanvasBoundPoints();
+    // if(ptArray.length == 8) {
+    //   if(polyContainsPt(pt, [ptArray[0], ptArray[1], ptArray[3], ptArray[2]])) return true;
+    //   if(polyContainsPt(pt, [ptArray[4], ptArray[5], ptArray[7], ptArray[6]])) return true;
+    //   if(polyContainsPt(pt, [ptArray[1], ptArray[3], ptArray[7], ptArray[5]])) return true;
+    //   if(polyContainsPt(pt, [ptArray[0], ptArray[2], ptArray[6], ptArray[4]])) return true;
+    //   if(polyContainsPt(pt, [ptArray[2], ptArray[6], ptArray[7], ptArray[3]])) return true;
+    //   if(polyContainsPt(pt, [ptArray[0], ptArray[4], ptArray[5], ptArray[1]])) return true;
+    // }
+    // return false;
+  }
+  getWebGLCanvas() {
+    return this.renderer.domElement;
   }
 }

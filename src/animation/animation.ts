@@ -227,7 +227,24 @@ export class MoveAnimation extends Animation {
   }
 
   _tick (/* stats */) {
-    this.controls.position.lerpVectors(
+    this.controls.rotationPosition.lerpVectors( //kkk
+      this.moveFrom, this.moveTo, this.alpha
+    ).negate()
+    this.controls.changed()
+  }
+}
+
+export class MoveAnimation2 extends Animation {
+  moveFrom: Vector3
+  moveTo: Vector3
+
+  _init (moveFrom: number[]|Vector3, moveTo: number[]|Vector3) {
+    this.moveFrom = ensureVector3(defaults(moveFrom, new Vector3()))
+    this.moveTo = ensureVector3(defaults(moveTo, new Vector3()))
+  }
+
+  _tick (/* stats */) {
+    this.controls.position.lerpVectors( //kkk
       this.moveFrom, this.moveTo, this.alpha
     ).negate()
     this.controls.changed()

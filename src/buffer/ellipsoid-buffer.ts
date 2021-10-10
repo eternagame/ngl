@@ -50,7 +50,7 @@ class EllipsoidBuffer extends GeometryBuffer {
   _majorAxis: Float32Array
   _minorAxis: Float32Array
   _radius: Float32Array
-  _vScale: number
+  _vScale: number //kkk
 
   constructor(data: EllipsoidBufferData, params: Partial<EllipsoidBufferParameters> = {}) {
     super(data, params, new IcosahedronBufferGeometry(1, defaults(params.sphereDetail, 2)))
@@ -66,7 +66,6 @@ class EllipsoidBuffer extends GeometryBuffer {
     //kkk
     //scale sphere in 3 axises to make ellipsoid
     scale.set(this._radius[i] * this._vScale, up.length(), target.length())
-
     matrix.scale(scale)
   }
 

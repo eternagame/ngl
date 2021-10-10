@@ -92,6 +92,7 @@ declare class Representation {
     tasks: Counter;
     private queue;
     bufferList: Buffer[];
+    divAnnotations: any[];
     lazy: boolean;
     lazyProps: {
         build: boolean;
@@ -133,6 +134,8 @@ declare class Representation {
     protected toBePrepared: boolean;
     [key: string]: any;
     constructor(object: any, viewer: Viewer, params: Partial<RepresentationParameters>);
+    getAnnotations(): any[];
+    resetAnnotations(): void;
     init(params: Partial<RepresentationParameters>): void;
     getColorParams(p?: {
         [k: string]: any;

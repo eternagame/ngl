@@ -3,7 +3,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @private
  */
-import { Vector3 } from 'three';
+import { Vector2, Vector3 } from 'three';
 import Stage from '../stage/stage';
 import Viewer from '../viewer/viewer';
 import Component from './component';
@@ -13,7 +13,7 @@ export interface AnnotationParams {
     visible?: boolean;
 }
 /**
- * Annotation HTML element floating on top of a position rendered in 3d
+ * Annotation
  */
 export default class Annotation {
     readonly component: Component;
@@ -23,11 +23,10 @@ export default class Annotation {
     visible: boolean;
     stage: Stage;
     viewer: Viewer;
-    element: HTMLElement;
+    text: string;
     private _viewerPosition;
     private _canvasPosition;
     private _cameraPosition;
-    private _clientRect;
     /**
      * @param {Component} component - the associated component
      * @param {Vector3} position - position in 3d
@@ -37,13 +36,14 @@ export default class Annotation {
      * @param {Integer} params.offsetY - 2d offset in y direction
      * @param {Boolean} params.visible - visibility flag
      */
-    constructor(component: Component, position: Vector3, content: string | HTMLElement, params?: AnnotationParams);
+    constructor(component: Component, position: Vector3, content: string, params?: AnnotationParams);
     /**
      * Set HTML content of the annotation
      * @param {String|Element} value - HTML content
      * @return {undefined}
      */
-    setContent(value: string | HTMLElement): void;
+    getCanvasPosition(): Vector2;
+    getContent(): string;
     /**
      * Set visibility of the annotation
      * @param {Boolean} value - visibility flag
@@ -51,7 +51,6 @@ export default class Annotation {
      */
     setVisibility(value: boolean): void;
     getVisibility(): boolean;
-    updateVisibility(): void;
     _updateViewerPosition(): void;
     _update(): void;
     /**

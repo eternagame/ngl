@@ -883,11 +883,11 @@ class Structure implements Structure {
       }
       i += isMulti ? bondOrder : 1
     })
-    // console.log('getBondData', params, bondData);
 
     return bondData
   }
 
+  //kkk
   getBackBondData(params: BondDataParams, bExtSugar?: boolean) {
     const p = Object.assign({}, params)
     if (p.colorParams) p.colorParams.structure = this.getStructure()

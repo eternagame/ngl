@@ -176,6 +176,7 @@ declare class StructureComponent extends Component {
      * @return {undefined}
      */
     autoView(duration?: number): any;
+    resetPos(): void;
     getBoxUntransformed(sele: string): Box3;
     getCenterUntransformed(sele: string): Vector3;
     superpose(component: StructureComponent, align: boolean, sele1: string, sele2: string): this;

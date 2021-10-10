@@ -68,7 +68,7 @@ declare class MouseObserver {
     lastMoved: number;
     which?: number | undefined;
     buttons?: number | undefined;
-    pressed?: boolean | undefined;
+    pressed: boolean;
     altKey: boolean;
     ctrlKey: boolean;
     metaKey: boolean;
@@ -128,7 +128,7 @@ declare class MouseObserver {
     _onTouchmove(event: TouchEvent): void;
     _distance(): number;
     _setCanvasPosition(event: any): void;
-    _setKeys(event: MouseEvent | TouchEvent): void;
+    _setKeys(event: MouseEvent | TouchEvent | PointerEvent): void;
     dispose(): void;
 }
 export default MouseObserver;

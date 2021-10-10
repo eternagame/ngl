@@ -132,7 +132,7 @@ class MouseObserver {
   lastMoved = Infinity  // Timestamp of last mouse move
   which?= 0  // 0: No button; 1: Left button; 2: Middle button; 3: Right button
   buttons?= 0  // 0: No button; 1: Left button; 2: Right button; 4: Middle button
-  pressed?= false  // Flag indicating if the mouse is pressed down
+  pressed= false  // Flag indicating if the mouse is pressed down
   altKey = false  // Flag indicating if the alt key is pressed
   ctrlKey = false  // Flag indicating if the ctrl key is pressed
   metaKey = false  // Flag indicating if the meta key is pressed
@@ -170,17 +170,29 @@ class MouseObserver {
 
     this._listen()
 
-    const opt = { passive: false } // treat as 'passive' so preventDefault can be called
-    document.addEventListener('mousewheel', this._onMousewheel, opt)
-    document.addEventListener('wheel', this._onMousewheel, opt)
-    document.addEventListener('MozMousePixelScroll', this._onMousewheel, opt)
-    document.addEventListener('mousemove', this._onMousemove, opt)
-    document.addEventListener('mousedown', this._onMousedown, opt)
-    document.addEventListener('mouseup', this._onMouseup, opt)
-    document.addEventListener('contextmenu', this._onContextmenu, opt)
-    document.addEventListener('touchstart', this._onTouchstart, opt)
-    document.addEventListener('touchend', this._onTouchend, opt)
-    document.addEventListener('touchmove', this._onTouchmove, opt)
+    // const opt = { passive: false } // treat as 'passive' so preventDefault can be called
+    // document.addEventListener('mousewheel', this._onMousewheel, opt)
+    // document.addEventListener('wheel', this._onMousewheel, opt)
+    // document.addEventListener('MozMousePixelScroll', this._onMousewheel, opt)
+    // document.addEventListener('mousemove', this._onMousemove, opt)
+    // document.addEventListener('mousedown', this._onMousedown, opt)
+    // document.addEventListener('mouseup', this._onMouseup, opt)
+    // document.addEventListener('contextmenu', this._onContextmenu, opt)
+    // document.addEventListener('touchstart', this._onTouchstart, opt)
+    // document.addEventListener('touchend', this._onTouchend, opt)
+    // document.addEventListener('touchmove', this._onTouchmove, opt)
+
+    //kkk
+    this.domElement.addEventListener('mousewheel', this._onMousewheel)
+    this.domElement.addEventListener('wheel', this._onMousewheel)
+    this.domElement.addEventListener('MozMousePixelScroll', this._onMousewheel)
+    this.domElement.addEventListener('mousemove', this._onMousemove)
+    this.domElement.addEventListener('mousedown', this._onMousedown)
+    this.domElement.addEventListener('mouseup', this._onMouseup)
+    this.domElement.addEventListener('contextmenu', this._onContextmenu)
+    this.domElement.addEventListener('touchstart', this._onTouchstart)
+    this.domElement.addEventListener('touchend', this._onTouchend)
+    this.domElement.addEventListener('touchmove', this._onTouchmove)
   }
 
   get key() {
@@ -231,6 +243,8 @@ class MouseObserver {
     if (event.target !== this.domElement || !this.handleScroll) {
       return
     }
+    if(!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
+    
     event.preventDefault()
     this._setKeys(event)
 
@@ -271,6 +285,10 @@ class MouseObserver {
    * @return {undefined}
    */
   _onMousemove(event: MouseEvent) {
+    this._setCanvasPosition(event)
+
+    if(!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
+
     if (event.target === this.domElement) {
       event.preventDefault()
       this.overElement = true
@@ -283,7 +301,6 @@ class MouseObserver {
     this.lastMoved = window.performance.now()
     this.prevPosition.copy(this.position)
     this.position.set(event.clientX, event.clientY)
-    this._setCanvasPosition(event)
     const dx = this.prevPosition.x - this.position.x
     const dy = this.prevPosition.y - this.position.y
     this.signals.moved.dispatch(dx, dy)
@@ -296,6 +313,9 @@ class MouseObserver {
     if (event.target !== this.domElement) {
       return
     }
+    this._setCanvasPosition(event)
+    if(!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
+
     event.preventDefault()
     this._setKeys(event)
     this.moving = false
@@ -305,7 +325,6 @@ class MouseObserver {
     this.which = event.which
     this.buttons = getMouseButtons(event)
     this.pressed = true
-    this._setCanvasPosition(event)
     //kkk //broadcast mouse down event in forms of custom event.
     window.dispatchEvent(new CustomEvent('kkk', {
       detail: {
@@ -326,6 +345,7 @@ class MouseObserver {
     if (event.target === this.domElement) {
       event.preventDefault()
     }
+
     this._setKeys(event)
     const cp = this.canvasPosition
     if (this._distance() < 4) {
@@ -340,7 +360,7 @@ class MouseObserver {
     }
     this.which = undefined
     this.buttons = undefined
-    this.pressed = undefined
+    this.pressed = false
     // if (this._distance() > 3 || event.which === RightMouseButton) {
     //   this.signals.dropped.dispatch();
     // }
@@ -356,6 +376,15 @@ class MouseObserver {
     if (event.target !== this.domElement) {
       return
     }
+    if (event.touches.length == 1) {
+        this._setCanvasPosition(event.touches[0])
+    }
+
+    if(!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) {
+      this.pressed = false
+      return;//kkk
+    }
+
     event.preventDefault()
     this.pressed = true
     switch (event.touches.length) {
@@ -370,7 +399,7 @@ class MouseObserver {
           event.touches[0].pageX,
           event.touches[0].pageY
         )
-        this._setCanvasPosition(event.touches[0])
+        // this._setCanvasPosition(event.touches[0])
         break
       }
 
@@ -394,10 +423,15 @@ class MouseObserver {
     }
     this.which = undefined
     this.buttons = undefined
-    this.pressed = undefined
+    this.pressed = false
   }
 
   _onTouchmove(event: TouchEvent) {
+    if (event.touches.length>0) {
+      this._setCanvasPosition(event.touches[0])
+    }
+    if(!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
+
     if (event.target === this.domElement) {
       event.preventDefault()
       this.overElement = true
@@ -417,7 +451,7 @@ class MouseObserver {
           event.touches[0].pageX,
           event.touches[0].pageY
         )
-        this._setCanvasPosition(event.touches[0])
+        // this._setCanvasPosition(event.touches[0])
         const dx = this.prevPosition.x - this.position.x
         const dy = this.prevPosition.y - this.position.y
         this.signals.moved.dispatch(dx, dy)
@@ -462,18 +496,26 @@ class MouseObserver {
 
   _setCanvasPosition(event: any) {  // TODO
     const box = this.domElement.getBoundingClientRect()
+    var left = box.left;
+    var top = box.top;
+    var width = box.width;
+    var height = box.height;
+    if(width ==0 || height == 0) {
+      width = this.viewer.width;
+      height = this.viewer.height;
+    }
     let offsetX, offsetY
     if ('offsetX' in event && 'offsetY' in event) {
       offsetX = event.offsetX
       offsetY = event.offsetY
     } else {
-      offsetX = event.clientX - box.left
-      offsetY = event.clientY - box.top
+      offsetX = event.clientX - left
+      offsetY = event.clientY - top
     }
-    this.canvasPosition.set(offsetX, box.height - offsetY)
+    this.canvasPosition.set(offsetX, height - offsetY)
   }
 
-  _setKeys(event: MouseEvent | TouchEvent) {
+  _setKeys(event: MouseEvent | TouchEvent | PointerEvent) {
     this.altKey = event.altKey
     this.ctrlKey = event.ctrlKey
     this.metaKey = event.metaKey
@@ -481,16 +523,27 @@ class MouseObserver {
   }
 
   dispose() {
-    document.removeEventListener('mousewheel', this._onMousewheel)
-    document.removeEventListener('wheel', this._onMousewheel)
-    document.removeEventListener('MozMousePixelScroll', this._onMousewheel)
-    document.removeEventListener('mousemove', this._onMousemove)
-    document.removeEventListener('mousedown', this._onMousedown)
-    document.removeEventListener('mouseup', this._onMouseup)
-    document.removeEventListener('contextmenu', this._onContextmenu)
-    document.removeEventListener('touchstart', this._onTouchstart)
-    document.removeEventListener('touchend', this._onTouchend)
-    document.removeEventListener('touchmove', this._onTouchmove)
+    // document.removeEventListener('mousewheel', this._onMousewheel)
+    // document.removeEventListener('wheel', this._onMousewheel)
+    // document.removeEventListener('MozMousePixelScroll', this._onMousewheel)
+    // document.removeEventListener('mousemove', this._onMousemove)
+    // document.removeEventListener('mousedown', this._onMousedown)
+    // document.removeEventListener('mouseup', this._onMouseup)
+    // document.removeEventListener('contextmenu', this._onContextmenu)
+    // document.removeEventListener('touchstart', this._onTouchstart)
+    // document.removeEventListener('touchend', this._onTouchend)
+    // document.removeEventListener('touchmove', this._onTouchmove)
+    //kkk
+    this.domElement.removeEventListener('mousewheel', this._onMousewheel)
+    this.domElement.removeEventListener('wheel', this._onMousewheel)
+    this.domElement.removeEventListener('MozMousePixelScroll', this._onMousewheel)
+    this.domElement.removeEventListener('mousemove', this._onMousemove)
+    this.domElement.removeEventListener('mousedown', this._onMousedown)
+    this.domElement.removeEventListener('mouseup', this._onMouseup)
+    this.domElement.removeEventListener('contextmenu', this._onContextmenu)
+    this.domElement.removeEventListener('touchstart', this._onTouchstart)
+    this.domElement.removeEventListener('touchend', this._onTouchend)
+    this.domElement.removeEventListener('touchmove', this._onTouchmove)
   }
 }
 

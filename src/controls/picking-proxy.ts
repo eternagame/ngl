@@ -303,6 +303,19 @@ class PickingProxy {
 
   getLabel() {
     const atom = this.atom || this.closeAtom
+
+    //kkk
+    var checkResult = this.checkBase();
+    if(this.stage.viewer.ethernaMode.ethernaPickingMode) { 
+      if(!checkResult.isBase) return '';
+      else {
+        var name = ''
+        if (this.bond.atom1.resno !== undefined) name += (this.bond.atom1.resno + this.stage.viewer.ethernaMode.ethernaNucleotideBase-1);
+        if (this.bond.atom1.resname) name += ': ' + this.bond.atom1.resname
+        return name;
+      }
+    }
+
     let msg = 'nothing'
     if (this.arrow) {
       msg = this.arrow.name
@@ -353,6 +366,7 @@ class PickingProxy {
     }
     return msg
   }
+  //kkk
   checkBase(): any {
     if (this.bond) {
       if ((this.bond.atom1.resno == this.bond.atom2.resno) && this.bond.atom1.atomname.includes("C4'") && (this.bond.atom2.atomname.includes("N1") || this.bond.atom2.atomname.includes("N3"))) {

@@ -19,31 +19,27 @@ import SphereImpostorBuffer from '../buffer/sphereimpostor-buffer';
  * Spacefill Representation
  */
 class SpacefillRepresentation extends StructureRepresentation {
-  constructor(structure: Structure, viewer: Viewer, params: Partial<StructureRepresentationParameters>) {
+  constructor (structure: Structure, viewer: Viewer, params: Partial<StructureRepresentationParameters>) {
     super(structure, viewer, params)
 
     this.type = 'spacefill'
 
     this.parameters = Object.assign({
       sphereDetail: true,
-      disableImpostor: true,
-      ellipsoid: false,
+      disableImpostor: true
     }, this.parameters)
 
     this.init(params)
   }
 
-  init(params: Partial<StructureRepresentationParameters>) {
+  init (params: Partial<StructureRepresentationParameters>) {
     var p = params || {}
     p.useInteriorColor = defaults(p.useInteriorColor, true)
-    p.ellipsoid = defaults(p.ellipsoid, false)
 
     super.init(p)
   }
 
-  createData(sview: StructureView) {
-    const bufferList: any[] = []
-
+  createData (sview: StructureView) {
     var sphereBuffer = new SphereBuffer(
       (sview.getAtomData(this.getAtomParams()) as SphereBufferData),
       (this.getBufferParams({
@@ -52,30 +48,29 @@ class SpacefillRepresentation extends StructureRepresentation {
         disableImpostor: this.disableImpostor
       }) as SphereBufferParameters)
     )
-    bufferList.push(sphereBuffer as SphereGeometryBuffer | SphereImpostorBuffer);
 
     return {
-      bufferList: bufferList
+      bufferList: [ sphereBuffer as SphereGeometryBuffer|SphereImpostorBuffer ]
     }
   }
 
-  updateData(what: AtomDataFields, data: StructureRepresentationData) {
+  updateData (what: AtomDataFields, data: StructureRepresentationData) {
     var atomData = data.sview!.getAtomData(this.getAtomParams(what))
     var sphereData: Partial<SphereBufferData> = {}
 
     if (!what || what.position) {
-      Object.assign(sphereData, { position: atomData.position })
+      Object.assign(sphereData, {position: atomData.position})
     }
 
     if (!what || what.color) {
-      Object.assign(sphereData, { color: atomData.color })
+      Object.assign(sphereData, {color: atomData.color})
     }
 
     if (!what || what.radius) {
-      Object.assign(sphereData, { radius: atomData.radius })
+      Object.assign(sphereData, {radius: atomData.radius})
     }
 
-    data.bufferList[0].setAttributes(sphereData)
+    data.bufferList[ 0 ].setAttributes(sphereData)
   }
 }
 

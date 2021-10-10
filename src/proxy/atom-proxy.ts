@@ -29,7 +29,7 @@ import ResidueType from '../store/residue-type';
 import ResidueProxy from './residue-proxy';
 import Entity from '../structure/entity';
 import BondHash from '../store/bond-hash';
-import { defaults } from '../utils'
+import { defaults } from '../utils' //kkk
 
 /**
  * Atom proxy
@@ -437,7 +437,6 @@ class AtomProxy {
     return false;
   }
 
-
   /**
    * If atom is part of a polymer
    * @return {Boolean} flag
@@ -793,8 +792,7 @@ class AtomProxy {
     return connectedAtomIndices
   }
 
-  //
-
+  //kkk
   qualifiedName(noResname = false) {
     var name = ''
     if (this.resname && !noResname) name += '[' + this.resname + ']'
@@ -802,7 +800,6 @@ class AtomProxy {
     if (this.inscode) name += '^' + this.inscode
     if (this.chainname) name += ':' + this.chainname
     if (this.atomname) name += '.' + this.atomname
-    if (this.serial) name += '(' + this.serial + ')'
     if (this.altloc) name += '%' + this.altloc
     if (this.structure.modelStore.count > 1) name += '/' + this.modelIndex
     return name

@@ -7,7 +7,6 @@
 import { Vector2, Vector3 } from 'three'
 
 import { defaults } from '../utils'
-import { smoothstep } from '../math/math-utils'
 import Stage from '../stage/stage'
 import Viewer from '../viewer/viewer'
 import Component from './component'
@@ -19,7 +18,7 @@ export interface AnnotationParams {
 }
 
 /**
- * Annotation HTML element floating on top of a position rendered in 3d
+ * Annotation 
  */
 export default class Annotation {
   offsetX: number
@@ -28,12 +27,11 @@ export default class Annotation {
 
   stage: Stage
   viewer: Viewer
-  element: HTMLElement
+  text: string //kkk
 
   private _viewerPosition: Vector3
   private _canvasPosition: Vector2
   private _cameraPosition: Vector3
-  private _clientRect: ClientRect
 
   /**
    * @param {Component} component - the associated component
@@ -44,7 +42,7 @@ export default class Annotation {
    * @param {Integer} params.offsetY - 2d offset in y direction
    * @param {Boolean} params.visible - visibility flag
    */
-  constructor(readonly component: Component, readonly position: Vector3, content: string | HTMLElement, params: AnnotationParams = {}) {
+  constructor (readonly component: Component, readonly position: Vector3, content: string, params: AnnotationParams = {}) {
     this.offsetX = defaults(params.offsetX, 0)
     this.offsetY = defaults(params.offsetY, 0)
     this.visible = defaults(params.visible, true)
@@ -57,18 +55,7 @@ export default class Annotation {
     this._canvasPosition = new Vector2()
     this._cameraPosition = new Vector3()
 
-    this.element = document.createElement('div')
-    Object.assign(this.element.style, {
-      display: 'block',
-      position: 'absolute',
-      pointerEvents: 'none',
-      whiteSpace: 'nowrap',
-      left: '-10000px'
-    })
-
-    this.viewer.wrapper.appendChild(this.element)
-    this.setContent(content)
-    this.updateVisibility()
+    this.text = content; //kkk
     this.viewer.signals.rendered.add(this._update, this)
     this.component.signals.matrixChanged.add(this._updateViewerPosition, this)
   }
@@ -78,32 +65,12 @@ export default class Annotation {
    * @param {String|Element} value - HTML content
    * @return {undefined}
    */
-  setContent(value: string | HTMLElement) {
-    const displayValue = this.element.style.display
-    if (displayValue === 'none') {
-      this.element.style.left = '-10000px'
-      this.element.style.display = 'block'
-    }
-
-    if (value instanceof HTMLElement) {
-      this.element.appendChild(value)
-    } else {
-      const content = document.createElement('div')
-      content.innerText = value
-      Object.assign(content.style, {
-        backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
-        color: 'lightgrey',
-        padding: '8px',
-        fontFamily: 'sans-serif',
-      })
-      this.element.appendChild(content)
-    }
-
-    this._clientRect = this.element.getBoundingClientRect()
-
-    if (displayValue === 'none') {
-      this.element.style.display = displayValue
-    }
+  //kkk
+  getCanvasPosition() {
+    return this._canvasPosition;
+  }
+  getContent() {
+    return this.text;
   }
 
   /**
@@ -111,63 +78,45 @@ export default class Annotation {
    * @param {Boolean} value - visibility flag
    * @return {undefined}
    */
-  setVisibility(value: boolean) {
+  setVisibility (value: boolean) {
     this.visible = value
-    this.updateVisibility()
   }
 
-  getVisibility() {
+  getVisibility () {
     return this.visible && this.component.parameters.visible
   }
 
-  updateVisibility() {
-    this.element.style.display = this.getVisibility() ? 'block' : 'none'
-  }
-
-  _updateViewerPosition() {
+  _updateViewerPosition () {
     this._viewerPosition
       .copy(this.position)
       .applyMatrix4(this.component.matrix)
   }
 
-  _update() {
-    if (!this.getVisibility()) return
-
-    const s = this.element.style
+  _update () {
     const cp = this._canvasPosition
     const vp = this._viewerPosition
-    const cr = this._clientRect
+    if (!this.getVisibility()) {
+      cp.x = -10000;
+      return;
+    } 
 
     this._cameraPosition.copy(vp)
       .add(this.viewer.translationGroup.position)
       .applyMatrix4(this.viewer.rotationGroup.matrix)
       .sub(this.viewer.camera.position)
 
-    if (this._cameraPosition.z < 0) {
-      s.display = 'none'
-      return
-    } else {
-      s.display = 'block'
-    }
-
-    const depth = this._cameraPosition.length()
-    const fog = this.viewer.scene.fog as any  // TODO
-
-    s.opacity = (1 - smoothstep(fog.near, fog.far, depth)).toString()
-    s.zIndex = (Math.round((fog.far - depth) * 100)).toString()
-
     this.stage.viewerControls.getPositionOnCanvas(vp, cp)
 
-    s.bottom = (this.offsetX + cp.y + cr.height / 2) + 'px'
-    s.left = (this.offsetY + cp.x - cr.width / 2) + 'px'
+    if (this._cameraPosition.z < 0) {
+      cp.x = -10000;
+    } 
   }
 
   /**
    * Safely remove the annotation
    * @return {undefined}
    */
-  dispose() {
-    this.viewer.wrapper.removeChild(this.element)
+  dispose () {
     this.viewer.signals.ticked.remove(this._update, this)
     this.component.signals.matrixChanged.remove(this._updateViewerPosition, this)
   }

@@ -36,7 +36,6 @@ export interface StructureRepresentationParameters extends RepresentationParamet
   radius: number
   scale: number
   assembly: string
-  ellipsoid: boolean
 }
 export interface StructureRepresentationData {
   bufferList: Buffer[]
@@ -56,15 +55,12 @@ abstract class StructureRepresentation extends Representation {
   structureView: StructureView
 
   protected radiusType: RadiusType
-  protected radiusData: { [k: number]: number }
+  protected radiusData: {[k: number]: number}
   protected radiusSize: number
   protected radiusScale: number
   protected assembly: string
   protected defaultAssembly: string
   protected needsBuild: boolean
-  protected ellipsoid: boolean
-  // protected majorAxis: [k: number]
-  // protected minorAxis: [k: number]
 
   /**
    * Create Structure representation object
@@ -72,7 +68,7 @@ abstract class StructureRepresentation extends Representation {
    * @param {Viewer} viewer - a viewer object
    * @param {StructureRepresentationParameters} params - structure representation parameters
    */
-  constructor(structure: Structure, viewer: Viewer, params: Partial<StructureRepresentationParameters>) {
+  constructor (structure: Structure, viewer: Viewer, params: Partial<StructureRepresentationParameters>) {
     const p = params || {}
 
     super(structure, viewer, p)
@@ -95,8 +91,7 @@ abstract class StructureRepresentation extends Representation {
       assembly: null,
       defaultAssembly: {
         type: 'hidden'
-      },
-      ellipsoid: false,
+      }
     }, this.parameters)
 
     /**
@@ -122,12 +117,12 @@ abstract class StructureRepresentation extends Representation {
     this.structureView = this.structure.getView(this.selection)
 
     if (structure.biomolDict) {
-      const biomolOptions: { [key: string]: string } = {
+      const biomolOptions:{[key: string]: string} = {
         'default': 'default',
         '': (structure.unitcell ? 'AU' : 'FULL')
       }
       Object.keys(structure.biomolDict).forEach(function (k) {
-        biomolOptions[k] = k
+        biomolOptions[ k ] = k
       })
       this.parameters.assembly = {
         type: 'select',
@@ -139,7 +134,7 @@ abstract class StructureRepresentation extends Representation {
     }
   }
 
-  get defaultScale() {
+  get defaultScale () {
     return {
       'vdw': 1.0,
       'covalent': 1.0,
@@ -148,7 +143,7 @@ abstract class StructureRepresentation extends Representation {
     }
   }
 
-  init(params: Partial<StructureRepresentationParameters>) {
+  init (params: Partial<StructureRepresentationParameters>) {
     const p = params || {}
     p.colorScheme = defaults(p.colorScheme, 'element')
 
@@ -160,10 +155,6 @@ abstract class StructureRepresentation extends Representation {
     this.radiusScale = defaults(p.radiusScale, 1.0)
     this.assembly = defaults(p.assembly, 'default')
     this.defaultAssembly = defaults(p.defaultAssembly, '')
-    this.ellipsoid = defaults(p.ellipsoid, false);
-    // this.majorAxis = defaults(p.majorAxis, [1, 1, 0])
-    // this.minorAxis = defaults(p.minorAxis, [0.5, 0, 0.5])
-
 
     if (p.quality === 'auto') {
       p.quality = this.getQuality()
@@ -178,7 +169,7 @@ abstract class StructureRepresentation extends Representation {
     this.build()
   }
 
-  setRadius(value: string | number | undefined, p: Partial<StructureRepresentationParameters>) {
+  setRadius (value: string | number | undefined, p: Partial<StructureRepresentationParameters>) {
     const types = Object.keys(RadiusFactoryTypes)
 
     if (typeof value === 'string' && types.includes(value.toLowerCase())) {
@@ -191,12 +182,12 @@ abstract class StructureRepresentation extends Representation {
     return this
   }
 
-  getAssembly(): Assembly {
+  getAssembly (): Assembly {
     const name = this.assembly === 'default' ? this.defaultAssembly : this.assembly
-    return this.structure.biomolDict[name]
+    return this.structure.biomolDict[ name ]
   }
 
-  getQuality() {
+  getQuality () {
     let atomCount
     const s = this.structureView
     const assembly = this.getAssembly()
@@ -222,7 +213,7 @@ abstract class StructureRepresentation extends Representation {
     }
   }
 
-  create() {
+  create () {
     if (this.structureView.atomCount === 0) return
 
     if (!this.structureView.hasCoords()) {
@@ -254,9 +245,9 @@ abstract class StructureRepresentation extends Representation {
     }
   }
 
-  abstract createData(sview: StructureView, k?: number): StructureRepresentationData | undefined
+  abstract createData (sview: StructureView, k?: number): StructureRepresentationData|undefined
 
-  update(what: AtomDataFields | BondDataFields) {
+  update (what: AtomDataFields|BondDataFields) {
     if (this.lazy && !this.visible) {
       Object.assign(this.lazyProps.what, what)
       return
@@ -274,18 +265,18 @@ abstract class StructureRepresentation extends Representation {
     }, this)
   }
 
-  updateData(what?: AtomDataFields | BondDataFields, data?: any) {
+  updateData (what?: AtomDataFields|BondDataFields, data?: any) {
     this.build()
   }
 
-  getColorParams() {
+  getColorParams () {
     return {
       ...super.getColorParams(),
       structure: this.structure
     }
   }
 
-  getRadiusParams(param?: any) {
+  getRadiusParams (param?: any) {
     return {
       type: this.radiusType,
       scale: this.radiusScale,
@@ -294,7 +285,7 @@ abstract class StructureRepresentation extends Representation {
     }
   }
 
-  getAtomParams(what?: AtomDataFields, params?: AtomDataParams) {
+  getAtomParams (what?: AtomDataFields, params?: AtomDataParams) {
     return Object.assign({
       what: what,
       colorParams: this.getColorParams(),
@@ -302,7 +293,7 @@ abstract class StructureRepresentation extends Representation {
     }, params)
   }
 
-  getBondParams(what?: BondDataFields, params?: BondDataParams) {
+  getBondParams (what?: BondDataFields, params?: BondDataParams) {
     return Object.assign({
       what: what,
       colorParams: this.getColorParams(),
@@ -310,7 +301,7 @@ abstract class StructureRepresentation extends Representation {
     }, params)
   }
 
-  getAtomRadius(atom: AtomProxy) {
+  getAtomRadius (atom: AtomProxy) {
     if (this.structureView.atomSet!.isSet(atom.index)) {
       const radiusFactory = new RadiusFactory(this.getRadiusParams())
       return radiusFactory.atomRadius(atom)
@@ -325,7 +316,7 @@ abstract class StructureRepresentation extends Representation {
    * @param {Boolean} [silent] - don't trigger a change event in the selection
    * @return {StructureRepresentation} this object
    */
-  setSelection(string: string, silent?: boolean) {
+  setSelection (string: string, silent?: boolean) {
     this.selection.setString(string, silent)
 
     return this
@@ -345,7 +336,7 @@ abstract class StructureRepresentation extends Representation {
    * @param {Boolean} [rebuild] - whether or not to rebuild the representation
    * @return {StructureRepresentation} this object
    */
-  setParameters(params: Partial<StructureRepresentationParameters>, what: AtomDataFields = {}, rebuild = false) {
+  setParameters (params: Partial<StructureRepresentationParameters>, what: AtomDataFields = {}, rebuild = false) {
     const p = params || {}
 
     this.setRadius(p.radius, p)
@@ -358,9 +349,9 @@ abstract class StructureRepresentation extends Representation {
     }
 
     if (p.defaultAssembly !== undefined &&
-      p.defaultAssembly !== this.defaultAssembly &&
-      ((this.assembly === 'default' && p.assembly === undefined) ||
-        p.assembly === 'default')
+        p.defaultAssembly !== this.defaultAssembly &&
+        ((this.assembly === 'default' && p.assembly === undefined) ||
+          p.assembly === 'default')
     ) {
       rebuild = true
     }
@@ -370,7 +361,7 @@ abstract class StructureRepresentation extends Representation {
     return this
   }
 
-  getParameters() {
+  getParameters () {
     const params = Object.assign(
       super.getParameters(),
       {
@@ -382,7 +373,7 @@ abstract class StructureRepresentation extends Representation {
     return params
   }
 
-  attach(callback: () => void) {
+  attach (callback: ()=> void) {
     const viewer = this.viewer
     const bufferList = this.bufferList
 
@@ -397,13 +388,13 @@ abstract class StructureRepresentation extends Representation {
     callback()
   }
 
-  clear() {
+  clear () {
     this.dataList.length = 0
 
     super.clear()
   }
 
-  dispose() {
+  dispose () {
     this.structureView.dispose()
 
     delete this.structure

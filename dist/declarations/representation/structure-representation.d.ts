@@ -30,7 +30,6 @@ export interface StructureRepresentationParameters extends RepresentationParamet
     radius: number;
     scale: number;
     assembly: string;
-    ellipsoid: boolean;
 }
 export interface StructureRepresentationData {
     bufferList: Buffer[];
@@ -56,7 +55,6 @@ declare abstract class StructureRepresentation extends Representation {
     protected assembly: string;
     protected defaultAssembly: string;
     protected needsBuild: boolean;
-    protected ellipsoid: boolean;
     /**
      * Create Structure representation object
      * @param {Structure} structure - the structure to be represented

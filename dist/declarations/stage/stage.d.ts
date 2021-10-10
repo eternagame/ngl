@@ -45,6 +45,9 @@ declare global {
         msRequestFullscreen(): void;
     }
 }
+export interface PixiRenderCallback {
+    (imgData: HTMLCanvasElement, width: number, height: number): void;
+}
 /**
  * Stage parameter object.
  * @typedef {Object} StageParameters - stage parameters
@@ -82,6 +85,9 @@ export interface StageSignals {
     componentRemoved: Signal;
     clicked: Signal;
     hovered: Signal;
+}
+interface PixiCifCheckerCallback {
+    (component: Structure | null): void;
 }
 export declare type RenderQualityType = 'auto' | 'low' | 'medium' | 'high';
 export declare const StageDefaultParameters: {
@@ -152,7 +158,8 @@ declare class Stage {
     keyBehavior: KeyBehavior;
     spinAnimation: Animation;
     rockAnimation: Animation;
-    constructor(idOrElement: string | HTMLElement, params?: Partial<StageParameters>);
+    loadedComponent: Component;
+    constructor(idOrElement: HTMLElement, params?: Partial<StageParameters>, pixiCallback?: PixiRenderCallback | undefined);
     /**
      * Set stage parameters
      */
@@ -229,6 +236,7 @@ declare class Stage {
      *                   depending on the type of the loaded file.
      */
     loadFile(path: string | File | Blob, params?: Partial<StageLoadFileParams>): Promise<void | Component>;
+    static checkModelFile(path: string | File | Blob, callback: PixiCifCheckerCallback): Promise<void>;
     loadScript(path: string | File | Blob): any;
     /**
      * Add the given component to the stage
@@ -254,7 +262,7 @@ declare class Stage {
      * Handle any size-changes of the container element
      * @return {undefined}
      */
-    handleResize(): void;
+    handleResize(width?: number, height?: number): void;
     /**
      * Set width and height
      * @param {String} width - CSS width value

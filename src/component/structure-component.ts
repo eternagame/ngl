@@ -45,7 +45,7 @@ import { UnitcellRepresentationParameters } from '../representation/unitcell-rep
 import { SliceRepresentationParameters } from '../representation/slice-representation'
 import { MolecularSurfaceRepresentationParameters } from '../representation/molecularsurface-representation'
 import { DotRepresentationParameters } from '../representation/dot-representation'
-import { EBallAndStickRepresentationParameters } from '../representation/eballandstick-representation'
+import { EBallAndStickRepresentationParameters } from '../representation/eballandstick-representation' //kkk
 
 export type StructureRepresentationType = keyof StructureRepresentationParametersMap
 
@@ -54,7 +54,7 @@ interface StructureRepresentationParametersMap {
   'axes': AxesRepresentationParameters,
   'backbone': BallAndStickRepresentationParameters,
   'ball+stick': BallAndStickRepresentationParameters,
-  'eball+stick': EBallAndStickRepresentationParameters, //kkk
+  'eball+stick': EBallAndStickRepresentationParameters, //kkk 
   'base': BallAndStickRepresentationParameters,
   'ebase': BallAndStickRepresentationParameters, //kkk
   'cartoon': CartoonRepresentationParameters,
@@ -337,14 +337,30 @@ class StructureComponent extends Component {
       duration = sele
       sele = ''
     }
-
     this.stage.animationControls.zoomMove(
       this.getCenter(sele),
       this.getZoom(sele),
       defaults(duration, 0)
     )
+    //kkk add pan auto
+    // var tmpPanVector = new Vector3();
+    // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
+    // tmpPanVector.set(this.viewer.width/4, 0, 0)
+    // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
+    // this.stage.animationControls.zoom2(
+    //   tmpPanVector,
+    //   defaults(duration, 0)
+    // )
   }
 
+  resetPos() {
+    // console.log(this.position);
+    // this.stage.viewerControls.translate(this.getCenter().negate());
+    // this.viewer.translationGroup.position.set(0,0,0)
+    // this.viewer.rotationGroup.position.add(this.getCenter().negate())
+    // this.viewer.requestRender();
+    // console.log(this.getCenter());
+  }
   getBoxUntransformed(sele: string): Box3 {
     let bb
 

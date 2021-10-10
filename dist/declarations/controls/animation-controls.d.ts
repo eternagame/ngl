@@ -72,6 +72,7 @@ declare class AnimationControls {
      * @return {MoveAnimation} the animation
      */
     move(moveTo: Vector3 | number[], duration?: number): Animation;
+    move2(deltaTo: Vector3, duration?: number): Animation;
     /**
      * Add a zoom animation
      * @param  {Number} zoomTo - target distance
@@ -87,6 +88,7 @@ declare class AnimationControls {
      * @return {Array} the animations
      */
     zoomMove(moveTo: Vector3, zoomTo: number, duration?: number): AnimationList;
+    zoom2(deltaTo: Vector3, duration?: number): AnimationList;
     /**
      * Add an orient animation
      * @param  {OrientationMatrix|Array} orientTo - target orientation

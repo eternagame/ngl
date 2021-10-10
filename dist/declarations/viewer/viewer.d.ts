@@ -4,8 +4,8 @@
  * @private
  */
 import { Signal } from 'signals';
-import Stage from '../stage/stage';
-import { PerspectiveCamera, OrthographicCamera, Box3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, TextureEncoding } from 'three';
+import Stage, { PixiRenderCallback } from '../stage/stage';
+import { PerspectiveCamera, OrthographicCamera, Vector2, Box3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, TextureEncoding } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
@@ -83,11 +83,14 @@ export default class Viewer {
     private backgroundGroup;
     private helperGroup;
     renderer: WebGLRenderer;
+    left: number;
+    top: number;
     composer: EffectComposer;
     selectOutlinePass: OutlinePass;
     effectFXAA: ShaderPass;
     flashCount: number;
     baseColor: number;
+    ethernaMode: any;
     private supportsHalfFloat;
     private pickingTarget;
     private sampleTarget;
@@ -106,9 +109,14 @@ export default class Viewer {
     etherna_pairs: number[] | undefined;
     etherna_sequence: string;
     fromOuter: boolean;
-    constructor(idOrElement: string | HTMLElement, stage: Stage);
+    pixiCallback: PixiRenderCallback | undefined;
+    constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined);
+    setPosition(x: number, y: number): void;
     setEthernaPairs(pairs: number[] | undefined): void;
-    setEthernaSequence(sequence: string): void;
+    setEthernaSequence(sequence: string, num: number): void;
+    setEthernaToolTipMode(mode: boolean): void;
+    setHBondColor(colors: number[]): void;
+    setPixiCallback(callback: PixiRenderCallback): void;
     private _initParams;
     private _initCamera;
     private _initStats;
@@ -158,7 +166,7 @@ export default class Viewer {
     setCamera(type: CameraType, fov?: number, eyeSep?: number): void;
     setClip(near: number, far: number, dist: number, clipMode?: string, clipScale?: string): void;
     setSize(width: number, height: number): void;
-    handleResize(): void;
+    handleResize(width: number, height: number): void;
     updateInfo(reset?: boolean): void;
     animate(): void;
     pick(x: number, y: number): {
@@ -198,4 +206,7 @@ export default class Viewer {
     render(picking?: boolean, renderTarget?: WebGLRenderTarget): void;
     clear(): void;
     dispose(): void;
+    getCanvasBoundPoints(): Vector2[];
+    isPointInBoundBox(x: number, y: number, bEulerSys?: boolean): boolean;
+    getWebGLCanvas(): HTMLCanvasElement;
 }

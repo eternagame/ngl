@@ -215,9 +215,9 @@ abstract class Component {
    * @param {Integer} params.offsetY - 2d offset in y direction
    * @return {Annotation} the added annotation object
    */
-  addAnnotation (position: Vector3, content: string|HTMLElement, params: AnnotationParams) {
+  addAnnotation (position: Vector3, content: string, params: AnnotationParams) {
     const annotation = new Annotation(this, position, content, params)
-    this.annotationList.push(annotation)
+    this.annotationList.push(annotation) 
 
     return annotation
   }
@@ -346,7 +346,6 @@ abstract class Component {
     this.parameters.visible = value
 
     this.eachRepresentation((repr: RepresentationElement) => repr.updateVisibility())
-    this.eachAnnotation((annotation: Annotation) => annotation.updateVisibility())
 
     this.signals.visibilityChanged.dispatch(value)
 
@@ -410,6 +409,15 @@ abstract class Component {
       this.getZoom(),
       defaults(duration, 0)
     )
+    //kkk add pan auto
+    // var tmpPanVector = new Vector3();
+    // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
+    // tmpPanVector.set(this.viewer.width/4, 0, 0)
+    // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
+    // this.stage.animationControls.zoom2(
+    //   tmpPanVector,
+    //   defaults(duration, 0)
+    // )
   }
 }
 

@@ -25,6 +25,7 @@ declare class ViewerControls {
      * @type {Vector3}
      */
     get position(): Vector3;
+    get rotationPosition(): Vector3;
     /**
      * scene rotation
      * @type {Quaternion}
@@ -56,6 +57,7 @@ declare class ViewerControls {
      * @return {undefined}
      */
     translate(vector: Vector3 | number[]): void;
+    intranslate(vector: Vector3 | number[]): void;
     /**
      * center scene
      * @param  {Vector3|Array} position - center position
@@ -102,6 +104,7 @@ declare class ViewerControls {
      * @param  {Matrix4|Array} matrix - rotation matrix
      * @return {undefined}
      */
-    applyMatrix(matrix: Matrix4 | number[]): void;
+    applyRotateMatrix(matrix: Matrix4 | number[]): void;
+    inApplyRotateMatrix(matrix: Matrix4 | number[]): void;
 }
 export default ViewerControls;

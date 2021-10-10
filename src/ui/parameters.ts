@@ -59,5 +59,5 @@ export const UIStageParameters: { [k in keyof StageParameters]: ParamType } = {
   ambientIntensity: NumberParam(2, 10, 0),
   hoverTimeout: IntegerParam(10000, -1),
   tooltip: BooleanParam(),
-  mousePreset: SelectParam(...Object.keys(MouseActionPresets))
+  mousePreset: SelectParam(...Object.keys(MouseActionPresets)),
 }

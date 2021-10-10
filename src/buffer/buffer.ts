@@ -22,9 +22,9 @@ import { getShader, ShaderDefines } from '../shader/shader-utils'
 import { serialArray } from '../math/array-utils'
 import { Picker } from '../utils/picker'
 
-export type BufferSide = 'front' | 'back' | 'double'
+export type BufferSide = 'front'|'back'|'double'
 
-function getThreeSide(side: BufferSide) {
+function getThreeSide (side: BufferSide) {
   if (side === 'front') {
     return FrontSide
   } else if (side === 'back') {
@@ -40,21 +40,21 @@ const itemSize = {
   'f': 1, 'v2': 2, 'v3': 3, 'c': 3
 }
 
-function setObjectMatrix(object: Object3D, matrix: Matrix4) {
+function setObjectMatrix (object: Object3D, matrix: Matrix4) {
   object.matrix.copy(matrix)
   object.matrix.decompose(object.position, object.quaternion, object.scale)
   object.matrixWorldNeedsUpdate = true
 }
 
-export type BufferTypes = 'picking' | 'background'
-export type BufferMaterials = 'material' | 'wireframeMaterial' | 'pickingMaterial'
+export type BufferTypes = 'picking'|'background'
+export type BufferMaterials = 'material'|'wireframeMaterial'|'pickingMaterial'
 
 export interface _BufferAttribute {
-  type: 'f' | 'v2' | 'v3' | 'c'
+  type: 'f'|'v2'|'v3'|'c'
   value?: NumberArray
 }
 
-export type Uniforms = { [k: string]: Uniform | { value: any } }
+export type Uniforms = { [k: string]: Uniform|{ value: any } }
 
 export const BufferDefaultParameters = {
   opaqueBack: false,
@@ -106,7 +106,7 @@ export interface BufferData {
   position?: Float32Array
   position1?: Float32Array  // TODO
   color?: Float32Array
-  index?: Uint32Array | Uint16Array
+  index?: Uint32Array|Uint16Array
   normal?: Float32Array
 
   picking?: Picker
@@ -149,7 +149,7 @@ class Buffer {
   wireframeMaterial: ShaderMaterial
   pickingMaterial: ShaderMaterial
 
-  wireframeIndex?: Uint32Array | Uint16Array
+  wireframeIndex?: Uint32Array|Uint16Array
   wireframeIndexCount = 0
   wireframeGeometry?: BufferGeometry
 
@@ -161,7 +161,7 @@ class Buffer {
    * @param {Picker} [data.picking] - picking ids
    * @param {BufferParameters} params - parameters object
    */
-  constructor(data: BufferData, params: Partial<BufferParameters> = {}) {
+  constructor (data: BufferData, params: Partial<BufferParameters> = {}) {
     this.parameters = createParams(params, this.defaultParameters)
 
     this.uniforms = UniformsUtils.merge([
@@ -220,36 +220,36 @@ class Buffer {
     this.makeWireframeGeometry()
   }
 
-  set matrix(m) {
+  set matrix (m) {
     this.setMatrix(m)
   }
-  get matrix() {
+  get matrix () {
     return this.group.matrix.clone()
   }
 
-  get transparent() {
+  get transparent () {
     return this.parameters.opacity < 1 || this.parameters.forceTransparent
   }
 
-  get size() {
+  get size () {
     return this._positionDataSize
   }
 
-  get attributeSize() {
+  get attributeSize () {
     return this.size
   }
 
-  get pickable() {
+  get pickable () {
     return !!this.picking && !this.parameters.disablePicking
   }
 
-  setMatrix(m: Matrix4) {
+  setMatrix (m: Matrix4) {
     setObjectMatrix(this.group, m)
     setObjectMatrix(this.wireframeGroup, m)
     setObjectMatrix(this.pickingGroup, m)
   }
 
-  initIndex(index: Uint32Array | Uint16Array) {
+  initIndex (index: Uint32Array|Uint16Array) {
     this.geometry.setIndex(
       new BufferAttribute(index, 1)
     )
@@ -258,7 +258,7 @@ class Buffer {
     nindex.setUsage(this.dynamic ? WebGLRenderingContext.DYNAMIC_DRAW : 0)
   }
 
-  makeMaterial() {
+  makeMaterial () {
     const side = getThreeSide(this.parameters.side)
 
     const m = new ShaderMaterial({
@@ -304,9 +304,9 @@ class Buffer {
     pm.vertexColors = true
     pm.extensions.fragDepth = this.isImpostor
 
-      ; (m as any).clipNear = this.parameters.clipNear
-      ; (wm as any).clipNear = this.parameters.clipNear
-      ; (pm as any).clipNear = this.parameters.clipNear
+    ;(m as any).clipNear = this.parameters.clipNear
+    ;(wm as any).clipNear = this.parameters.clipNear
+    ;(pm as any).clipNear = this.parameters.clipNear
 
     this.material = m
     this.wireframeMaterial = wm
@@ -316,7 +316,7 @@ class Buffer {
     this.updateShader()
   }
 
-  makeWireframeGeometry() {
+  makeWireframeGeometry () {
     this.makeWireframeIndex()
 
     const geometry = this.geometry
@@ -334,20 +334,20 @@ class Buffer {
     this.wireframeGeometry = wireframeGeometry
   }
 
-  makeWireframeIndex() {
+  makeWireframeIndex () {
     const edges: number[][] = []
 
-    function checkEdge(a: number, b: number) {
+    function checkEdge (a: number, b: number) {
       if (a > b) {
         const tmp = a
         a = b
         b = tmp
       }
 
-      const list = edges[a]
+      const list = edges[ a ]
 
       if (list === undefined) {
-        edges[a] = [b]
+        edges[ a ] = [ b ]
         return true
       } else if (!list.includes(b)) {
         list.push(b)
@@ -381,23 +381,23 @@ class Buffer {
       edges.length = 0
 
       for (let i = 0; i < n; i += 3) {
-        const a = array[i + 0]
-        const b = array[i + 1]
-        const c = array[i + 2]
+        const a = array[ i + 0 ]
+        const b = array[ i + 1 ]
+        const c = array[ i + 2 ]
 
         if (checkEdge(a, b)) {
-          wireframeIndex[j + 0] = a
-          wireframeIndex[j + 1] = b
+          wireframeIndex[ j + 0 ] = a
+          wireframeIndex[ j + 1 ] = b
           j += 2
         }
         if (checkEdge(b, c)) {
-          wireframeIndex[j + 0] = b
-          wireframeIndex[j + 1] = c
+          wireframeIndex[ j + 0 ] = b
+          wireframeIndex[ j + 1 ] = c
           j += 2
         }
         if (checkEdge(c, a)) {
-          wireframeIndex[j + 0] = c
-          wireframeIndex[j + 1] = a
+          wireframeIndex[ j + 0 ] = c
+          wireframeIndex[ j + 1 ] = a
           j += 2
         }
       }
@@ -416,12 +416,12 @@ class Buffer {
       }
 
       for (let i = 0, j = 0; i < n; i += 3) {
-        wireframeIndex[j + 0] = i
-        wireframeIndex[j + 1] = i + 1
-        wireframeIndex[j + 2] = i + 1
-        wireframeIndex[j + 3] = i + 2
-        wireframeIndex[j + 4] = i + 2
-        wireframeIndex[j + 5] = i
+        wireframeIndex[ j + 0 ] = i
+        wireframeIndex[ j + 1 ] = i + 1
+        wireframeIndex[ j + 2 ] = i + 1
+        wireframeIndex[ j + 3 ] = i + 2
+        wireframeIndex[ j + 4 ] = i + 2
+        wireframeIndex[ j + 5 ] = i
 
         j += 6
       }
@@ -432,14 +432,14 @@ class Buffer {
     }
   }
 
-  updateWireframeIndex() {
+  updateWireframeIndex () {
     if (!this.wireframeGeometry || !this.wireframeIndex) return
 
     this.wireframeGeometry.setDrawRange(0, Infinity)
     if (this.wireframeIndexVersion < this.indexVersion) this.makeWireframeIndex()
 
     if (this.wireframeGeometry.index &&
-      this.wireframeIndex.length > this.wireframeGeometry.index.array.length) {
+        this.wireframeIndex.length > this.wireframeGeometry.index.array.length) {
       this.wireframeGeometry.setIndex(
         new BufferAttribute(this.wireframeIndex, 1).setUsage(this.dynamic ? WebGLRenderingContext.DYNAMIC_DRAW : 0)
       )
@@ -454,7 +454,7 @@ class Buffer {
     this.wireframeGeometry.setDrawRange(0, this.wireframeIndexCount)
   }
 
-  getRenderOrder() {
+  getRenderOrder () {
     let renderOrder = 0
 
     if (this.isText) {
@@ -470,11 +470,11 @@ class Buffer {
     return renderOrder
   }
 
-  _getMesh(materialName: BufferMaterials) {
+  _getMesh (materialName: BufferMaterials) {
     if (!this.material) this.makeMaterial()
 
     const g = this.geometry
-    const m = this[materialName]
+    const m = this[ materialName ]
 
     let mesh
 
@@ -492,11 +492,11 @@ class Buffer {
     return mesh
   }
 
-  getMesh() {
+  getMesh () {
     return this._getMesh('material')
   }
 
-  getWireframeMesh() {
+  getWireframeMesh () {
     let mesh
 
     if (!this.material) this.makeMaterial()
@@ -512,23 +512,23 @@ class Buffer {
     return mesh
   }
 
-  getPickingMesh() {
+  getPickingMesh () {
     return this._getMesh('pickingMaterial')
   }
 
-  getShader(name: string, type?: BufferTypes) {
+  getShader (name: string, type?: BufferTypes) {
     return getShader(name, this.getDefines(type))
   }
 
-  getVertexShader(type?: BufferTypes) {
+  getVertexShader (type?: BufferTypes) {
     return this.getShader(this.vertexShader, type)
   }
 
-  getFragmentShader(type?: BufferTypes) {
+  getFragmentShader (type?: BufferTypes) {
     return this.getShader(this.fragmentShader, type)
   }
 
-  getDefines(type?: BufferTypes) {
+  getDefines (type?: BufferTypes) {
     const defines: ShaderDefines = {}
 
     if (this.parameters.clipNear) {
@@ -562,25 +562,25 @@ class Buffer {
     return defines
   }
 
-  getParameters() {
+  getParameters () {
     return this.parameters
   }
 
-  addUniforms(uniforms: Uniforms) {
+  addUniforms (uniforms: Uniforms) {
     this.uniforms = UniformsUtils.merge(
-      [this.uniforms, uniforms]
+      [ this.uniforms, uniforms ]
     )
 
     this.pickingUniforms = UniformsUtils.merge(
-      [this.pickingUniforms, uniforms]
+      [ this.pickingUniforms, uniforms ]
     )
   }
 
-  addAttributes(attributes: { [k: string]: _BufferAttribute }) {
+  addAttributes (attributes: { [k: string]: _BufferAttribute }) {
     for (let name in attributes) {
       let buf
-      const a = attributes[name]
-      const arraySize = this.attributeSize * itemSize[a.type]
+      const a = attributes[ name ]
+      const arraySize = this.attributeSize * itemSize[ a.type ]
 
       if (a.value) {
         if (arraySize !== a.value.length) {
@@ -593,14 +593,14 @@ class Buffer {
 
       this.geometry.setAttribute(
         name,
-        new BufferAttribute(buf, itemSize[a.type]).setUsage(this.dynamic ? WebGLRenderingContext.DYNAMIC_DRAW : 0)
+        new BufferAttribute(buf, itemSize[ a.type ]).setUsage(this.dynamic ? WebGLRenderingContext.DYNAMIC_DRAW : 0)
       )
     }
   }
 
-  updateRenderOrder() {
+  updateRenderOrder () {
     const renderOrder = this.getRenderOrder()
-    function setRenderOrder(mesh: Object3D) {
+    function setRenderOrder (mesh: Object3D) {
       mesh.renderOrder = renderOrder
     }
 
@@ -610,7 +610,7 @@ class Buffer {
     }
   }
 
-  updateShader() {
+  updateShader () {
     const m = this.material
     const wm = this.wireframeMaterial
     const pm = this.pickingMaterial
@@ -633,7 +633,7 @@ class Buffer {
    * @param {BufferParameters} params - buffer parameters object
    * @return {undefined}
    */
-  setParameters(params: Partial<BufferParameters>) {
+  setParameters (params: Partial<BufferParameters>) {
     const p = params as any
     const pt = this.parameterTypes as any
     const pv = this.parameters as any
@@ -644,34 +644,34 @@ class Buffer {
     let doVisibilityUpdate = false
 
     for (const name in p) {
-      const value = p[name]
+      const value = p[ name ]
 
       if (value === undefined) continue
-      pv[name] = value
+      pv[ name ] = value
 
-      if (pt[name] === undefined) continue
+      if (pt[ name ] === undefined) continue
 
-      if (pt[name].property) {
-        if (pt[name].property !== true) {
-          propertyData[pt[name].property as any] = value
+      if (pt[ name ].property) {
+        if (pt[ name ].property !== true) {
+          propertyData[ pt[ name ].property as any ] = value
         } else {
-          propertyData[name] = value
+          propertyData[ name ] = value
         }
       }
 
-      if (pt[name].uniform) {
-        if (pt[name].uniform !== true) {
-          uniformData[pt[name].uniform as any] = value
+      if (pt[ name ].uniform) {
+        if (pt[ name ].uniform !== true) {
+          uniformData[ pt[ name ].uniform as any ] = value
         } else {
-          uniformData[name] = value
+          uniformData[ name ] = value
         }
       }
 
-      if (pt[name].updateShader) {
+      if (pt[ name ].updateShader) {
         doShaderUpdate = true
       }
 
-      if (pt[name].updateVisibility) {
+      if (pt[ name ].updateVisibility) {
         doVisibilityUpdate = true
       }
 
@@ -702,14 +702,14 @@ class Buffer {
    * var buffer = new Buffer();
    * buffer.setAttributes({ attrName: attrData });
    */
-  setAttributes(data: any) {  // TODO
+  setAttributes (data: any) {  // TODO
     const geometry = this.geometry
     const attributes = geometry.attributes as any  // TODO
 
     for (const name in data) {
       if (name === 'picking') continue
 
-      const array = data[name]
+      const array = data[ name ]
       const length = array.length
 
       if (name === 'index') {
@@ -733,7 +733,7 @@ class Buffer {
         this.indexVersion++
         if (this.parameters.wireframe) this.updateWireframeIndex()
       } else {
-        const attribute = attributes[name]
+        const attribute = attributes[ name ]
 
         if (length > attribute.array.length) {
           geometry.setAttribute(
@@ -742,15 +742,15 @@ class Buffer {
               .setUsage(this.dynamic ? WebGLRenderingContext.DYNAMIC_DRAW : 0)
           )
         } else {
-          attributes[name].set(array)
-          attributes[name].needsUpdate = length > 0
-          attributes[name].updateRange.count = length
+          attributes[ name ].set(array)
+          attributes[ name ].needsUpdate = length > 0
+          attributes[ name ].updateRange.count = length
         }
       }
     }
   }
 
-  setUniforms(data: any) {  // TODO
+  setUniforms (data: any) {  // TODO
     if (!data) return
 
     const u = this.material.uniforms
@@ -762,39 +762,39 @@ class Buffer {
         this.setProperties({ transparent: this.transparent })
       }
 
-      if (u[name] !== undefined) {
-        if (u[name].value.isVector3) {
-          u[name].value.copy(data[name])
-        } else if (u[name].value.set) {
-          u[name].value.set(data[name])
+      if (u[ name ] !== undefined) {
+        if (u[ name ].value.isVector3) {
+          u[ name ].value.copy(data[ name ])
+        } else if (u[ name ].value.set) {
+          u[ name ].value.set(data[ name ])
         } else {
-          u[name].value = data[name]
+          u[ name ].value = data[ name ]
         }
       }
 
-      if (wu[name] !== undefined) {
-        if (wu[name].value.isVector3) {
-          wu[name].value.copy(data[name])
-        } else if (wu[name].value.set) {
-          wu[name].value.set(data[name])
+      if (wu[ name ] !== undefined) {
+        if (wu[ name ].value.isVector3) {
+          wu[ name ].value.copy(data[ name ])
+        } else if (wu[ name ].value.set) {
+          wu[ name ].value.set(data[ name ])
         } else {
-          wu[name].value = data[name]
+          wu[ name ].value = data[ name ]
         }
       }
 
-      if (pu[name] !== undefined) {
-        if (pu[name].value.isVector3) {
-          pu[name].value.copy(data[name])
-        } else if (pu[name].value.set) {
-          pu[name].value.set(data[name])
+      if (pu[ name ] !== undefined) {
+        if (pu[ name ].value.isVector3) {
+          pu[ name ].value.copy(data[ name ])
+        } else if (pu[ name ].value.set) {
+          pu[ name ].value.set(data[ name ])
         } else {
-          pu[name].value = data[name]
+          pu[ name ].value = data[ name ]
         }
       }
     }
   }
 
-  setProperties(data: any) {  // TODO
+  setProperties (data: any) {  // TODO
     if (!data) return
 
     const m = this.material
@@ -802,9 +802,9 @@ class Buffer {
     const pm = this.pickingMaterial
 
     for (const _name in data) {
-      const name = _name as 'side' | 'transparent'  // TODO
+      const name = _name as 'side'|'transparent'  // TODO
 
-      let value = data[name]
+      let value = data[ name ]
 
       if (name === 'transparent') {
         this.updateRenderOrder()
@@ -812,9 +812,9 @@ class Buffer {
         value = getThreeSide(value)
       }
 
-      (m[name] as any) = value;
-      (wm[name] as any) = value;
-      (pm[name] as any) = value
+      (m[ name ] as any) = value;
+      (wm[ name ] as any) = value;
+      (pm[ name ] as any) = value
     }
 
     m.needsUpdate = true
@@ -827,7 +827,7 @@ class Buffer {
    * @param {Boolean} value - visibility value
    * @return {undefined}
    */
-  setVisibility(value: boolean) {
+  setVisibility (value: boolean) {
     this.visible = value
 
     if (this.parameters.wireframe) {
@@ -849,7 +849,7 @@ class Buffer {
    * Free buffer resources
    * @return {undefined}
    */
-  dispose() {
+  dispose () {
     if (this.material) this.material.dispose()
     if (this.wireframeMaterial) this.wireframeMaterial.dispose()
     if (this.pickingMaterial) this.pickingMaterial.dispose()
@@ -861,11 +861,11 @@ class Buffer {
   /**
    * Customize JSON serialization to avoid circular references
    */
-  toJSON() {
+  toJSON () {
     var result: any = {};
     for (var x in this) {
       if (x !== "group" && x !== "wireframeGroup" && x != "pickingGroup"
-        && x !== "picking") {
+         && x !== "picking") {
         result[x] = this[x];
       }
     }

@@ -56919,13 +56919,13 @@
 
   };
 
-  ShaderRegistry.add('shader/BasicLine.vert', "void main(){\r\n\r\n#include begin_vertex\r\n#include project_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/BasicLine.vert', "void main(){\n#include begin_vertex\n#include project_vertex\n}");
 
-  ShaderRegistry.add('shader/BasicLine.frag', "uniform vec3 uColor;\r\n\r\n#include common\r\n#include fog_pars_fragment\r\n\r\nvoid main(){\r\n\r\ngl_FragColor = vec4( uColor, 1.0 );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n}");
+  ShaderRegistry.add('shader/BasicLine.frag', "uniform vec3 uColor;\n#include common\n#include fog_pars_fragment\nvoid main(){\ngl_FragColor = vec4( uColor, 1.0 );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n}");
 
-  ShaderRegistry.add('shader/Quad.vert', "varying vec2 vUv;\r\n\r\nvoid main() {\r\n\r\nvUv = uv;\r\ngl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\r\n\r\n}");
+  ShaderRegistry.add('shader/Quad.vert', "varying vec2 vUv;\nvoid main() {\nvUv = uv;\ngl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n}");
 
-  ShaderRegistry.add('shader/Quad.frag', "varying vec2 vUv;\r\n\r\nuniform sampler2D tForeground;\r\nuniform float scale;\r\n\r\nvoid main() {\r\n\r\nvec4 foreground = texture2D( tForeground, vUv );\r\ngl_FragColor = foreground * scale;\r\n\r\n}");
+  ShaderRegistry.add('shader/Quad.frag', "varying vec2 vUv;\nuniform sampler2D tForeground;\nuniform float scale;\nvoid main() {\nvec4 foreground = texture2D( tForeground, vUv );\ngl_FragColor = foreground * scale;\n}");
 
   /**
    * @file Stats
@@ -56973,23 +56973,23 @@
       return time;
   };
 
-  ShaderRegistry.add('shader/chunk/fog_fragment.glsl', "#ifdef USE_FOG\r\n\r\n// #if defined( USE_LOGDEPTHBUF_EXT ) || defined( IMPOSTOR )\r\n//\r\n// float depth = gl_FragDepthEXT / gl_FragCoord.w;\r\n//\r\n// #else\r\n//\r\n// float depth = gl_FragCoord.z / gl_FragCoord.w;\r\n//\r\n// #endif\r\n\r\nfloat depth = length( vViewPosition );\r\n\r\n#ifdef FOG_EXP2\r\n\r\nfloat fogFactor = whiteCompliment( exp2( - fogDensity * fogDensity * depth * depth * LOG2 ) );\r\n\r\n#else\r\n\r\nfloat fogFactor = smoothstep( fogNear, fogFar, depth );\r\n\r\n#endif\r\n\r\ngl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );\r\n\r\n#endif");
+  ShaderRegistry.add('shader/chunk/fog_fragment.glsl', "#ifdef USE_FOG\nfloat depth = length( vViewPosition );\n#ifdef FOG_EXP2\nfloat fogFactor = whiteCompliment( exp2( - fogDensity * fogDensity * depth * depth * LOG2 ) );\n#else\nfloat fogFactor = smoothstep( fogNear, fogFar, depth );\n#endif\ngl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );\n#endif");
 
-  ShaderRegistry.add('shader/chunk/interior_fragment.glsl', "if( gl_FrontFacing == false ){\r\n#ifdef USE_INTERIOR_COLOR\r\noutgoingLight.xyz = interiorColor;\r\n#else\r\n#ifdef DIFFUSE_INTERIOR\r\noutgoingLight.xyz = vColor;\r\n#endif\r\n#endif\r\noutgoingLight.xyz *= 1.0 - interiorDarkening;\r\n}");
+  ShaderRegistry.add('shader/chunk/interior_fragment.glsl', "if( gl_FrontFacing == false ){\n#ifdef USE_INTERIOR_COLOR\noutgoingLight.xyz = interiorColor;\n#else\n#ifdef DIFFUSE_INTERIOR\noutgoingLight.xyz = vColor;\n#endif\n#endif\noutgoingLight.xyz *= 1.0 - interiorDarkening;\n}");
 
-  ShaderRegistry.add('shader/chunk/matrix_scale.glsl', "float matrixScale( in mat4 m ){\r\nvec4 r = m[ 0 ];\r\nreturn sqrt( r[ 0 ] * r[ 0 ] + r[ 1 ] * r[ 1 ] + r[ 2 ] * r[ 2 ] );\r\n}");
+  ShaderRegistry.add('shader/chunk/matrix_scale.glsl', "float matrixScale( in mat4 m ){\nvec4 r = m[ 0 ];\nreturn sqrt( r[ 0 ] * r[ 0 ] + r[ 1 ] * r[ 1 ] + r[ 2 ] * r[ 2 ] );\n}");
 
-  ShaderRegistry.add('shader/chunk/nearclip_vertex.glsl', "#ifdef NEAR_CLIP\r\nif( vViewPosition.z < clipNear - 5.0 )\r\n// move out of [ -w, +w ]\r\ngl_Position.z = 2.0 * gl_Position.w;\r\n#endif");
+  ShaderRegistry.add('shader/chunk/nearclip_vertex.glsl', "#ifdef NEAR_CLIP\nif( vViewPosition.z < clipNear - 5.0 )\ngl_Position.z = 2.0 * gl_Position.w;\n#endif");
 
-  ShaderRegistry.add('shader/chunk/nearclip_fragment.glsl', "#ifdef NEAR_CLIP\r\nif( vViewPosition.z < clipNear )\r\ndiscard;\r\n#endif");
+  ShaderRegistry.add('shader/chunk/nearclip_fragment.glsl', "#ifdef NEAR_CLIP\nif( vViewPosition.z < clipNear )\ndiscard;\n#endif");
 
-  ShaderRegistry.add('shader/chunk/opaque_back_fragment.glsl', "#ifdef OPAQUE_BACK\r\n#ifdef FLIP_SIDED\r\nif( gl_FrontFacing == true ){\r\ngl_FragColor.a = 1.0;\r\n}\r\n#else\r\nif( gl_FrontFacing == false ){\r\ngl_FragColor.a = 1.0;\r\n}\r\n#endif\r\n#endif");
+  ShaderRegistry.add('shader/chunk/opaque_back_fragment.glsl', "#ifdef OPAQUE_BACK\n#ifdef FLIP_SIDED\nif( gl_FrontFacing == true ){\ngl_FragColor.a = 1.0;\n}\n#else\nif( gl_FrontFacing == false ){\ngl_FragColor.a = 1.0;\n}\n#endif\n#endif");
 
-  ShaderRegistry.add('shader/chunk/radiusclip_vertex.glsl', "#ifdef RADIUS_CLIP\r\nif( distance( vViewPosition, vClipCenter ) > clipRadius + 5.0 )\r\n// move out of [ -w, +w ]\r\ngl_Position.z = 2.0 * gl_Position.w;\r\n#endif");
+  ShaderRegistry.add('shader/chunk/radiusclip_vertex.glsl', "#ifdef RADIUS_CLIP\nif( distance( vViewPosition, vClipCenter ) > clipRadius + 5.0 )\ngl_Position.z = 2.0 * gl_Position.w;\n#endif");
 
-  ShaderRegistry.add('shader/chunk/radiusclip_fragment.glsl', "#ifdef RADIUS_CLIP\r\nif( distance( vViewPosition, vClipCenter ) > clipRadius )\r\ndiscard;\r\n#endif");
+  ShaderRegistry.add('shader/chunk/radiusclip_fragment.glsl', "#ifdef RADIUS_CLIP\nif( distance( vViewPosition, vClipCenter ) > clipRadius )\ndiscard;\n#endif");
 
-  ShaderRegistry.add('shader/chunk/unpack_color.glsl', "vec3 unpackColor(float f) {\r\nvec3 color;\r\ncolor.r = floor(f / 256.0 / 256.0);\r\ncolor.g = floor((f - color.r * 256.0 * 256.0) / 256.0);\r\ncolor.b = floor(f - color.r * 256.0 * 256.0 - color.g * 256.0);\r\nreturn color / 255.0;\r\n}");
+  ShaderRegistry.add('shader/chunk/unpack_color.glsl', "vec3 unpackColor(float f) {\nvec3 color;\ncolor.r = floor(f / 256.0 / 256.0);\ncolor.g = floor((f - color.r * 256.0 * 256.0) / 256.0);\ncolor.b = floor(f - color.r * 256.0 * 256.0 - color.g * 256.0);\nreturn color / 255.0;\n}");
 
   /**
    * @file Shader Utils
@@ -58051,14 +58051,25 @@
           }
       }
   }
+  //kkk
   /**
    * Viewer class
    * @class
    * @param {String|Element} [idOrElement] - dom id or element
    */
-  var Viewer = function Viewer(idOrElement, stage) {
+  var Viewer = function Viewer(idOrElement, stage, pixiCallback) {
+        //kkk
+        this.left = 0;
+        this.top = 0;
         this.flashCount = 0;
         this.baseColor = 0xFFFF00;
+        this.ethernaMode = {
+            ethernaPickingMode: true,
+            ethernaNucleotideBase: 1,
+            highColor: 0xFFFFFF,
+            mediumColor: 0x8F9DB0,
+            weakColor: 0x546986
+        }; //kkk
         this.boundingBox = new three.Box3();
         this.boundingBoxSize = new three.Vector3();
         this.boundingBoxLength = 0;
@@ -58076,43 +58087,27 @@
             }
         };
         this.distVector = new three.Vector3();
-        //kkk
         this.etherna_pairs = undefined;
         this.etherna_sequence = '';
         this.fromOuter = false;
-        this.stage = stage;
+        this.stage = stage; //kkk
         this.signals = {
             ticked: new signalsWrapper.Signal(),
             rendered: new signalsWrapper.Signal()
         };
-        if (typeof idOrElement === 'string') {
-            var elm = document.getElementById(idOrElement);
-            if (elm === null) {
-                this.container = document.createElement('div');
-            }
-            else {
-                this.container = elm;
-            }
-        }
-        else if (idOrElement instanceof HTMLElement) {
-            this.container = idOrElement;
-        }
+        this.container = idOrElement;
+        this.pixiCallback = pixiCallback;
+        var box = this.container.getBoundingClientRect();
+        this.width = box.width;
+        this.height = box.height;
+        //kkk
+        if (pixiCallback)
+            { this.wrapper = this.container; }
         else {
-            this.container = document.createElement('div');
+            this.wrapper = document.createElement('div');
+            this.wrapper.style.position = 'relative';
+            this.container.appendChild(this.wrapper);
         }
-        if (this.container === document.body) {
-            this.width = window.innerWidth || 1;
-            this.height = window.innerHeight || 1;
-        }
-        else {
-            var box = this.container.getBoundingClientRect();
-            this.width = box.width || 1;
-            this.height = box.height || 1;
-            this.container.style.overflow = 'hidden';
-        }
-        this.wrapper = document.createElement('div');
-        this.wrapper.style.position = 'relative';
-        this.container.appendChild(this.wrapper);
         this._initParams();
         this._initStats();
         this._initCamera();
@@ -58121,6 +58116,7 @@
             Log.error('Viewer: could not initialize renderer');
             return;
         }
+        this.setSize(this.width, this.height);
         this._initHelper();
         // fog & background
         this.setBackground();
@@ -58129,24 +58125,44 @@
     };
 
   var prototypeAccessors$x = { cameraDistance: { configurable: true } };
+    //kkk //setPosition
+    Viewer.prototype.setPosition = function setPosition (x, y) {
+        this.left = x;
+        this.top = y;
+    };
     //kkk //setEthernaPairs
     Viewer.prototype.setEthernaPairs = function setEthernaPairs (pairs) {
         this.etherna_pairs = pairs;
     };
     //kkk //setEthernaPairs
-    Viewer.prototype.setEthernaSequence = function setEthernaSequence (sequence) {
+    Viewer.prototype.setEthernaSequence = function setEthernaSequence (sequence, num) {
         this.etherna_sequence = sequence;
+        this.ethernaMode.ethernaNucleotideBase = num;
+    };
+    //kkk
+    Viewer.prototype.setEthernaToolTipMode = function setEthernaToolTipMode (mode) {
+        this.ethernaMode.ethernaPickingMode = mode;
+    };
+    //kkk
+    Viewer.prototype.setHBondColor = function setHBondColor (colors) {
+        this.ethernaMode.highColor = colors[0];
+        this.ethernaMode.mediumColor = colors[1];
+        this.ethernaMode.weakColor = colors[2];
+    };
+    //kkk
+    Viewer.prototype.setPixiCallback = function setPixiCallback (callback) {
+        this.pixiCallback = callback;
     };
     Viewer.prototype._initParams = function _initParams () {
         this.parameters = {
-            fogColor: new three.Color(0x000000),
+            fogColor: new three.Color(0x222222),
             fogNear: 50,
             fogFar: 100,
             backgroundColor: new three.Color(0x000000),
             cameraType: 'perspective',
             cameraFov: 40,
             cameraEyeSep: 0.3,
-            cameraZ: -80,
+            cameraZ: -800,
             clipNear: 0,
             clipFar: 100,
             clipDist: 10,
@@ -58195,33 +58211,36 @@
             this.scene = new three.Scene();
             this.scene.name = 'scene';
         }
-        this.rotationGroup = new three.Group();
-        this.rotationGroup.name = 'rotationGroup';
-        this.scene.add(this.rotationGroup);
         this.translationGroup = new three.Group();
         this.translationGroup.name = 'translationGroup';
-        this.rotationGroup.add(this.translationGroup);
+        this.scene.add(this.translationGroup);
+        this.rotationGroup = new three.Group();
+        this.rotationGroup.name = 'rotationGroup';
+        this.translationGroup.add(this.rotationGroup);
         this.modelGroup = new three.Group();
         this.modelGroup.name = 'modelGroup';
-        this.translationGroup.add(this.modelGroup);
+        this.rotationGroup.add(this.modelGroup);
+        //kkk
         this.selectGroup = new three.Group();
         this.selectGroup.name = 'selectGroup';
         this.modelGroup.add(this.selectGroup);
+        //kkk
         this.selectGroup2 = new three.Group();
         this.selectGroup2.name = 'selectGroup2';
         this.modelGroup.add(this.selectGroup2);
+        //kkk
         this.markGroup = new three.Group();
         this.markGroup.name = 'markGroup';
         this.modelGroup.add(this.markGroup);
         this.pickingGroup = new three.Group();
         this.pickingGroup.name = 'pickingGroup';
-        this.translationGroup.add(this.pickingGroup);
+        this.rotationGroup.add(this.pickingGroup);
         this.backgroundGroup = new three.Group();
         this.backgroundGroup.name = 'backgroundGroup';
-        this.translationGroup.add(this.backgroundGroup);
+        this.rotationGroup.add(this.backgroundGroup);
         this.helperGroup = new three.Group();
         this.helperGroup.name = 'helperGroup';
-        this.translationGroup.add(this.helperGroup);
+        this.rotationGroup.add(this.helperGroup);
         // fog
         this.scene.fog = new three.Fog(this.parameters.fogColor.getHex());
         // light
@@ -58229,14 +58248,15 @@
         this.scene.add(this.spotLight);
         this.ambientLight = new three.AmbientLight(this.parameters.ambientColor.getHex(), this.parameters.ambientIntensity);
         this.scene.add(this.ambientLight);
+        // const axesHelper = new AxesHelper( 50 );
+        // this.scene.add( axesHelper );
     };
     Viewer.prototype._initRenderer = function _initRenderer () {
           var this$1$1 = this;
 
         var dpr = window.devicePixelRatio;
-        var ref = this;
-          var width = ref.width;
-          var height = ref.height;
+        var width = this.width;
+        var height = this.height;
         try {
             this.renderer = new three.WebGLRenderer({
                 preserveDrawingBuffer: true,
@@ -58249,7 +58269,7 @@
             return false;
         }
         this.renderer.setPixelRatio(dpr);
-        this.renderer.setSize(width, height);
+        this.renderer.setSize(this.width, this.height);
         this.renderer.autoClear = false;
         this.renderer.sortObjects = true;
         this.renderer.outputEncoding = this.parameters.rendererEncoding;
@@ -58267,10 +58287,8 @@
         if (!this.renderer.capabilities.isWebGL2) {
             setExtensionFragDepth(this.renderer.extensions.get('EXT_frag_depth'));
             this.renderer.extensions.get('OES_element_index_uint');
-            setSupportsReadPixelsFloat((this.renderer.extensions.get('OES_texture_float') &&
-                this.renderer.extensions.get('WEBGL_color_buffer_float')) ||
-                (this.renderer.extensions.get('OES_texture_float') &&
-                    testTextureSupport(gl.FLOAT)));
+            setSupportsReadPixelsFloat((this.renderer.extensions.get('OES_texture_float') && this.renderer.extensions.get('WEBGL_color_buffer_float')) ||
+                (this.renderer.extensions.get('OES_texture_float') && testTextureSupport(gl.FLOAT)));
             // picking texture
             this.renderer.extensions.get('OES_texture_float');
             this.supportsHalfFloat = (this.renderer.extensions.get('OES_texture_half_float') &&
@@ -58281,9 +58299,9 @@
             setSupportsReadPixelsFloat(this.renderer.extensions.get('EXT_color_buffer_float'));
             this.supportsHalfFloat = true;
         }
-        this.wrapper.appendChild(this.renderer.domElement);
-        var dprWidth = width * dpr;
-        var dprHeight = height * dpr;
+        //kkk
+        if (this.pixiCallback == undefined)
+            { this.wrapper.appendChild(this.renderer.domElement); }
         if (exports.Debug) {
             console.log(JSON.stringify({
                 'Browser': Browser,
@@ -58296,6 +58314,8 @@
                 'SupportsReadPixelsFloat': SupportsReadPixelsFloat
             }, null, 2));
         }
+        var dprWidth = width * dpr;
+        var dprHeight = height * dpr;
         this.pickingTarget = new three.WebGLRenderTarget(dprWidth, dprHeight, {
             minFilter: three.NearestFilter,
             magFilter: three.NearestFilter,
@@ -58323,10 +58343,6 @@
             magFilter: three.NearestFilter,
             format: three.RGBAFormat,
             type: three.UnsignedByteType
-            // using HalfFloatType or FloatType does not work on some Chrome 61 installations
-            // type: this.supportsHalfFloat ? HalfFloatType : (
-            // SupportsReadPixelsFloat ? FloatType : UnsignedByteType
-            // )
         });
         this.holdTarget.texture.encoding = this.parameters.rendererEncoding;
         this.compositeUniforms = {
@@ -58469,7 +58485,9 @@
     Viewer.prototype.selectEBaseObject = function selectEBaseObject (resno, fromViewer, color1) {
           var this$1$1 = this;
 
-        var fromSelf = fromViewer ? fromViewer : true;
+        var fromSelf = true;
+        if (fromViewer !== undefined)
+            { fromSelf = fromViewer; }
         if (!fromSelf) {
             if (resno >= 0) {
                 this.fromOuter = true;
@@ -58478,11 +58496,10 @@
                 this.fromOuter = false;
             }
         }
-        if (this.fromOuter)
-            { return; }
-        // console.log('AAAAAAAAAAAAAAAAAA', resno);
-        if (resno == -1)
-            { return; }
+        if (resno < 0) {
+            if (this.fromOuter)
+                { return; }
+        }
         var selGeometry = null;
         this.selectGroup.children.forEach(function (obj) {
             this$1$1.selectGroup.remove(obj);
@@ -58559,22 +58576,22 @@
                         // posInfo.count
                         var idInfo = geometry.getAttribute('primitiveId');
                         var idArray = idInfo.array;
-                        var x0 = 0, y0 = 0, z0 = 0;
+                        // var x0 = 0, y0 = 0, z0 = 0;
                         for (var i = 0; i < idArray.length; i++) {
                             if (idArray[i] == resno) {
                                 newPos.push(new three.Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                                x0 += posArray[i * 3];
-                                y0 += posArray[i * 3 + 1];
-                                z0 += posArray[i * 3 + 2];
+                                // x0 += posArray[i * 3];
+                                // y0 += posArray[i * 3 + 1];
+                                // z0 += posArray[i * 3 + 2];
                             }
                         }
                         if (newPos.length > 0) {
-                            x0 /= newPos.length;
-                            y0 /= newPos.length;
-                            z0 /= newPos.length;
                             selGeometry = new three.BufferGeometry();
                             selGeometry.setFromPoints(newPos);
-                            this$1$1.stage.animationControls.move(new three.Vector3(x0, y0, z0));
+                            // x0 /= newPos.length;
+                            // y0 /= newPos.length;
+                            // z0 /= newPos.length;
+                            // this.stage.animationControls.move(new Vector3(x0, y0, z0)) //kkk
                         }
                     }
                 }
@@ -58599,6 +58616,7 @@
         }
         this.requestRender();
     };
+    //kkk mark&unmark base
     Viewer.prototype.markEBaseObject = function markEBaseObject (resno, color1, color2) {
           var this$1$1 = this;
         var bNew = true;
@@ -58620,21 +58638,21 @@
                         var posArray = posInfo.array;
                         var idInfo = geometry.getAttribute('primitiveId');
                         var idArray = idInfo.array;
-                        var x0 = 0, y0 = 0, z0 = 0;
+                        // var x0 = 0, y0 = 0, z0 = 0;
                         for (var i = 0; i < idArray.length; i++) {
                             if (idArray[i] == resno) {
                                 newPos.push(new three.Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                                x0 += posArray[i * 3];
-                                y0 += posArray[i * 3 + 1];
-                                z0 += posArray[i * 3 + 2];
+                                // x0 += posArray[i * 3];
+                                // y0 += posArray[i * 3 + 1];
+                                // z0 += posArray[i * 3 + 2];
                             }
                         }
-                        x0 /= newPos.length;
-                        y0 /= newPos.length;
-                        z0 /= newPos.length;
+                        // x0 /= newPos.length;
+                        // y0 /= newPos.length;
+                        // z0 /= newPos.length;
                         selGeometry = new three.BufferGeometry();
                         selGeometry.setFromPoints(newPos);
-                        this$1$1.stage.animationControls.move(new three.Vector3(x0, y0, z0));
+                        // this.stage.animationControls.move(new Vector3(x0, y0, z0))
                     }
                 }
             });
@@ -58704,7 +58722,7 @@
         // Log.timeEnd( "Viewer.addBuffer" );
     };
     Viewer.prototype.remove = function remove (buffer) {
-        this.translationGroup.children.forEach(function (group) {
+        this.rotationGroup.children.forEach(function (group) {
             group.remove(buffer.group);
             group.remove(buffer.wireframeGroup);
         });
@@ -58833,13 +58851,6 @@
         this.requestRender();
     };
     Viewer.prototype.setBackground = function setBackground (color) {
-        var p = this.parameters;
-        if (color)
-            { p.backgroundColor.set(color); } // TODO
-        this.setFog(p.backgroundColor);
-        this.renderer.setClearColor(p.backgroundColor, 0);
-        this.renderer.domElement.style.backgroundColor = p.backgroundColor.getStyle();
-        this.requestRender();
     };
     Viewer.prototype.setSampling = function setSampling (level) {
         if (level !== undefined) {
@@ -58927,8 +58938,8 @@
         this.requestRender();
     };
     Viewer.prototype.setSize = function setSize (width, height) {
-        this.width = width || 1;
-        this.height = height || 1;
+        this.width = width || 0;
+        this.height = height || 0;
         this.perspectiveCamera.aspect = this.width / this.height;
         this.orthographicCamera.left = -this.width / 2;
         this.orthographicCamera.right = this.width / 2;
@@ -58949,14 +58960,14 @@
         this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
         this.requestRender();
     };
-    Viewer.prototype.handleResize = function handleResize () {
-        if (this.container === document.body) {
-            this.setSize(window.innerWidth, window.innerHeight);
-        }
-        else {
+    Viewer.prototype.handleResize = function handleResize (width, height) {
+        //kkk
+        if (width == 0 || height == 0) {
             var box = this.container.getBoundingClientRect();
             this.setSize(box.width, box.height);
         }
+        else
+            { this.setSize(width, height); }
     };
     Viewer.prototype.updateInfo = function updateInfo (reset) {
         var ref = this.info;
@@ -59204,7 +59215,7 @@
         this.renderer.render(this.scene, camera);
         this.renderer.clear(false, true, true);
         this.updateInfo();
-        this.__setVisibility(true, false, false, exports.Debug);
+        this.__setVisibility(true, false, false, true);
         //kkk
         //use composer rendering for outline highlighting effects
         this.composer.render();
@@ -59289,9 +59300,15 @@
             // TODO super sample broken for stereo camera
             this.__renderSuperSample(camera, renderTarget);
             this.__renderModelGroup(camera, renderTarget);
+            //kkk
+            if (this.pixiCallback)
+                { this.pixiCallback(this.renderer.domElement, this.width, this.height); }
         }
         else {
             this.__renderModelGroup(camera, renderTarget);
+            //kkk
+            if (this.pixiCallback)
+                { this.pixiCallback(this.renderer.domElement, this.width, this.height); }
         }
     };
     Viewer.prototype.render = function render (picking, renderTarget) {
@@ -59333,6 +59350,85 @@
     };
     Viewer.prototype.dispose = function dispose () {
         this.renderer.dispose();
+    };
+    //kkk
+    Viewer.prototype.getCanvasBoundPoints = function getCanvasBoundPoints () {
+        if (this.stage.loadedComponent == undefined)
+            { return []; }
+        var min = this.boundingBox.min;
+        var max = this.boundingBox.max;
+        var posArray = [
+            new three.Vector2(),
+            new three.Vector2(),
+            new three.Vector2(),
+            new three.Vector2(),
+            new three.Vector2(),
+            new three.Vector2(),
+            new three.Vector2(),
+            new three.Vector2()
+        ];
+        var points = [
+            new three.Vector3(),
+            new three.Vector3(),
+            new three.Vector3(),
+            new three.Vector3(),
+            new three.Vector3(),
+            new three.Vector3(),
+            new three.Vector3(),
+            new three.Vector3()
+        ];
+        points[0].set(min.x, min.y, min.z); // 000
+        points[1].set(min.x, min.y, max.z); // 001
+        points[2].set(min.x, max.y, min.z); // 010
+        points[3].set(min.x, max.y, max.z); // 011
+        points[4].set(max.x, min.y, min.z); // 100
+        points[5].set(max.x, min.y, max.z); // 101
+        points[6].set(max.x, max.y, min.z); // 110
+        points[7].set(max.x, max.y, max.z); // 111
+        for (var i = 0; i < 8; i++) {
+            var p3 = points[i];
+            p3 = p3.applyMatrix4(this.stage.loadedComponent.matrix);
+            var p2 = this.stage.viewerControls.getPositionOnCanvas(p3);
+            posArray[i].set(p2.x, p2.y);
+        }
+        return posArray;
+    };
+    Viewer.prototype.isPointInBoundBox = function isPointInBoundBox (x, y, bEulerSys) {
+
+        return true;
+        // function polyContainsPt(pt:Vector2, poly:Vector2[]) {
+        // var sign:number[] = [];
+        // for(var i=0;i<poly.length;i++) {
+        //   var p1 = poly[i];
+        //   var p2 = poly[(i+1)%poly.length];
+        //   var v1 = p2.clone().sub(p1);
+        //   var v2 = pt.clone().sub(p1);
+        //   sign.push(Math.sign(v1.cross(v2)));
+        // }
+        // var prevSign = 0;
+        // for(var i=0;i<sign.length;i++) {
+        //   if(sign[i] != 0) {
+        //     if(prevSign == 0) prevSign = sign[i];
+        //     else if(prevSign == -sign[i]) return false;
+        //   }
+        // }
+        // return true;
+        // }
+        // var pt = new Vector2(x, y);
+        // if(!bEulerSys) pt.y = this.height - pt.y;
+        // var ptArray = this.getCanvasBoundPoints();
+        // if(ptArray.length == 8) {
+        // if(polyContainsPt(pt, [ptArray[0], ptArray[1], ptArray[3], ptArray[2]])) return true;
+        // if(polyContainsPt(pt, [ptArray[4], ptArray[5], ptArray[7], ptArray[6]])) return true;
+        // if(polyContainsPt(pt, [ptArray[1], ptArray[3], ptArray[7], ptArray[5]])) return true;
+        // if(polyContainsPt(pt, [ptArray[0], ptArray[2], ptArray[6], ptArray[4]])) return true;
+        // if(polyContainsPt(pt, [ptArray[2], ptArray[6], ptArray[7], ptArray[3]])) return true;
+        // if(polyContainsPt(pt, [ptArray[0], ptArray[4], ptArray[5], ptArray[1]])) return true;
+        // }
+        // return false;
+    };
+    Viewer.prototype.getWebGLCanvas = function getWebGLCanvas () {
+        return this.renderer.domElement;
     };
 
   Object.defineProperties( Viewer.prototype, prototypeAccessors$x );
@@ -59470,17 +59566,28 @@
       this._onTouchend = this._onTouchend.bind(this);
       this._onTouchmove = this._onTouchmove.bind(this);
       this._listen();
-      var opt = { passive: false }; // treat as 'passive' so preventDefault can be called
-      document.addEventListener('mousewheel', this._onMousewheel, opt);
-      document.addEventListener('wheel', this._onMousewheel, opt);
-      document.addEventListener('MozMousePixelScroll', this._onMousewheel, opt);
-      document.addEventListener('mousemove', this._onMousemove, opt);
-      document.addEventListener('mousedown', this._onMousedown, opt);
-      document.addEventListener('mouseup', this._onMouseup, opt);
-      document.addEventListener('contextmenu', this._onContextmenu, opt);
-      document.addEventListener('touchstart', this._onTouchstart, opt);
-      document.addEventListener('touchend', this._onTouchend, opt);
-      document.addEventListener('touchmove', this._onTouchmove, opt);
+      // const opt = { passive: false } // treat as 'passive' so preventDefault can be called
+      // document.addEventListener('mousewheel', this._onMousewheel, opt)
+      // document.addEventListener('wheel', this._onMousewheel, opt)
+      // document.addEventListener('MozMousePixelScroll', this._onMousewheel, opt)
+      // document.addEventListener('mousemove', this._onMousemove, opt)
+      // document.addEventListener('mousedown', this._onMousedown, opt)
+      // document.addEventListener('mouseup', this._onMouseup, opt)
+      // document.addEventListener('contextmenu', this._onContextmenu, opt)
+      // document.addEventListener('touchstart', this._onTouchstart, opt)
+      // document.addEventListener('touchend', this._onTouchend, opt)
+      // document.addEventListener('touchmove', this._onTouchmove, opt)
+      //kkk
+      this.domElement.addEventListener('mousewheel', this._onMousewheel);
+      this.domElement.addEventListener('wheel', this._onMousewheel);
+      this.domElement.addEventListener('MozMousePixelScroll', this._onMousewheel);
+      this.domElement.addEventListener('mousemove', this._onMousemove);
+      this.domElement.addEventListener('mousedown', this._onMousedown);
+      this.domElement.addEventListener('mouseup', this._onMouseup);
+      this.domElement.addEventListener('contextmenu', this._onContextmenu);
+      this.domElement.addEventListener('touchstart', this._onTouchstart);
+      this.domElement.addEventListener('touchend', this._onTouchend);
+      this.domElement.addEventListener('touchmove', this._onTouchmove);
   };
 
   var prototypeAccessors$w = { key: { configurable: true } };
@@ -59537,6 +59644,8 @@
       if (event.target !== this.domElement || !this.handleScroll) {
           return;
       }
+      if (!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
+          { return; } //kkk
       event.preventDefault();
       this._setKeys(event);
       var delta = 0;
@@ -59578,6 +59687,9 @@
    * @return {undefined}
    */
   MouseObserver.prototype._onMousemove = function _onMousemove (event) {
+      this._setCanvasPosition(event);
+      if (!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
+          { return; } //kkk
       if (event.target === this.domElement) {
           event.preventDefault();
           this.overElement = true;
@@ -59591,7 +59703,6 @@
       this.lastMoved = window.performance.now();
       this.prevPosition.copy(this.position);
       this.position.set(event.clientX, event.clientY);
-      this._setCanvasPosition(event);
       var dx = this.prevPosition.x - this.position.x;
       var dy = this.prevPosition.y - this.position.y;
       this.signals.moved.dispatch(dx, dy);
@@ -59603,6 +59714,9 @@
       if (event.target !== this.domElement) {
           return;
       }
+      this._setCanvasPosition(event);
+      if (!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
+          { return; } //kkk
       event.preventDefault();
       this._setKeys(event);
       this.moving = false;
@@ -59612,7 +59726,6 @@
       this.which = event.which;
       this.buttons = getMouseButtons(event);
       this.pressed = true;
-      this._setCanvasPosition(event);
       //kkk //broadcast mouse down event in forms of custom event.
       window.dispatchEvent(new CustomEvent('kkk', {
           detail: {
@@ -59646,7 +59759,7 @@
       }
       this.which = undefined;
       this.buttons = undefined;
-      this.pressed = undefined;
+      this.pressed = false;
       // if (this._distance() > 3 || event.which === RightMouseButton) {
       //   this.signals.dropped.dispatch();
       // }
@@ -59660,6 +59773,13 @@
       if (event.target !== this.domElement) {
           return;
       }
+      if (event.touches.length == 1) {
+          this._setCanvasPosition(event.touches[0]);
+      }
+      if (!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) {
+          this.pressed = false;
+          return; //kkk
+      }
       event.preventDefault();
       this.pressed = true;
       switch (event.touches.length) {
@@ -59668,7 +59788,7 @@
               this.hovering = false;
               this.down.set(event.touches[0].pageX, event.touches[0].pageY);
               this.position.set(event.touches[0].pageX, event.touches[0].pageY);
-              this._setCanvasPosition(event.touches[0]);
+              // this._setCanvasPosition(event.touches[0])
               break;
           }
           case 2: {
@@ -59684,9 +59804,14 @@
       }
       this.which = undefined;
       this.buttons = undefined;
-      this.pressed = undefined;
+      this.pressed = false;
   };
   MouseObserver.prototype._onTouchmove = function _onTouchmove (event) {
+      if (event.touches.length > 0) {
+          this._setCanvasPosition(event.touches[0]);
+      }
+      if (!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
+          { return; } //kkk
       if (event.target === this.domElement) {
           event.preventDefault();
           this.overElement = true;
@@ -59704,7 +59829,7 @@
               this.lastMoved = window.performance.now();
               this.prevPosition.copy(this.position);
               this.position.set(event.touches[0].pageX, event.touches[0].pageY);
-              this._setCanvasPosition(event.touches[0]);
+              // this._setCanvasPosition(event.touches[0])
               var dx = this.prevPosition.x - this.position.x;
               var dy = this.prevPosition.y - this.position.y;
               this.signals.moved.dispatch(dx, dy);
@@ -59743,16 +59868,24 @@
   };
   MouseObserver.prototype._setCanvasPosition = function _setCanvasPosition (event) {
       var box = this.domElement.getBoundingClientRect();
+      var left = box.left;
+      var top = box.top;
+      var width = box.width;
+      var height = box.height;
+      if (width == 0 || height == 0) {
+          width = this.viewer.width;
+          height = this.viewer.height;
+      }
       var offsetX, offsetY;
       if ('offsetX' in event && 'offsetY' in event) {
           offsetX = event.offsetX;
           offsetY = event.offsetY;
       }
       else {
-          offsetX = event.clientX - box.left;
-          offsetY = event.clientY - box.top;
+          offsetX = event.clientX - left;
+          offsetY = event.clientY - top;
       }
-      this.canvasPosition.set(offsetX, box.height - offsetY);
+      this.canvasPosition.set(offsetX, height - offsetY);
   };
   MouseObserver.prototype._setKeys = function _setKeys (event) {
       this.altKey = event.altKey;
@@ -59761,16 +59894,27 @@
       this.shiftKey = event.shiftKey;
   };
   MouseObserver.prototype.dispose = function dispose () {
-      document.removeEventListener('mousewheel', this._onMousewheel);
-      document.removeEventListener('wheel', this._onMousewheel);
-      document.removeEventListener('MozMousePixelScroll', this._onMousewheel);
-      document.removeEventListener('mousemove', this._onMousemove);
-      document.removeEventListener('mousedown', this._onMousedown);
-      document.removeEventListener('mouseup', this._onMouseup);
-      document.removeEventListener('contextmenu', this._onContextmenu);
-      document.removeEventListener('touchstart', this._onTouchstart);
-      document.removeEventListener('touchend', this._onTouchend);
-      document.removeEventListener('touchmove', this._onTouchmove);
+      // document.removeEventListener('mousewheel', this._onMousewheel)
+      // document.removeEventListener('wheel', this._onMousewheel)
+      // document.removeEventListener('MozMousePixelScroll', this._onMousewheel)
+      // document.removeEventListener('mousemove', this._onMousemove)
+      // document.removeEventListener('mousedown', this._onMousedown)
+      // document.removeEventListener('mouseup', this._onMouseup)
+      // document.removeEventListener('contextmenu', this._onContextmenu)
+      // document.removeEventListener('touchstart', this._onTouchstart)
+      // document.removeEventListener('touchend', this._onTouchend)
+      // document.removeEventListener('touchmove', this._onTouchmove)
+      //kkk
+      this.domElement.removeEventListener('mousewheel', this._onMousewheel);
+      this.domElement.removeEventListener('wheel', this._onMousewheel);
+      this.domElement.removeEventListener('MozMousePixelScroll', this._onMousewheel);
+      this.domElement.removeEventListener('mousemove', this._onMousemove);
+      this.domElement.removeEventListener('mousedown', this._onMousedown);
+      this.domElement.removeEventListener('mouseup', this._onMouseup);
+      this.domElement.removeEventListener('contextmenu', this._onContextmenu);
+      this.domElement.removeEventListener('touchstart', this._onTouchstart);
+      this.domElement.removeEventListener('touchend', this._onTouchend);
+      this.domElement.removeEventListener('touchmove', this._onTouchmove);
   };
 
   Object.defineProperties( MouseObserver.prototype, prototypeAccessors$w );
@@ -59847,11 +59991,12 @@
   };
   TrackballControls.prototype.pan = function pan (x, y) {
       this._setPanVector(x, y);
-      // Adjust for scene rotation
-      tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix);
-      // Adjust for camera rotation
-      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$2));
-      tmpPanVector.applyMatrix4(tmpPanMatrix);
+      //kkk
+      // // Adjust for scene rotation
+      // tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix)
+      // // Adjust for camera rotation
+      // tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix))
+      // tmpPanVector.applyMatrix4(tmpPanMatrix)
       this.controls.translate(tmpPanVector);
   };
   TrackballControls.prototype.panComponent = function panComponent (x, y) {
@@ -59880,19 +60025,19 @@
       // rotate around screen X then screen Y
       this._getCameraRotation(tmpRotateMatrix$2);
       tmpRotateVector$2.set(1, 0, 0); // X axis
-      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2); // screen X
+      // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X //kkk
       tmpRotateQuaternion$1.setFromAxisAngle(tmpRotateVector$2, dy);
       tmpRotateVector$2.set(0, 1, 0); // Y axis
-      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2); // screen Y
+      // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y //kkk
       tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector$2, dx);
       tmpRotateQuaternion$1.multiply(tmpRotateQuaternion2);
       tmpRotateMatrix$2.makeRotationFromQuaternion(tmpRotateQuaternion$1);
-      this.controls.applyMatrix(tmpRotateMatrix$2);
+      this.controls.applyRotateMatrix(tmpRotateMatrix$2);
   };
   TrackballControls.prototype.zRotate = function zRotate (x, y) {
       var dz = this.rotateSpeed * ((-x + y) / -2) * 0.01;
       tmpRotateZMatrix.makeRotationZ(dz);
-      this.controls.applyMatrix(tmpRotateZMatrix);
+      this.controls.applyRotateMatrix(tmpRotateZMatrix);
   };
   TrackballControls.prototype.rotateComponent = function rotateComponent (x, y) {
       if (!this.component)
@@ -60150,6 +60295,20 @@
   };
   PickingProxy.prototype.getLabel = function getLabel () {
       var atom = this.atom || this.closeAtom;
+      //kkk
+      var checkResult = this.checkBase();
+      if (this.stage.viewer.ethernaMode.ethernaPickingMode) {
+          if (!checkResult.isBase)
+              { return ''; }
+          else {
+              var name = '';
+              if (this.bond.atom1.resno !== undefined)
+                  { name += (this.bond.atom1.resno + this.stage.viewer.ethernaMode.ethernaNucleotideBase - 1); }
+              if (this.bond.atom1.resname)
+                  { name += ': ' + this.bond.atom1.resname; }
+              return name;
+          }
+      }
       var msg = 'nothing';
       if (this.arrow) {
           msg = this.arrow.name;
@@ -60222,6 +60381,7 @@
       }
       return msg;
   };
+  //kkk
   PickingProxy.prototype.checkBase = function checkBase () {
       if (this.bond) {
           if ((this.bond.atom1.resno == this.bond.atom2.resno) && this.bond.atom1.atomname.includes("C4'") && (this.bond.atom2.atomname.includes("N1") || this.bond.atom2.atomname.includes("N3"))) {
@@ -60296,13 +60456,17 @@
       this.viewer = stage.viewer;
   };
 
-  var prototypeAccessors$t = { position: { configurable: true },rotation: { configurable: true } };
+  var prototypeAccessors$t = { position: { configurable: true },rotationPosition: { configurable: true },rotation: { configurable: true } };
   /**
    * scene center position
    * @type {Vector3}
    */
   prototypeAccessors$t.position.get = function () {
       return this.viewer.translationGroup.position;
+  };
+  //kkk
+  prototypeAccessors$t.rotationPosition.get = function () {
+      return this.viewer.rotationGroup.position;
   };
   /**
    * scene rotation
@@ -60324,8 +60488,8 @@
       var canvasPosition = ensureVector2(optionalTarget);
       var viewer = this.viewer;
       tmpCanvasVector.copy(position)
-          .add(viewer.translationGroup.position)
           .applyMatrix4(viewer.rotationGroup.matrix)
+          .add(viewer.translationGroup.position)
           .project(viewer.camera);
       return canvasPosition.set((tmpCanvasVector.x + 1) * viewer.width / 2, (tmpCanvasVector.y + 1) * viewer.height / 2);
   };
@@ -60380,6 +60544,10 @@
       this.viewer.translationGroup.position
           .add(ensureVector3(vector));
       this.changed();
+  };
+  ViewerControls.prototype.intranslate = function intranslate (vector) {
+      this.viewer.translationGroup.position
+          .add(ensureVector3(vector));
   };
   /**
    * center scene
@@ -60455,9 +60623,12 @@
    * @param  {Matrix4|Array} matrix - rotation matrix
    * @return {undefined}
    */
-  ViewerControls.prototype.applyMatrix = function applyMatrix (matrix) {
+  ViewerControls.prototype.applyRotateMatrix = function applyRotateMatrix (matrix) {
       this.viewer.rotationGroup.applyMatrix4(ensureMatrix4(matrix));
       this.changed();
+  };
+  ViewerControls.prototype.inApplyRotateMatrix = function inApplyRotateMatrix (matrix) {
+      this.viewer.rotationGroup.applyMatrix4(ensureMatrix4(matrix));
   };
 
   Object.defineProperties( ViewerControls.prototype, prototypeAccessors$t );
@@ -60659,11 +60830,33 @@
           this.moveTo = ensureVector3(defaults(moveTo, new three.Vector3()));
       };
       MoveAnimation.prototype._tick = function _tick ( /* stats */) {
-          this.controls.position.lerpVectors(this.moveFrom, this.moveTo, this.alpha).negate();
+          this.controls.rotationPosition.lerpVectors(//kkk
+          this.moveFrom, this.moveTo, this.alpha).negate();
           this.controls.changed();
       };
 
       return MoveAnimation;
+  }(Animation));
+  var MoveAnimation2 = /*@__PURE__*/(function (Animation) {
+      function MoveAnimation2 () {
+          Animation.apply(this, arguments);
+      }
+
+      if ( Animation ) MoveAnimation2.__proto__ = Animation;
+      MoveAnimation2.prototype = Object.create( Animation && Animation.prototype );
+      MoveAnimation2.prototype.constructor = MoveAnimation2;
+
+      MoveAnimation2.prototype._init = function _init (moveFrom, moveTo) {
+          this.moveFrom = ensureVector3(defaults(moveFrom, new three.Vector3()));
+          this.moveTo = ensureVector3(defaults(moveTo, new three.Vector3()));
+      };
+      MoveAnimation2.prototype._tick = function _tick ( /* stats */) {
+          this.controls.position.lerpVectors(//kkk
+          this.moveFrom, this.moveTo, this.alpha).negate();
+          this.controls.changed();
+      };
+
+      return MoveAnimation2;
   }(Animation));
   /**
    * Zoom animation. Gradually change the zoom level.
@@ -60911,8 +61104,13 @@
    * @return {MoveAnimation} the animation
    */
   AnimationControls.prototype.move = function move (moveTo, duration) {
-      var moveFrom = this.controls.position.clone().negate();
+      var moveFrom = this.controls.rotationPosition.clone().negate();
       return this.add(new MoveAnimation(duration, this.controls, moveFrom, moveTo));
+  };
+  AnimationControls.prototype.move2 = function move2 (deltaTo, duration) {
+      var moveFrom = this.controls.position.clone().negate();
+      var moveTo = this.controls.position.clone().add(deltaTo);
+      return this.add(new MoveAnimation2(duration, this.controls, moveFrom, moveTo));
   };
   /**
    * Add a zoom animation
@@ -60935,6 +61133,12 @@
       return new AnimationList([
           this.move(moveTo, duration),
           this.zoom(zoomTo, duration)
+      ]);
+  };
+  //kkk
+  AnimationControls.prototype.zoom2 = function zoom2 (deltaTo, duration) {
+      return new AnimationList([
+          this.move2(deltaTo, duration)
       ]);
   };
   /**
@@ -61147,6 +61351,7 @@
       // eslint-disable-next-line no-unused-vars
       // const p = params || {}
       this.type = '';
+      this.divAnnotations = [];
       this.parameters = {
           lazy: {
               type: 'boolean'
@@ -61253,6 +61458,13 @@
           this.parameters.colorScheme.options = ColormakerRegistry.getSchemes();
       }
       this.toBePrepared = false;
+  };
+  //kkk
+  Representation.prototype.getAnnotations = function getAnnotations () {
+      return this.divAnnotations;
+  };
+  Representation.prototype.resetAnnotations = function resetAnnotations () {
+      this.divAnnotations = [];
   };
   Representation.prototype.init = function init (params) {
       var p = params || {};
@@ -68657,9 +68869,9 @@
 
   Object.defineProperties( Volume.prototype, prototypeAccessors$o );
 
-  ShaderRegistry.add('shader/Mesh.vert', "#define STANDARD\r\n\r\nuniform float clipNear;\r\nuniform vec3 clipCenter;\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#if defined( PICKING )\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#elif defined( NOLIGHT )\r\nvarying vec3 vColor;\r\n#else\r\n#include color_pars_vertex\r\n#ifndef FLAT_SHADED\r\nvarying vec3 vNormal;\r\n#endif\r\n#endif\r\n\r\n#include common\r\n\r\nvoid main(){\r\n\r\n#if defined( PICKING )\r\nvPickingColor = unpackColor( primitiveId );\r\n#elif defined( NOLIGHT )\r\nvColor = color;\r\n#else\r\n#include color_vertex\r\n#include beginnormal_vertex\r\n#include defaultnormal_vertex\r\n// Normal computed with derivatives when FLAT_SHADED\r\n#ifndef FLAT_SHADED\r\nvNormal = normalize( transformedNormal );\r\n#endif\r\n#endif\r\n\r\n#include begin_vertex\r\n#include project_vertex\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\r\nvViewPosition = -mvPosition.xyz;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n#include nearclip_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/Mesh.vert', "#define STANDARD\nuniform float clipNear;\nuniform vec3 clipCenter;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\nvarying vec3 vViewPosition;\n#endif\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#if defined( PICKING )\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#elif defined( NOLIGHT )\nvarying vec3 vColor;\n#else\n#include color_pars_vertex\n#ifndef FLAT_SHADED\nvarying vec3 vNormal;\n#endif\n#endif\n#include common\nvoid main(){\n#if defined( PICKING )\nvPickingColor = unpackColor( primitiveId );\n#elif defined( NOLIGHT )\nvColor = color;\n#else\n#include color_vertex\n#include beginnormal_vertex\n#include defaultnormal_vertex\n#ifndef FLAT_SHADED\nvNormal = normalize( transformedNormal );\n#endif\n#endif\n#include begin_vertex\n#include project_vertex\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\nvViewPosition = -mvPosition.xyz;\n#endif\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n#include nearclip_vertex\n}");
 
-  ShaderRegistry.add('shader/Mesh.frag', "#define STANDARD\r\n\r\nuniform vec3 diffuse;\r\nuniform vec3 emissive;\r\nuniform vec3 interiorColor;\r\nuniform float interiorDarkening;\r\nuniform float roughness;\r\nuniform float metalness;\r\nuniform float opacity;\r\nuniform float clipNear;\r\nuniform float clipRadius;\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#if defined( PICKING )\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\n#elif defined( NOLIGHT )\r\nvarying vec3 vColor;\r\n#else\r\n#ifndef FLAT_SHADED\r\nvarying vec3 vNormal;\r\n#endif\r\n#include common\r\n#include color_pars_fragment\r\n#include fog_pars_fragment\r\n#include bsdfs\r\n#include lights_pars_begin\r\n#include lights_physical_pars_fragment\r\n#endif\r\n\r\nvoid main(){\r\n\r\n#include nearclip_fragment\r\n#include radiusclip_fragment\r\n\r\n#if defined( PICKING )\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#elif defined( NOLIGHT )\r\n\r\ngl_FragColor = vec4( vColor, opacity );\r\n\r\n#else\r\n\r\nvec4 diffuseColor = vec4( diffuse, opacity );\r\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\r\nvec3 totalEmissiveLight = emissive;\r\n\r\n#include color_fragment\r\n#include roughnessmap_fragment\r\n#include metalnessmap_fragment\r\n#include normal_fragment_begin\r\n\r\n#include lights_physical_fragment\r\n#include lights_fragment_begin\r\n#include lights_fragment_end\r\n\r\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\r\n\r\n#include interior_fragment\r\n\r\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#include opaque_back_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/Mesh.frag', "#define STANDARD\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 interiorColor;\nuniform float interiorDarkening;\nuniform float roughness;\nuniform float metalness;\nuniform float opacity;\nuniform float clipNear;\nuniform float clipRadius;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\nvarying vec3 vViewPosition;\n#endif\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#if defined( PICKING )\nuniform float objectId;\nvarying vec3 vPickingColor;\n#elif defined( NOLIGHT )\nvarying vec3 vColor;\n#else\n#ifndef FLAT_SHADED\nvarying vec3 vNormal;\n#endif\n#include common\n#include color_pars_fragment\n#include fog_pars_fragment\n#include bsdfs\n#include lights_pars_begin\n#include lights_physical_pars_fragment\n#endif\nvoid main(){\n#include nearclip_fragment\n#include radiusclip_fragment\n#if defined( PICKING )\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#elif defined( NOLIGHT )\ngl_FragColor = vec4( vColor, opacity );\n#else\nvec4 diffuseColor = vec4( diffuse, opacity );\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\nvec3 totalEmissiveLight = emissive;\n#include color_fragment\n#include roughnessmap_fragment\n#include metalnessmap_fragment\n#include normal_fragment_begin\n#include lights_physical_fragment\n#include lights_fragment_begin\n#include lights_fragment_end\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\n#include interior_fragment\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#include opaque_back_fragment\n#endif\n}");
 
   /**
    * @file Buffer
@@ -69611,9 +69823,9 @@
 
   Object.defineProperties( DoubleSidedBuffer.prototype, prototypeAccessors$m );
 
-  ShaderRegistry.add('shader/Line.vert', "uniform float clipNear;\r\nuniform vec3 clipCenter;\r\n\r\nvarying vec3 vViewPosition;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#include color_pars_vertex\r\n\r\nvoid main(){\r\n\r\n#include color_vertex\r\n#include begin_vertex\r\n#include project_vertex\r\n\r\nvViewPosition = -mvPosition.xyz;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n#include nearclip_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/Line.vert', "uniform float clipNear;\nuniform vec3 clipCenter;\nvarying vec3 vViewPosition;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#include color_pars_vertex\nvoid main(){\n#include color_vertex\n#include begin_vertex\n#include project_vertex\nvViewPosition = -mvPosition.xyz;\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n#include nearclip_vertex\n}");
 
-  ShaderRegistry.add('shader/Line.frag', "uniform float opacity;\r\nuniform float clipNear;\r\nuniform float clipRadius;\r\n\r\nvarying vec3 vViewPosition;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#include common\r\n#include color_pars_fragment\r\n#include fog_pars_fragment\r\n\r\nvoid main(){\r\n\r\n#include nearclip_fragment\r\n#include radiusclip_fragment\r\n\r\ngl_FragColor = vec4( vColor, opacity );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n}");
+  ShaderRegistry.add('shader/Line.frag', "uniform float opacity;\nuniform float clipNear;\nuniform float clipRadius;\nvarying vec3 vViewPosition;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#include common\n#include color_pars_fragment\n#include fog_pars_fragment\nvoid main(){\n#include nearclip_fragment\n#include radiusclip_fragment\ngl_FragColor = vec4( vColor, opacity );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n}");
 
   /**
    * @file Contour Buffer
@@ -70076,9 +70288,6 @@
    * @return {undefined}
    */
   MouseActions.movePick = function movePick (stage, pickingProxy) {
-      if (pickingProxy) {
-          stage.animationControls.move(pickingProxy.position.clone());
-      }
   };
   /**
    * Show tooltip with information of picked element
@@ -70090,16 +70299,45 @@
       var tt = stage.tooltip;
       var sp = stage.getParameters();
       if (sp.tooltip && pickingProxy) {
+          //kkk
+          function getTextWidth(text, font) {
+                  if ( font === void 0 ) font = getCanvasFontSize();
+
+              var canvas = document.createElement("canvas");
+              var context = canvas.getContext("2d");
+              if (context != null) {
+                  context.font = font;
+                  var metrics = context.measureText(text);
+                  return metrics.width;
+              }
+              else
+                  { return 0; }
+          }
+          function getCssStyle(element, prop) {
+              return window.getComputedStyle(element, null).getPropertyValue(prop);
+          }
+          function getCanvasFontSize(el) {
+                  if ( el === void 0 ) el = document.body;
+
+              var fontWeight = getCssStyle(el, 'font-weight') || 'normal';
+              var fontSize = getCssStyle(el, 'font-size') || '16px';
+              var fontFamily = getCssStyle(el, 'font-family') || 'Times New Roman';
+              return (fontWeight + " " + fontSize + " " + fontFamily);
+          }
           var mp = pickingProxy.mouse.position;
           tt.innerText = pickingProxy.getLabel();
           //kkk
           // tt.style.bottom = (window.innerHeight - mp.y + 3) + 'px'
           // tt.style.left = (mp.x + 3) + 'px'
           var rect = stage.viewer.container.getBoundingClientRect();
-          tt.style.bottom = (rect.top + window.scrollY + rect.height - mp.y + 3) + 'px';
-          tt.style.left = (mp.x - (rect.left + window.scrollX) + 3) + 'px';
-          tt.style.width = rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
-          tt.style.display = 'block';
+          tt.style.bottom = (rect.top + window.scrollY + rect.height - (mp.y + stage.viewer.top) + 3) + 'px';
+          tt.style.left = (mp.x + stage.viewer.left - (rect.left + window.scrollX) + 3) + 'px';
+          if (tt.innerText.length == 0)
+              { tt.style.display = 'none'; }
+          else {
+              tt.style.display = 'block';
+              tt.style.width = getTextWidth(tt.innerText, getCanvasFontSize(tt)) + 'px'; //rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
+          }
           //kkk
           // check picking and send message that contain picking result
           var result = pickingProxy.checkBase();
@@ -70142,7 +70380,7 @@
           ['drag-ctrl-left', MouseActions.panDrag],
           ['drag-ctrl-right', MouseActions.zRotateDrag],
           ['drag-shift-left', MouseActions.zoomDrag],
-          // ['drag-middle', MouseActions.zoomFocusDrag], //kkk
+          // [ 'drag-middle', MouseActions.zoomFocusDrag ], //kkk
           ['drag-ctrl-shift-right', MouseActions.panComponentDrag],
           ['drag-ctrl-shift-left', MouseActions.rotateComponentDrag],
           ['clickPick-right', MouseActions.measurePick],
@@ -70509,11 +70747,8 @@
       this.stage = stage;
       this.mouse = stage.mouseObserver;
       this.controls = stage.mouseControls;
-      if (this.mouse.signals.clicked.add) {
-          this.mouse.signals.clicked.add(this._onClick, this);
-      }
-      if (this.mouse.signals.hovered.add)
-          { this.mouse.signals.hovered.add(this._onHover, this); }
+      this.mouse.signals.clicked.add(this._onClick, this);
+      this.mouse.signals.hovered.add(this._onHover, this);
   };
   PickingBehavior.prototype._onClick = function _onClick (x, y) {
       var pickingProxy = this.stage.pickingControls.pick(x, y);
@@ -70669,7 +70904,7 @@
    * @private
    */
   /**
-   * Annotation HTML element floating on top of a position rendered in 3d
+   * Annotation
    */
   var Annotation = function Annotation(component, position, content, params) {
       if ( params === void 0 ) params = {};
@@ -70685,17 +70920,7 @@
       this._updateViewerPosition();
       this._canvasPosition = new three.Vector2();
       this._cameraPosition = new three.Vector3();
-      this.element = document.createElement('div');
-      Object.assign(this.element.style, {
-          display: 'block',
-          position: 'absolute',
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-          left: '-10000px'
-      });
-      this.viewer.wrapper.appendChild(this.element);
-      this.setContent(content);
-      this.updateVisibility();
+      this.text = content; //kkk
       this.viewer.signals.rendered.add(this._update, this);
       this.component.signals.matrixChanged.add(this._updateViewerPosition, this);
   };
@@ -70704,30 +70929,12 @@
    * @param {String|Element} value - HTML content
    * @return {undefined}
    */
-  Annotation.prototype.setContent = function setContent (value) {
-      var displayValue = this.element.style.display;
-      if (displayValue === 'none') {
-          this.element.style.left = '-10000px';
-          this.element.style.display = 'block';
-      }
-      if (value instanceof HTMLElement) {
-          this.element.appendChild(value);
-      }
-      else {
-          var content = document.createElement('div');
-          content.innerText = value;
-          Object.assign(content.style, {
-              backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
-              color: 'lightgrey',
-              padding: '8px',
-              fontFamily: 'sans-serif',
-          });
-          this.element.appendChild(content);
-      }
-      this._clientRect = this.element.getBoundingClientRect();
-      if (displayValue === 'none') {
-          this.element.style.display = displayValue;
-      }
+  //kkk
+  Annotation.prototype.getCanvasPosition = function getCanvasPosition () {
+      return this._canvasPosition;
+  };
+  Annotation.prototype.getContent = function getContent () {
+      return this.text;
   };
   /**
    * Set visibility of the annotation
@@ -70736,13 +70943,9 @@
    */
   Annotation.prototype.setVisibility = function setVisibility (value) {
       this.visible = value;
-      this.updateVisibility();
   };
   Annotation.prototype.getVisibility = function getVisibility () {
       return this.visible && this.component.parameters.visible;
-  };
-  Annotation.prototype.updateVisibility = function updateVisibility () {
-      this.element.style.display = this.getVisibility() ? 'block' : 'none';
   };
   Annotation.prototype._updateViewerPosition = function _updateViewerPosition () {
       this._viewerPosition
@@ -70750,37 +70953,26 @@
           .applyMatrix4(this.component.matrix);
   };
   Annotation.prototype._update = function _update () {
-      if (!this.getVisibility())
-          { return; }
-      var s = this.element.style;
       var cp = this._canvasPosition;
       var vp = this._viewerPosition;
-      var cr = this._clientRect;
+      if (!this.getVisibility()) {
+          cp.x = -10000;
+          return;
+      }
       this._cameraPosition.copy(vp)
           .add(this.viewer.translationGroup.position)
           .applyMatrix4(this.viewer.rotationGroup.matrix)
           .sub(this.viewer.camera.position);
-      if (this._cameraPosition.z < 0) {
-          s.display = 'none';
-          return;
-      }
-      else {
-          s.display = 'block';
-      }
-      var depth = this._cameraPosition.length();
-      var fog = this.viewer.scene.fog; // TODO
-      s.opacity = (1 - smoothstep(fog.near, fog.far, depth)).toString();
-      s.zIndex = (Math.round((fog.far - depth) * 100)).toString();
       this.stage.viewerControls.getPositionOnCanvas(vp, cp);
-      s.bottom = (this.offsetX + cp.y + cr.height / 2) + 'px';
-      s.left = (this.offsetY + cp.x - cr.width / 2) + 'px';
+      if (this._cameraPosition.z < 0) {
+          cp.x = -10000;
+      }
   };
   /**
    * Safely remove the annotation
    * @return {undefined}
    */
   Annotation.prototype.dispose = function dispose () {
-      this.viewer.wrapper.removeChild(this.element);
       this.viewer.signals.ticked.remove(this._update, this);
       this.component.signals.matrixChanged.remove(this._updateViewerPosition, this);
   };
@@ -71212,7 +71404,6 @@
           ];
       };
       BondStore.prototype.addBond = function addBond (atom1, atom2, bondOrder) {
-          // console.log('addBond', atom1, atom2);
           this.growIfFull();
           var i = this.count;
           var ai1 = atom1.index;
@@ -71230,7 +71421,6 @@
           this.count += 1;
       };
       BondStore.prototype.addBondIfConnected = function addBondIfConnected (atom1, atom2, bondOrder) {
-          // console.log('addBond', atom1, atom2);
           if (atom1.connectedTo(atom2)) {
               this.addBond(atom1, atom2, bondOrder);
               return true;
@@ -72855,7 +73045,7 @@
       }
       return connectedAtomIndices;
   };
-  //
+  //kkk
   AtomProxy.prototype.qualifiedName = function qualifiedName (noResname) {
           if ( noResname === void 0 ) noResname = false;
 
@@ -72870,8 +73060,6 @@
           { name += ':' + this.chainname; }
       if (this.atomname)
           { name += '.' + this.atomname; }
-      if (this.serial)
-          { name += '(' + this.serial + ')'; }
       if (this.altloc)
           { name += '%' + this.altloc; }
       if (this.structure.modelStore.count > 1)
@@ -77246,9 +77434,9 @@
           }
           i += isMulti ? bondOrder : 1;
       });
-      // console.log('getBondData', params, bondData);
       return bondData;
   };
+  //kkk
   Structure.prototype.getBackBondData = function getBackBondData (params, bExtSugar) {
       var p = Object.assign({}, params);
       if (p.colorParams)
@@ -78160,9 +78348,9 @@
       return SphereGeometryBuffer;
   }(GeometryBuffer));
 
-  ShaderRegistry.add('shader/SphereImpostor.vert', "uniform mat4 projectionMatrixInverse;\r\nuniform float clipNear;\r\n\r\nvarying float vRadius;\r\nvarying float vRadiusSq;\r\nvarying vec3 vPoint;\r\nvarying vec3 vPointViewPosition;\r\n\r\nattribute vec2 mapping;\r\nattribute float radius;\r\n\r\n#ifdef PICKING\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include color_pars_vertex\r\n#endif\r\n\r\n#include matrix_scale\r\n\r\nconst mat4 D = mat4(\r\n1.0, 0.0, 0.0, 0.0,\r\n0.0, 1.0, 0.0, 0.0,\r\n0.0, 0.0, 1.0, 0.0,\r\n0.0, 0.0, 0.0, -1.0\r\n);\r\n\r\nmat4 transposeM( in mat4 inMatrix ) {\r\nvec4 i0 = inMatrix[0];\r\nvec4 i1 = inMatrix[1];\r\nvec4 i2 = inMatrix[2];\r\nvec4 i3 = inMatrix[3];\r\n\r\nmat4 outMatrix = mat4(\r\nvec4(i0.x, i1.x, i2.x, i3.x),\r\nvec4(i0.y, i1.y, i2.y, i3.y),\r\nvec4(i0.z, i1.z, i2.z, i3.z),\r\nvec4(i0.w, i1.w, i2.w, i3.w)\r\n);\r\nreturn outMatrix;\r\n}\r\n\r\n//------------------------------------------------------------------------------\r\n// Compute point size and center using the technique described in:\r\n// \"GPU-Based Ray-Casting of Quadratic Surfaces\"\r\n// by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.\r\n//\r\n// Code based on\r\n\r\n\r\n// .NAME Quadrics_fs.glsl and Quadrics_vs.glsl\r\n// .SECTION Thanks\r\n// <verbatim>\r\n//\r\n// This file is part of the PointSprites plugin developed and contributed by\r\n//\r\n// Copyright (c) CSCS - Swiss National Supercomputing Centre\r\n// EDF - Electricite de France\r\n//\r\n// John Biddiscombe, Ugo Varetto (CSCS)\r\n// Stephane Ploix (EDF)\r\n//\r\n// </verbatim>\r\n//\r\n// Contributions by Alexander Rose\r\n// - ported to WebGL\r\n// - adapted to work with quads\r\nvoid ComputePointSizeAndPositionInClipCoordSphere(){\r\n\r\nvec2 xbc;\r\nvec2 ybc;\r\n\r\nmat4 T = mat4(\r\nradius, 0.0, 0.0, 0.0,\r\n0.0, radius, 0.0, 0.0,\r\n0.0, 0.0, radius, 0.0,\r\nposition.x, position.y, position.z, 1.0\r\n);\r\n\r\nmat4 R = transposeM( projectionMatrix * modelViewMatrix * T );\r\nfloat A = dot( R[ 3 ], D * R[ 3 ] );\r\nfloat B = -2.0 * dot( R[ 0 ], D * R[ 3 ] );\r\nfloat C = dot( R[ 0 ], D * R[ 0 ] );\r\nxbc[ 0 ] = ( -B - sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\r\nxbc[ 1 ] = ( -B + sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\r\nfloat sx = abs( xbc[ 0 ] - xbc[ 1 ] ) * 0.5;\r\n\r\nA = dot( R[ 3 ], D * R[ 3 ] );\r\nB = -2.0 * dot( R[ 1 ], D * R[ 3 ] );\r\nC = dot( R[ 1 ], D * R[ 1 ] );\r\nybc[ 0 ] = ( -B - sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\r\nybc[ 1 ] = ( -B + sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\r\nfloat sy = abs( ybc[ 0 ] - ybc[ 1 ] ) * 0.5;\r\n\r\ngl_Position.xy = vec2( 0.5 * ( xbc.x + xbc.y ), 0.5 * ( ybc.x + ybc.y ) );\r\ngl_Position.xy -= mapping * vec2( sx, sy );\r\ngl_Position.xy *= gl_Position.w;\r\n\r\n}\r\n\r\nvoid main(void){\r\n\r\n#ifdef PICKING\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\n#include color_vertex\r\n#endif\r\n\r\nvRadius = radius * matrixScale( modelViewMatrix );\r\n\r\nvec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );\r\n// avoid clipping, added again in fragment shader\r\nmvPosition.z -= vRadius;\r\n\r\ngl_Position = projectionMatrix * vec4( mvPosition.xyz, 1.0 );\r\nComputePointSizeAndPositionInClipCoordSphere();\r\n\r\n\r\nvRadiusSq = vRadius * vRadius;\r\nvec4 vPoint4 = projectionMatrixInverse * gl_Position;\r\nvPoint = vPoint4.xyz / vPoint4.w;\r\nvPointViewPosition = -mvPosition.xyz / mvPosition.w;\r\n\r\n}");
+  ShaderRegistry.add('shader/SphereImpostor.vert', "uniform mat4 projectionMatrixInverse;\nuniform float clipNear;\nvarying float vRadius;\nvarying float vRadiusSq;\nvarying vec3 vPoint;\nvarying vec3 vPointViewPosition;\nattribute vec2 mapping;\nattribute float radius;\n#ifdef PICKING\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\n#include color_pars_vertex\n#endif\n#include matrix_scale\nconst mat4 D = mat4(\n1.0, 0.0, 0.0, 0.0,\n0.0, 1.0, 0.0, 0.0,\n0.0, 0.0, 1.0, 0.0,\n0.0, 0.0, 0.0, -1.0\n);\nmat4 transposeM( in mat4 inMatrix ) {\nvec4 i0 = inMatrix[0];\nvec4 i1 = inMatrix[1];\nvec4 i2 = inMatrix[2];\nvec4 i3 = inMatrix[3];\nmat4 outMatrix = mat4(\nvec4(i0.x, i1.x, i2.x, i3.x),\nvec4(i0.y, i1.y, i2.y, i3.y),\nvec4(i0.z, i1.z, i2.z, i3.z),\nvec4(i0.w, i1.w, i2.w, i3.w)\n);\nreturn outMatrix;\n}\nvoid ComputePointSizeAndPositionInClipCoordSphere(){\nvec2 xbc;\nvec2 ybc;\nmat4 T = mat4(\nradius, 0.0, 0.0, 0.0,\n0.0, radius, 0.0, 0.0,\n0.0, 0.0, radius, 0.0,\nposition.x, position.y, position.z, 1.0\n);\nmat4 R = transposeM( projectionMatrix * modelViewMatrix * T );\nfloat A = dot( R[ 3 ], D * R[ 3 ] );\nfloat B = -2.0 * dot( R[ 0 ], D * R[ 3 ] );\nfloat C = dot( R[ 0 ], D * R[ 0 ] );\nxbc[ 0 ] = ( -B - sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\nxbc[ 1 ] = ( -B + sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\nfloat sx = abs( xbc[ 0 ] - xbc[ 1 ] ) * 0.5;\nA = dot( R[ 3 ], D * R[ 3 ] );\nB = -2.0 * dot( R[ 1 ], D * R[ 3 ] );\nC = dot( R[ 1 ], D * R[ 1 ] );\nybc[ 0 ] = ( -B - sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\nybc[ 1 ] = ( -B + sqrt( B * B - 4.0 * A * C ) ) / ( 2.0 * A );\nfloat sy = abs( ybc[ 0 ] - ybc[ 1 ] ) * 0.5;\ngl_Position.xy = vec2( 0.5 * ( xbc.x + xbc.y ), 0.5 * ( ybc.x + ybc.y ) );\ngl_Position.xy -= mapping * vec2( sx, sy );\ngl_Position.xy *= gl_Position.w;\n}\nvoid main(void){\n#ifdef PICKING\nvPickingColor = unpackColor( primitiveId );\n#else\n#include color_vertex\n#endif\nvRadius = radius * matrixScale( modelViewMatrix );\nvec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );\nmvPosition.z -= vRadius;\ngl_Position = projectionMatrix * vec4( mvPosition.xyz, 1.0 );\nComputePointSizeAndPositionInClipCoordSphere();\nvRadiusSq = vRadius * vRadius;\nvec4 vPoint4 = projectionMatrixInverse * gl_Position;\nvPoint = vPoint4.xyz / vPoint4.w;\nvPointViewPosition = -mvPosition.xyz / mvPosition.w;\n}");
 
-  ShaderRegistry.add('shader/SphereImpostor.frag', "#define STANDARD\r\n#define IMPOSTOR\r\n\r\nuniform vec3 diffuse;\r\nuniform vec3 emissive;\r\nuniform vec3 interiorColor;\r\nuniform float interiorDarkening;\r\nuniform float roughness;\r\nuniform float metalness;\r\nuniform float opacity;\r\nuniform float clipNear;\r\nuniform mat4 projectionMatrix;\r\nuniform float ortho;\r\n\r\n// uniform vec3 specular;\r\n// uniform float shininess;\r\n\r\nvarying float vRadius;\r\nvarying float vRadiusSq;\r\nvarying vec3 vPoint;\r\nvarying vec3 vPointViewPosition;\r\n\r\n#ifdef PICKING\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include common\r\n#include color_pars_fragment\r\n#include fog_pars_fragment\r\n#include bsdfs\r\n#include lights_pars_begin\r\n// #include lights_phong_pars_fragment\r\n#include lights_physical_pars_fragment\r\n#endif\r\n\r\nbool flag2 = false;\r\nbool interior = false;\r\nvec3 cameraPos;\r\nvec3 cameraNormal;\r\n\r\n// vec4 poly_color = gl_Color;\r\n// if(uf_use_border_hinting == 1.0)\r\n// {\r\n// vec3 wc_eye_dir = normalize(wc_sp_pt);\r\n// float n_dot_e = abs(dot(wc_sp_nrml,wc_eye_dir));\r\n// float alpha = max(uf_border_color_start_cosine - n_dot_e,0.0)/uf_border_color_start_cosine;\r\n// poly_color = mix(gl_Color,uf_border_color,0.75*alpha);\r\n// }\r\n// color += (diff + amb)*poly_color + spec*gl_FrontMaterial.specular;\r\n\r\n// Calculate depth based on the given camera position.\r\nfloat calcDepth( in vec3 cameraPos ){\r\nvec2 clipZW = cameraPos.z * projectionMatrix[2].zw + projectionMatrix[3].zw;\r\nreturn 0.5 + 0.5 * clipZW.x / clipZW.y;\r\n}\r\n\r\nfloat calcClip( vec3 cameraPos ){\r\nreturn dot( vec4( cameraPos, 1.0 ), vec4( 0.0, 0.0, 1.0, clipNear - 0.5 ) );\r\n}\r\n\r\nbool Impostor( out vec3 cameraPos, out vec3 cameraNormal ){\r\n\r\nvec3 cameraSpherePos = -vPointViewPosition;\r\ncameraSpherePos.z += vRadius;\r\n\r\nvec3 rayOrigin = mix( vec3( 0.0, 0.0, 0.0 ), vPoint, ortho );\r\nvec3 rayDirection = mix( normalize( vPoint ), vec3( 0.0, 0.0, 1.0 ), ortho );\r\nvec3 cameraSphereDir = mix( cameraSpherePos, rayOrigin - cameraSpherePos, ortho );\r\n\r\nfloat B = dot( rayDirection, cameraSphereDir );\r\nfloat det = B * B + vRadiusSq - dot( cameraSphereDir, cameraSphereDir );\r\n\r\nif( det < 0.0 ){\r\ndiscard;\r\nreturn false;\r\n}\r\n\r\nfloat sqrtDet = sqrt( det );\r\nfloat posT = mix( B + sqrtDet, B + sqrtDet, ortho );\r\nfloat negT = mix( B - sqrtDet, sqrtDet - B, ortho );\r\n\r\ncameraPos = rayDirection * negT + rayOrigin;\r\n\r\n#ifdef NEAR_CLIP\r\nif( calcDepth( cameraPos ) <= 0.0 ){\r\ncameraPos = rayDirection * posT + rayOrigin;\r\ninterior = true;\r\n}else if( calcClip( cameraPos ) > 0.0 ){\r\ncameraPos = rayDirection * posT + rayOrigin;\r\ninterior = true;\r\nflag2 = true;\r\n}\r\n#else\r\nif( calcDepth( cameraPos ) <= 0.0 ){\r\ncameraPos = rayDirection * posT + rayOrigin;\r\ninterior = true;\r\n}\r\n#endif\r\n\r\ncameraNormal = normalize( cameraPos - cameraSpherePos );\r\ncameraNormal *= float(!interior) * 2.0 - 1.0;\r\n\r\nreturn !interior;\r\n\r\n}\r\n\r\nvoid main(void){\r\n\r\n// vec3 specular = vec3( 1.0, 1.0, 1.0 );\r\n// float specularStrength = 1.0;\r\n// float shininess = 1.0;\r\n\r\nbool flag = Impostor( cameraPos, cameraNormal );\r\n\r\n#ifdef NEAR_CLIP\r\nif( calcClip( cameraPos ) > 0.0 )\r\ndiscard;\r\n#endif\r\n\r\n// FIXME not compatible with custom clipping plane\r\n//Set the depth based on the new cameraPos.\r\ngl_FragDepthEXT = calcDepth( cameraPos );\r\nif( !flag ){\r\n\r\n// clamp to near clipping plane and add a tiny value to\r\n// make spheres with a greater radius occlude smaller ones\r\n#ifdef NEAR_CLIP\r\nif( flag2 ){\r\ngl_FragDepthEXT = max( 0.0, calcDepth( vec3( - ( clipNear - 0.5 ) ) ) + ( 0.0000001 / vRadius ) );\r\n}else if( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\r\n}\r\n#else\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\r\n}\r\n#endif\r\n\r\n}\r\n\r\n// bugfix (mac only?)\r\nif (gl_FragDepthEXT < 0.0)\r\ndiscard;\r\nif (gl_FragDepthEXT > 1.0)\r\ndiscard;\r\n\r\n#ifdef PICKING\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#else\r\n\r\nvec3 vNormal = cameraNormal;\r\nvec3 vViewPosition = -cameraPos;\r\n\r\nvec4 diffuseColor = vec4( diffuse, opacity );\r\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\r\nvec3 totalEmissiveLight = emissive;\r\n\r\n#include color_fragment\r\n#include roughnessmap_fragment\r\n#include metalnessmap_fragment\r\n#include normal_fragment_begin\r\n\r\n// #include lights_phong_fragment\r\n#include lights_physical_fragment\r\n#include lights_fragment_begin\r\n#include lights_fragment_end\r\n\r\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\r\n\r\nif( interior ){\r\n#ifdef USE_INTERIOR_COLOR\r\noutgoingLight.xyz = interiorColor;\r\n#else\r\n#ifdef DIFFUSE_INTERIOR\r\noutgoingLight.xyz = vColor;\r\n#endif\r\n#endif\r\noutgoingLight.xyz *= 1.0 - interiorDarkening;\r\n}\r\n\r\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/SphereImpostor.frag', "#define STANDARD\n#define IMPOSTOR\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 interiorColor;\nuniform float interiorDarkening;\nuniform float roughness;\nuniform float metalness;\nuniform float opacity;\nuniform float clipNear;\nuniform mat4 projectionMatrix;\nuniform float ortho;\nvarying float vRadius;\nvarying float vRadiusSq;\nvarying vec3 vPoint;\nvarying vec3 vPointViewPosition;\n#ifdef PICKING\nuniform float objectId;\nvarying vec3 vPickingColor;\n#else\n#include common\n#include color_pars_fragment\n#include fog_pars_fragment\n#include bsdfs\n#include lights_pars_begin\n#include lights_physical_pars_fragment\n#endif\nbool flag2 = false;\nbool interior = false;\nvec3 cameraPos;\nvec3 cameraNormal;\nfloat calcDepth( in vec3 cameraPos ){\nvec2 clipZW = cameraPos.z * projectionMatrix[2].zw + projectionMatrix[3].zw;\nreturn 0.5 + 0.5 * clipZW.x / clipZW.y;\n}\nfloat calcClip( vec3 cameraPos ){\nreturn dot( vec4( cameraPos, 1.0 ), vec4( 0.0, 0.0, 1.0, clipNear - 0.5 ) );\n}\nbool Impostor( out vec3 cameraPos, out vec3 cameraNormal ){\nvec3 cameraSpherePos = -vPointViewPosition;\ncameraSpherePos.z += vRadius;\nvec3 rayOrigin = mix( vec3( 0.0, 0.0, 0.0 ), vPoint, ortho );\nvec3 rayDirection = mix( normalize( vPoint ), vec3( 0.0, 0.0, 1.0 ), ortho );\nvec3 cameraSphereDir = mix( cameraSpherePos, rayOrigin - cameraSpherePos, ortho );\nfloat B = dot( rayDirection, cameraSphereDir );\nfloat det = B * B + vRadiusSq - dot( cameraSphereDir, cameraSphereDir );\nif( det < 0.0 ){\ndiscard;\nreturn false;\n}\nfloat sqrtDet = sqrt( det );\nfloat posT = mix( B + sqrtDet, B + sqrtDet, ortho );\nfloat negT = mix( B - sqrtDet, sqrtDet - B, ortho );\ncameraPos = rayDirection * negT + rayOrigin;\n#ifdef NEAR_CLIP\nif( calcDepth( cameraPos ) <= 0.0 ){\ncameraPos = rayDirection * posT + rayOrigin;\ninterior = true;\n}else if( calcClip( cameraPos ) > 0.0 ){\ncameraPos = rayDirection * posT + rayOrigin;\ninterior = true;\nflag2 = true;\n}\n#else\nif( calcDepth( cameraPos ) <= 0.0 ){\ncameraPos = rayDirection * posT + rayOrigin;\ninterior = true;\n}\n#endif\ncameraNormal = normalize( cameraPos - cameraSpherePos );\ncameraNormal *= float(!interior) * 2.0 - 1.0;\nreturn !interior;\n}\nvoid main(void){\nbool flag = Impostor( cameraPos, cameraNormal );\n#ifdef NEAR_CLIP\nif( calcClip( cameraPos ) > 0.0 )\ndiscard;\n#endif\ngl_FragDepthEXT = calcDepth( cameraPos );\nif( !flag ){\n#ifdef NEAR_CLIP\nif( flag2 ){\ngl_FragDepthEXT = max( 0.0, calcDepth( vec3( - ( clipNear - 0.5 ) ) ) + ( 0.0000001 / vRadius ) );\n}else if( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\n}\n#else\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\n}\n#endif\n}\nif (gl_FragDepthEXT < 0.0)\ndiscard;\nif (gl_FragDepthEXT > 1.0)\ndiscard;\n#ifdef PICKING\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#else\nvec3 vNormal = cameraNormal;\nvec3 vViewPosition = -cameraPos;\nvec4 diffuseColor = vec4( diffuse, opacity );\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\nvec3 totalEmissiveLight = emissive;\n#include color_fragment\n#include roughnessmap_fragment\n#include metalnessmap_fragment\n#include normal_fragment_begin\n#include lights_physical_fragment\n#include lights_fragment_begin\n#include lights_fragment_end\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\nif( interior ){\n#ifdef USE_INTERIOR_COLOR\noutgoingLight.xyz = interiorColor;\n#else\n#ifdef DIFFUSE_INTERIOR\noutgoingLight.xyz = vColor;\n#endif\n#endif\noutgoingLight.xyz *= 1.0 - interiorDarkening;\n}\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Mapped Buffer
@@ -78387,9 +78575,9 @@
   };
   BufferRegistry.add('sphere', SphereBuffer);
 
-  ShaderRegistry.add('shader/Point.vert', "uniform float clipNear;\r\nuniform float clipRadius;\r\nuniform vec3 clipCenter;\r\nuniform float size;\r\nuniform float canvasHeight;\r\nuniform float pixelRatio;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#if defined( PICKING )\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include color_pars_vertex\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#include common\r\n\r\nvoid main(){\r\n\r\n#if defined( PICKING )\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\n#include color_vertex\r\n#endif\r\n\r\n#include begin_vertex\r\n#include project_vertex\r\n\r\n#ifdef USE_SIZEATTENUATION\r\ngl_PointSize = size * pixelRatio * ( ( canvasHeight / 2.0 ) / -mvPosition.z );\r\n#else\r\ngl_PointSize = size * pixelRatio;\r\n#endif\r\n\r\n#ifndef PICKING\r\nvViewPosition = -mvPosition.xyz;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n#include nearclip_vertex\r\n#include radiusclip_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/Point.vert', "uniform float clipNear;\nuniform float clipRadius;\nuniform vec3 clipCenter;\nuniform float size;\nuniform float canvasHeight;\nuniform float pixelRatio;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#if defined( PICKING )\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\n#include color_pars_vertex\nvarying vec3 vViewPosition;\n#endif\n#include common\nvoid main(){\n#if defined( PICKING )\nvPickingColor = unpackColor( primitiveId );\n#else\n#include color_vertex\n#endif\n#include begin_vertex\n#include project_vertex\n#ifdef USE_SIZEATTENUATION\ngl_PointSize = size * pixelRatio * ( ( canvasHeight / 2.0 ) / -mvPosition.z );\n#else\ngl_PointSize = size * pixelRatio;\n#endif\n#ifndef PICKING\nvViewPosition = -mvPosition.xyz;\n#endif\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n#include nearclip_vertex\n#include radiusclip_vertex\n}");
 
-  ShaderRegistry.add('shader/Point.frag', "uniform vec3 diffuse;\r\nuniform float opacity;\r\nuniform float clipNear;\r\nuniform float clipRadius;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#ifdef USE_MAP\r\nuniform sampler2D map;\r\n#endif\r\n\r\n#if defined( PICKING )\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include common\r\n#include color_pars_fragment\r\n#include fog_pars_fragment\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\nvoid main(){\r\n\r\n#include nearclip_fragment\r\n#include radiusclip_fragment\r\n\r\n#if defined( PICKING )\r\n\r\n#ifdef USE_MAP\r\nif( texture2D( map, vec2( gl_PointCoord.x, 1.0 - gl_PointCoord.y ) ).a < 0.5 )\r\ndiscard;\r\n#endif\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#else\r\n\r\nvec3 outgoingLight = vec3( 0.0 );\r\nvec4 diffuseColor = vec4( diffuse, 1.0 );\r\n\r\n#ifdef USE_MAP\r\ndiffuseColor *= texture2D( map, vec2( gl_PointCoord.x, 1.0 - gl_PointCoord.y ) );\r\n#endif\r\n\r\n#include color_fragment\r\n#include alphatest_fragment\r\n\r\noutgoingLight = diffuseColor.rgb;\r\n\r\ngl_FragColor = vec4( outgoingLight, diffuseColor.a * opacity );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/Point.frag', "uniform vec3 diffuse;\nuniform float opacity;\nuniform float clipNear;\nuniform float clipRadius;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#ifdef USE_MAP\nuniform sampler2D map;\n#endif\n#if defined( PICKING )\nuniform float objectId;\nvarying vec3 vPickingColor;\n#else\n#include common\n#include color_pars_fragment\n#include fog_pars_fragment\nvarying vec3 vViewPosition;\n#endif\nvoid main(){\n#include nearclip_fragment\n#include radiusclip_fragment\n#if defined( PICKING )\n#ifdef USE_MAP\nif( texture2D( map, vec2( gl_PointCoord.x, 1.0 - gl_PointCoord.y ) ).a < 0.5 )\ndiscard;\n#endif\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#else\nvec3 outgoingLight = vec3( 0.0 );\nvec4 diffuseColor = vec4( diffuse, 1.0 );\n#ifdef USE_MAP\ndiffuseColor *= texture2D( map, vec2( gl_PointCoord.x, 1.0 - gl_PointCoord.y ) );\n#endif\n#include color_fragment\n#include alphatest_fragment\noutgoingLight = diffuseColor.rgb;\ngl_FragColor = vec4( outgoingLight, diffuseColor.a * opacity );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Point Buffer
@@ -78802,9 +78990,9 @@
       return DotRepresentation;
   }(Representation));
 
-  ShaderRegistry.add('shader/Image.vert', "uniform float clipRadius;\r\nuniform vec3 clipCenter;\r\n\r\nvarying vec2 vUv;\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n\r\nvoid main() {\r\n\r\n#include begin_vertex\r\n#include project_vertex\r\n\r\nvUv = uv;\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\r\nvViewPosition = -mvPosition.xyz;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/Image.vert', "uniform float clipRadius;\nuniform vec3 clipCenter;\nvarying vec2 vUv;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\nvarying vec3 vViewPosition;\n#endif\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\nvoid main() {\n#include begin_vertex\n#include project_vertex\nvUv = uv;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\nvViewPosition = -mvPosition.xyz;\n#endif\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n}");
 
-  ShaderRegistry.add('shader/Image.frag', "uniform sampler2D map;\r\nuniform float opacity;\r\nuniform vec2 mapSize;\r\nuniform float clipNear;\r\nuniform float clipRadius;\r\n\r\nvarying vec2 vUv;\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#if defined( PICKING )\r\nuniform sampler2D pickingMap;\r\nuniform float objectId;\r\n#else\r\n#include fog_pars_fragment\r\n#endif\r\n\r\n\r\n#if defined( CUBIC_INTERPOLATION )\r\n\r\n#if defined( CATMULROM_FILTER ) || defined( MITCHELL_FILTER )\r\n\r\n#if defined( CATMULROM_FILTER )\r\nconst float B = 0.0;\r\nconst float C = 0.5;\r\n#elif defined( MITCHELL_FILTER )\r\nconst float B = 0.333;\r\nconst float C = 0.333;\r\n#endif\r\n\r\nfloat filter( float x ){\r\nfloat f = x;\r\nif( f < 0.0 ){\r\nf = -f;\r\n}\r\nif( f < 1.0 ){\r\nreturn ( ( 12.0 - 9.0 * B - 6.0 * C ) * ( f * f * f ) +\r\n( -18.0 + 12.0 * B + 6.0 *C ) * ( f * f ) +\r\n( 6.0 - 2.0 * B ) ) / 6.0;\r\n}else if( f >= 1.0 && f < 2.0 ){\r\nreturn ( ( -B - 6.0 * C ) * ( f * f * f )\r\n+ ( 6.0 * B + 30.0 * C ) * ( f *f ) +\r\n( - ( 12.0 * B ) - 48.0 * C ) * f +\r\n8.0 * B + 24.0 * C ) / 6.0;\r\n}else{\r\nreturn 0.0;\r\n}\r\n}\r\n\r\n#elif defined( BSPLINE_FILTER )\r\n\r\nfloat filter( float x ){\r\nfloat f = x;\r\nif( f < 0.0 ){\r\nf = -f;\r\n}\r\nif( f >= 0.0 && f <= 1.0 ){\r\nreturn ( 2.0 / 3.0 ) + ( 0.5 ) * ( f * f * f ) - ( f * f );\r\n}else if( f > 1.0 && f <= 2.0 ){\r\nreturn 1.0 / 6.0 * pow( ( 2.0 - f ), 3.0 );\r\n}\r\nreturn 1.0;\r\n}\r\n\r\n#else\r\n\r\nfloat filter( float x ){\r\nreturn 1.0;\r\n}\r\n\r\n#endif\r\n\r\nvec4 biCubic( sampler2D tex, vec2 texCoord ){\r\nvec2 texelSize = 1.0 / mapSize;\r\ntexCoord -= texelSize / 2.0;\r\nvec4 nSum = vec4( 0.0 );\r\nfloat nDenom = 0.0;\r\nvec2 cell = fract( texCoord * mapSize );\r\nfor( float m = -1.0; m <= 2.0; ++m ){\r\nfor( float n = -1.0; n <= 2.0; ++n ){\r\nvec4 vecData = texture2D(\r\ntex, texCoord + texelSize * vec2( m, n )\r\n);\r\nfloat c = filter( m - cell.x ) * filter( -n + cell.y );\r\nnSum += vecData * c;\r\nnDenom += c;\r\n}\r\n}\r\nreturn nSum / nDenom;\r\n}\r\n\r\n#endif\r\n\r\n\r\nvoid main(){\r\n\r\n#include nearclip_fragment\r\n#include radiusclip_fragment\r\n\r\n#if defined( CUBIC_INTERPOLATION )\r\ngl_FragColor = biCubic( map, vUv );\r\n#else\r\ngl_FragColor = texture2D( map, vUv );\r\n#endif\r\n\r\n#if defined( PICKING )\r\n\r\nif( gl_FragColor.a < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( texture2D( pickingMap, vUv ).xyz, objectId );\r\n\r\n#else\r\n\r\nif( gl_FragColor.a < 0.01 )\r\ndiscard;\r\ngl_FragColor.a *= opacity;\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/Image.frag', "uniform sampler2D map;\nuniform float opacity;\nuniform vec2 mapSize;\nuniform float clipNear;\nuniform float clipRadius;\nvarying vec2 vUv;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\nvarying vec3 vViewPosition;\n#endif\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#if defined( PICKING )\nuniform sampler2D pickingMap;\nuniform float objectId;\n#else\n#include fog_pars_fragment\n#endif\n#if defined( CUBIC_INTERPOLATION )\n#if defined( CATMULROM_FILTER ) || defined( MITCHELL_FILTER )\n#if defined( CATMULROM_FILTER )\nconst float B = 0.0;\nconst float C = 0.5;\n#elif defined( MITCHELL_FILTER )\nconst float B = 0.333;\nconst float C = 0.333;\n#endif\nfloat filter( float x ){\nfloat f = x;\nif( f < 0.0 ){\nf = -f;\n}\nif( f < 1.0 ){\nreturn ( ( 12.0 - 9.0 * B - 6.0 * C ) * ( f * f * f ) +\n( -18.0 + 12.0 * B + 6.0 *C ) * ( f * f ) +\n( 6.0 - 2.0 * B ) ) / 6.0;\n}else if( f >= 1.0 && f < 2.0 ){\nreturn ( ( -B - 6.0 * C ) * ( f * f * f )\n+ ( 6.0 * B + 30.0 * C ) * ( f *f ) +\n( - ( 12.0 * B ) - 48.0 * C ) * f +\n8.0 * B + 24.0 * C ) / 6.0;\n}else{\nreturn 0.0;\n}\n}\n#elif defined( BSPLINE_FILTER )\nfloat filter( float x ){\nfloat f = x;\nif( f < 0.0 ){\nf = -f;\n}\nif( f >= 0.0 && f <= 1.0 ){\nreturn ( 2.0 / 3.0 ) + ( 0.5 ) * ( f * f * f ) - ( f * f );\n}else if( f > 1.0 && f <= 2.0 ){\nreturn 1.0 / 6.0 * pow( ( 2.0 - f ), 3.0 );\n}\nreturn 1.0;\n}\n#else\nfloat filter( float x ){\nreturn 1.0;\n}\n#endif\nvec4 biCubic( sampler2D tex, vec2 texCoord ){\nvec2 texelSize = 1.0 / mapSize;\ntexCoord -= texelSize / 2.0;\nvec4 nSum = vec4( 0.0 );\nfloat nDenom = 0.0;\nvec2 cell = fract( texCoord * mapSize );\nfor( float m = -1.0; m <= 2.0; ++m ){\nfor( float n = -1.0; n <= 2.0; ++n ){\nvec4 vecData = texture2D(\ntex, texCoord + texelSize * vec2( m, n )\n);\nfloat c = filter( m - cell.x ) * filter( -n + cell.y );\nnSum += vecData * c;\nnDenom += c;\n}\n}\nreturn nSum / nDenom;\n}\n#endif\nvoid main(){\n#include nearclip_fragment\n#include radiusclip_fragment\n#if defined( CUBIC_INTERPOLATION )\ngl_FragColor = biCubic( map, vUv );\n#else\ngl_FragColor = texture2D( map, vUv );\n#endif\n#if defined( PICKING )\nif( gl_FragColor.a < 0.3 )\ndiscard;\ngl_FragColor = vec4( texture2D( pickingMap, vUv ).xyz, objectId );\n#else\nif( gl_FragColor.a < 0.01 )\ndiscard;\ngl_FragColor.a *= opacity;\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Image Buffer
@@ -79769,7 +79957,6 @@
   Component.prototype.setVisibility = function setVisibility (value) {
       this.parameters.visible = value;
       this.eachRepresentation(function (repr) { return repr.updateVisibility(); });
-      this.eachAnnotation(function (annotation) { return annotation.updateVisibility(); });
       this.signals.visibilityChanged.dispatch(value);
       return this;
   };
@@ -79835,6 +80022,15 @@
    */
   Component.prototype.autoView = function autoView (duration) {
       this.stage.animationControls.zoomMove(this.getCenter(), this.getZoom(), defaults(duration, 0));
+      //kkk add pan auto
+      // var tmpPanVector = new Vector3();
+      // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
+      // tmpPanVector.set(this.viewer.width/4, 0, 0)
+      // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
+      // this.stage.animationControls.zoom2(
+      //   tmpPanVector,
+      //   defaults(duration, 0)
+      // )
   };
 
   Object.defineProperties( Component.prototype, prototypeAccessors$9 );
@@ -82077,6 +82273,23 @@
               sele = '';
           }
           this.stage.animationControls.zoomMove(this.getCenter(sele), this.getZoom(sele), defaults(duration, 0));
+          //kkk add pan auto
+          // var tmpPanVector = new Vector3();
+          // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
+          // tmpPanVector.set(this.viewer.width/4, 0, 0)
+          // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
+          // this.stage.animationControls.zoom2(
+          //   tmpPanVector,
+          //   defaults(duration, 0)
+          // )
+      };
+      StructureComponent.prototype.resetPos = function resetPos () {
+          // console.log(this.position);
+          // this.stage.viewerControls.translate(this.getCenter().negate());
+          // this.viewer.translationGroup.position.set(0,0,0)
+          // this.viewer.rotationGroup.position.add(this.getCenter().negate())
+          // this.viewer.requestRender();
+          // console.log(this.getCenter());
       };
       StructureComponent.prototype.getBoxUntransformed = function getBoxUntransformed (sele) {
           var bb;
@@ -82391,17 +82604,17 @@
       quality: 'medium',
       workerDefault: true,
       sampleLevel: 0,
-      backgroundColor: 'white',
+      backgroundColor: 'black',
       rotateSpeed: 2.0,
       zoomSpeed: 1.2,
       panSpeed: 1.0,
       clipNear: 0,
       clipFar: 100,
-      clipDist: 1,
+      clipDist: 10,
       clipMode: 'scene',
       clipScale: 'relative',
-      fogNear: 500,
-      fogFar: 1000,
+      fogNear: 50,
+      fogFar: 100,
       cameraFov: 40,
       cameraEyeSep: 0.3,
       cameraType: 'perspective',
@@ -82419,8 +82632,9 @@
    * @example
    * var stage = new Stage( "elementId", { backgroundColor: "white" } );
    */
-  var Stage = function Stage(idOrElement, params) {
+  var Stage = function Stage(idOrElement, params, pixiCallback) {
       if ( params === void 0 ) params = {};
+      if ( pixiCallback === void 0 ) pixiCallback = undefined;
 
       this.signals = {
           parametersChanged: new signalsWrapper.Signal(),
@@ -82438,7 +82652,7 @@
       this.compList = [];
       this.defaultFileParams = {};
       this.logList = [];
-      this.viewer = new Viewer(idOrElement, this);
+      this.viewer = new Viewer(idOrElement, this, pixiCallback); //kkk
       if (!this.viewer.renderer)
           { return; }
       this.tooltip = document.createElement('div');
@@ -82451,11 +82665,11 @@
           backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
           color: 'lightgrey',
           padding: '8px',
-          fontFamily: 'sans-serif',
-          overflowWrap: "anywhere"
+          fontFamily: 'sans-serif'
       });
       this.viewer.container.appendChild(this.tooltip);
       this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement);
+      this.mouseObserver.viewer = this.viewer; //kkk
       this.viewerControls = new ViewerControls(this);
       this.trackballControls = new TrackballControls(this);
       this.pickingControls = new PickingControls(this);
@@ -82688,6 +82902,7 @@
               this$1$1.defaultFileRepresentation(component);
           }
           this$1$1.tasks.decrement();
+          this$1$1.loadedComponent = component; //kkk
           return component;
       };
       var onErrorFn = function (e) {
@@ -82695,6 +82910,30 @@
           var errorMsg = "error loading file: '" + e + "'";
           this$1$1.log(errorMsg);
           throw errorMsg; // throw so it can be catched
+      };
+      var ext = defaults(p.ext, getFileInfo(path).ext);
+      var promise;
+      if (ParserRegistry.isTrajectory(ext)) {
+          promise = Promise.reject(new Error(("loadFile: ext '" + ext + "' is a trajectory and must be loaded into a structure component")));
+      }
+      else {
+          promise = autoLoad(path, p);
+      }
+      return promise.then(onLoadFn, onErrorFn);
+  };
+  //kkk
+  Stage.checkModelFile = function checkModelFile (path, callback) {
+      var params = {};
+      var p = Object.assign({}, {}, params);
+      // const name = getFileInfo(path).name
+      var onLoadFn = function (object) {
+          if (object instanceof Structure)
+              { callback(object); }
+          else
+              { callback(null); }
+      };
+      var onErrorFn = function (e) {
+          callback(null);
       };
       var ext = defaults(p.ext, getFileInfo(path).ext);
       var promise;
@@ -82778,8 +83017,12 @@
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  Stage.prototype.handleResize = function handleResize () {
-      this.viewer.handleResize();
+  //kkk
+  Stage.prototype.handleResize = function handleResize (width, height) {
+          if ( width === void 0 ) width = 0;
+          if ( height === void 0 ) height = 0;
+
+      this.viewer.handleResize(width, height);
   };
   /**
    * Set width and height
@@ -82970,7 +83213,8 @@
       var height = this.viewer.height;
       var aspect = width / height;
       var aspectFactor = (height < width ? 1 : aspect);
-      distance = Math.abs(((distance * 0.5) / aspectFactor) / Math.sin(fov / 2));
+      distance = Math.abs(((distance * 0.5) / aspectFactor) / Math.sin(fov / 2) //kkk
+      );
       distance += this.parameters.clipDist;
       return -distance;
   };
@@ -83014,7 +83258,7 @@
   Stage.prototype.setImpostor = function setImpostor (value) {
       this.parameters.impostor = value;
       var types = [
-          'spacefill', 'ball+stick', 'eball+stick', 'licorice', 'hyperball',
+          'spacefill', 'ball+stick', 'licorice', 'hyperball',
           'backbone', 'rocket', 'helixorient', 'contact', 'distance',
           'dot'
       ];
@@ -83032,7 +83276,7 @@
           'tube', 'cartoon', 'ribbon', 'trace', 'rope'
       ];
       var impostorTypes = [
-          'spacefill', 'ball+stick', 'eball+stick', 'licorice', 'hyperball',
+          'spacefill', 'ball+stick', 'licorice', 'hyperball',
           'backbone', 'rocket', 'helixorient', 'contact', 'distance',
           'dot'
       ];
@@ -84730,8 +84974,7 @@
               assembly: null,
               defaultAssembly: {
                   type: 'hidden'
-              },
-              ellipsoid: false,
+              }
           }, this.parameters);
           /**
            * @type {Selection}
@@ -84795,9 +85038,6 @@
           this.radiusScale = defaults(p.radiusScale, 1.0);
           this.assembly = defaults(p.assembly, 'default');
           this.defaultAssembly = defaults(p.defaultAssembly, '');
-          this.ellipsoid = defaults(p.ellipsoid, false);
-          // this.majorAxis = defaults(p.majorAxis, [1, 1, 0])
-          // this.minorAxis = defaults(p.minorAxis, [0.5, 0, 0.5])
           if (p.quality === 'auto') {
               p.quality = this.getQuality();
           }
@@ -85300,9 +85540,9 @@
       out[2] = center[2] + v1[2] * x + v2[2] * y;
   }
 
-  ShaderRegistry.add('shader/SDFFont.vert', "uniform float clipNear;\r\nuniform float clipRadius;\r\nuniform vec3 clipCenter;\r\nuniform float xOffset;\r\nuniform float yOffset;\r\nuniform float zOffset;\r\nuniform bool ortho;\r\nuniform float canvasHeight;\r\nuniform float pixelRatio;\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\nvarying vec2 texCoord;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#if defined( PICKING )\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include color_pars_vertex\r\n#endif\r\n\r\nattribute vec2 mapping;\r\nattribute vec2 inputTexCoord;\r\nattribute float inputSize;\r\n\r\n#include matrix_scale\r\n#include common\r\n\r\nvoid main(void){\r\n\r\n#if defined( PICKING )\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\n#include color_vertex\r\n#endif\r\n\r\ntexCoord = inputTexCoord;\r\n\r\nfloat scale = matrixScale( modelViewMatrix );\r\n\r\nfloat _xOffset = xOffset * scale;\r\nfloat _yOffset = yOffset * scale;\r\nfloat _zOffset = zOffset * scale;\r\nif( texCoord.x == 10.0 ){\r\n_zOffset -= 0.001;\r\n}\r\n\r\nvec4 cameraPos = modelViewMatrix * vec4( position, 1.0 );\r\n\r\n#ifdef FIXED_SIZE\r\nif ( ortho ) {\r\nscale /= pixelRatio * (( canvasHeight / 2.0 ) / -cameraPosition.z) * 0.1;\r\n} else {\r\nscale /= pixelRatio * (( canvasHeight / 2.0 ) / -cameraPos.z) * 0.1;\r\n}\r\n#endif\r\n\r\nvec4 cameraCornerPos = vec4( cameraPos.xyz, 1.0 );\r\ncameraCornerPos.xy += mapping * inputSize * 0.01 * scale;\r\ncameraCornerPos.x += _xOffset;\r\ncameraCornerPos.y += _yOffset;\r\nif( ortho ){\r\ncameraCornerPos.xyz += normalize( -cameraPosition ) * _zOffset;\r\n} else {\r\ncameraCornerPos.xyz += normalize( -cameraCornerPos.xyz ) * _zOffset;\r\n}\r\n\r\ngl_Position = projectionMatrix * cameraCornerPos;\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\r\nvViewPosition = -cameraCornerPos.xyz;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n#include nearclip_vertex\r\n#include radiusclip_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/SDFFont.vert', "uniform float clipNear;\nuniform float clipRadius;\nuniform vec3 clipCenter;\nuniform float xOffset;\nuniform float yOffset;\nuniform float zOffset;\nuniform bool ortho;\nuniform float canvasHeight;\nuniform float pixelRatio;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\nvarying vec3 vViewPosition;\n#endif\nvarying vec2 texCoord;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#if defined( PICKING )\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\n#include color_pars_vertex\n#endif\nattribute vec2 mapping;\nattribute vec2 inputTexCoord;\nattribute float inputSize;\n#include matrix_scale\n#include common\nvoid main(void){\n#if defined( PICKING )\nvPickingColor = unpackColor( primitiveId );\n#else\n#include color_vertex\n#endif\ntexCoord = inputTexCoord;\nfloat scale = matrixScale( modelViewMatrix );\nfloat _xOffset = xOffset * scale;\nfloat _yOffset = yOffset * scale;\nfloat _zOffset = zOffset * scale;\nif( texCoord.x == 10.0 ){\n_zOffset -= 0.001;\n}\nvec4 cameraPos = modelViewMatrix * vec4( position, 1.0 );\n#ifdef FIXED_SIZE\nif ( ortho ) {\nscale /= pixelRatio * (( canvasHeight / 2.0 ) / -cameraPosition.z) * 0.1;\n} else {\nscale /= pixelRatio * (( canvasHeight / 2.0 ) / -cameraPos.z) * 0.1;\n}\n#endif\nvec4 cameraCornerPos = vec4( cameraPos.xyz, 1.0 );\ncameraCornerPos.xy += mapping * inputSize * 0.01 * scale;\ncameraCornerPos.x += _xOffset;\ncameraCornerPos.y += _yOffset;\nif( ortho ){\ncameraCornerPos.xyz += normalize( -cameraPosition ) * _zOffset;\n} else {\ncameraCornerPos.xyz += normalize( -cameraCornerPos.xyz ) * _zOffset;\n}\ngl_Position = projectionMatrix * cameraCornerPos;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || ( !defined( PICKING ) && !defined( NOLIGHT ) )\nvViewPosition = -cameraCornerPos.xyz;\n#endif\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n#include nearclip_vertex\n#include radiusclip_vertex\n}");
 
-  ShaderRegistry.add('shader/SDFFont.frag', "uniform sampler2D fontTexture;\r\nuniform float opacity;\r\nuniform bool showBorder;\r\nuniform vec3 borderColor;\r\nuniform float borderWidth;\r\nuniform vec3 backgroundColor;\r\nuniform float backgroundOpacity;\r\nuniform float clipNear;\r\nuniform float clipRadius;\r\n\r\nvarying vec3 vViewPosition;\r\nvarying vec2 texCoord;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#if defined( PICKING )\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\nconst vec3 vColor = vec3( 0.0 );\r\n#else\r\n#include common\r\n#include color_pars_fragment\r\n#include fog_pars_fragment\r\n#endif\r\n\r\nconst float gamma = 2.2 * 1.4142 / 128.0;\r\nconst float padding = 0.75;\r\n\r\nvoid main(){\r\n\r\n#include nearclip_fragment\r\n#include radiusclip_fragment\r\n\r\nif( texCoord.x > 1.0 ){\r\n\r\ngl_FragColor = vec4( backgroundColor, backgroundOpacity );\r\n\r\n}else{\r\n\r\n// retrieve signed distance\r\nfloat sdf = texture2D( fontTexture, texCoord ).a;\r\nif( showBorder ) sdf += borderWidth;\r\n\r\nfloat a = smoothstep(padding - gamma, padding + gamma, sdf);\r\n\r\nif( a < 0.2 ) discard;\r\na *= opacity;\r\n\r\nvec3 outgoingLight = vColor;\r\nif( showBorder && sdf < ( padding + borderWidth ) ){\r\noutgoingLight = borderColor;\r\n}\r\n\r\ngl_FragColor = vec4( outgoingLight, a );\r\n\r\n}\r\n\r\n#if defined( PICKING )\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#else\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/SDFFont.frag', "uniform sampler2D fontTexture;\nuniform float opacity;\nuniform bool showBorder;\nuniform vec3 borderColor;\nuniform float borderWidth;\nuniform vec3 backgroundColor;\nuniform float backgroundOpacity;\nuniform float clipNear;\nuniform float clipRadius;\nvarying vec3 vViewPosition;\nvarying vec2 texCoord;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#if defined( PICKING )\nuniform float objectId;\nvarying vec3 vPickingColor;\nconst vec3 vColor = vec3( 0.0 );\n#else\n#include common\n#include color_pars_fragment\n#include fog_pars_fragment\n#endif\nconst float gamma = 2.2 * 1.4142 / 128.0;\nconst float padding = 0.75;\nvoid main(){\n#include nearclip_fragment\n#include radiusclip_fragment\nif( texCoord.x > 1.0 ){\ngl_FragColor = vec4( backgroundColor, backgroundOpacity );\n}else{\nfloat sdf = texture2D( fontTexture, texCoord ).a;\nif( showBorder ) sdf += borderWidth;\nfloat a = smoothstep(padding - gamma, padding + gamma, sdf);\nif( a < 0.2 ) discard;\na *= opacity;\nvec3 outgoingLight = vColor;\nif( showBorder && sdf < ( padding + borderWidth ) ){\noutgoingLight = borderColor;\n}\ngl_FragColor = vec4( outgoingLight, a );\n}\n#if defined( PICKING )\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#else\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Edt
@@ -85798,9 +86038,9 @@
   }(MappedQuadBuffer));
   BufferRegistry.add('text', TextBuffer);
 
-  ShaderRegistry.add('shader/WideLine.vert', "// heavily based on code by WestLangley from https://github.com/WestLangley/three.js/blob/af28b2fb706ac109771ecad0a7447fad90ab3210/examples/js/lines/LineMaterial.js\r\n\r\nuniform float clipNear;\r\nuniform vec3 clipCenter;\r\nuniform float linewidth;\r\nuniform vec2 resolution;\r\nuniform mat4 projectionMatrixInverse;\r\n\r\nattribute vec2 mapping;\r\nattribute vec3 position1;\r\nattribute vec3 position2;\r\n\r\n#ifdef PICKING\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\nattribute vec3 color2;\r\nvarying vec3 vColor;\r\nvarying vec3 vColor2;\r\nvarying float flag;\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\nvoid trimSegment( const in vec4 start, inout vec4 end ) {\r\n// trim end segment so it terminates between the camera plane and the near plane\r\n// conservative estimate of the near plane\r\nfloat a = projectionMatrix[ 2 ][ 2 ]; // 3nd entry in 3th column\r\nfloat b = projectionMatrix[ 3 ][ 2 ]; // 3nd entry in 4th column\r\nfloat nearEstimate = - 0.5 * b / a;\r\nfloat alpha = ( nearEstimate - start.z ) / ( end.z - start.z );\r\nend.xyz = mix( start.xyz, end.xyz, alpha );\r\n}\r\n\r\nvoid main() {\r\n\r\nfloat aspect = resolution.x / resolution.y;\r\n\r\n#ifdef PICKING\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\nflag = mapping.y;\r\nvColor = color;\r\nvColor2 = color2;\r\n#endif\r\n\r\n// camera space\r\nvec4 start = modelViewMatrix * vec4( position1, 1.0 );\r\nvec4 end = modelViewMatrix * vec4( position2, 1.0 );\r\n\r\n// special case for perspective projection, and segments that terminate either in, or behind, the camera plane\r\n// clearly the gpu firmware has a way of addressing this issue when projecting into ndc space\r\n// but we need to perform ndc-space calculations in the shader, so we must address this issue directly\r\n// perhaps there is a more elegant solution -- WestLangley\r\nbool perspective = ( projectionMatrix[ 2 ][ 3 ] == -1.0 ); // 4th entry in the 3rd column\r\nif ( perspective ) {\r\nif ( start.z < 0.0 && end.z >= 0.0 ) {\r\ntrimSegment( start, end );\r\n} else if ( end.z < 0.0 && start.z >= 0.0 ) {\r\ntrimSegment( end, start );\r\n}\r\n}\r\n\r\n// clip space\r\nvec4 clipStart = projectionMatrix * start;\r\nvec4 clipEnd = projectionMatrix * end;\r\n\r\n// ndc space\r\nvec2 ndcStart = clipStart.xy / clipStart.w;\r\nvec2 ndcEnd = clipEnd.xy / clipEnd.w;\r\n\r\n// direction\r\nvec2 dir = ndcEnd - ndcStart;\r\n\r\n// account for clip-space aspect ratio\r\ndir.x *= aspect;\r\ndir = normalize( dir );\r\n\r\n// perpendicular to dir\r\nvec2 offset = vec2( dir.y, - dir.x );\r\n\r\n// undo aspect ratio adjustment\r\ndir.x /= aspect;\r\noffset.x /= aspect;\r\n\r\n// sign flip\r\nif ( mapping.x < 0.0 ) offset *= - 1.0;\r\n\r\n// not used\r\n// // endcaps\r\n// if ( mapping.y < 0.0 ) {\r\n// offset += -dir;\r\n// } else if ( mapping.y > 0.0 ) {\r\n// offset += dir;\r\n// }\r\n\r\n// adjust for linewidth\r\noffset *= linewidth;\r\n\r\n// adjust for clip-space to screen-space conversion\r\noffset /= resolution.y;\r\n\r\n// select end\r\nvec4 clip = ( mapping.y < 0.5 ) ? clipStart : clipEnd;\r\n\r\n// back to clip space\r\noffset *= clip.w;\r\nclip.xy += offset;\r\ngl_Position = clip;\r\n\r\n#ifndef PICKING\r\nvViewPosition = ( projectionMatrixInverse * clip ).xyz;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n#include nearclip_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/WideLine.vert', "\nuniform float clipNear;\nuniform vec3 clipCenter;\nuniform float linewidth;\nuniform vec2 resolution;\nuniform mat4 projectionMatrixInverse;\nattribute vec2 mapping;\nattribute vec3 position1;\nattribute vec3 position2;\n#ifdef PICKING\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\nattribute vec3 color2;\nvarying vec3 vColor;\nvarying vec3 vColor2;\nvarying float flag;\nvarying vec3 vViewPosition;\n#endif\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\nvoid trimSegment( const in vec4 start, inout vec4 end ) {\nfloat a = projectionMatrix[ 2 ][ 2 ]; float b = projectionMatrix[ 3 ][ 2 ]; float nearEstimate = - 0.5 * b / a;\nfloat alpha = ( nearEstimate - start.z ) / ( end.z - start.z );\nend.xyz = mix( start.xyz, end.xyz, alpha );\n}\nvoid main() {\nfloat aspect = resolution.x / resolution.y;\n#ifdef PICKING\nvPickingColor = unpackColor( primitiveId );\n#else\nflag = mapping.y;\nvColor = color;\nvColor2 = color2;\n#endif\nvec4 start = modelViewMatrix * vec4( position1, 1.0 );\nvec4 end = modelViewMatrix * vec4( position2, 1.0 );\nbool perspective = ( projectionMatrix[ 2 ][ 3 ] == -1.0 ); if ( perspective ) {\nif ( start.z < 0.0 && end.z >= 0.0 ) {\ntrimSegment( start, end );\n} else if ( end.z < 0.0 && start.z >= 0.0 ) {\ntrimSegment( end, start );\n}\n}\nvec4 clipStart = projectionMatrix * start;\nvec4 clipEnd = projectionMatrix * end;\nvec2 ndcStart = clipStart.xy / clipStart.w;\nvec2 ndcEnd = clipEnd.xy / clipEnd.w;\nvec2 dir = ndcEnd - ndcStart;\ndir.x *= aspect;\ndir = normalize( dir );\nvec2 offset = vec2( dir.y, - dir.x );\ndir.x /= aspect;\noffset.x /= aspect;\nif ( mapping.x < 0.0 ) offset *= - 1.0;\noffset *= linewidth;\noffset /= resolution.y;\nvec4 clip = ( mapping.y < 0.5 ) ? clipStart : clipEnd;\noffset *= clip.w;\nclip.xy += offset;\ngl_Position = clip;\n#ifndef PICKING\nvViewPosition = ( projectionMatrixInverse * clip ).xyz;\n#endif\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n#include nearclip_vertex\n}");
 
-  ShaderRegistry.add('shader/WideLine.frag', "uniform vec3 diffuse;\r\nuniform float opacity;\r\nuniform float clipNear;\r\nuniform float clipRadius;\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\n#ifdef PICKING\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include common\r\n#include fog_pars_fragment\r\nvarying vec3 vViewPosition;\r\nvarying vec3 vColor;\r\nvarying vec3 vColor2;\r\nvarying float flag;\r\n#endif\r\n\r\nvoid main() {\r\n\r\n#include nearclip_fragment\r\n#include radiusclip_fragment\r\n\r\n#if defined( PICKING )\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#else\r\n\r\nvec3 outgoingLight = vec3( 0.0 );\r\nvec4 diffuseColor = vec4( diffuse, 1.0 );\r\n\r\nif ( flag < 0.0 ) {\r\ndiffuseColor.rgb *= vColor;\r\n} else {\r\ndiffuseColor.rgb *= vColor2;\r\n}\r\n\r\n#include alphatest_fragment\r\n\r\noutgoingLight = diffuseColor.rgb;\r\n\r\ngl_FragColor = vec4( outgoingLight, diffuseColor.a * opacity );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/WideLine.frag', "uniform vec3 diffuse;\nuniform float opacity;\nuniform float clipNear;\nuniform float clipRadius;\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\n#ifdef PICKING\nuniform float objectId;\nvarying vec3 vPickingColor;\n#else\n#include common\n#include fog_pars_fragment\nvarying vec3 vViewPosition;\nvarying vec3 vColor;\nvarying vec3 vColor2;\nvarying float flag;\n#endif\nvoid main() {\n#include nearclip_fragment\n#include radiusclip_fragment\n#if defined( PICKING )\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#else\nvec3 outgoingLight = vec3( 0.0 );\nvec4 diffuseColor = vec4( diffuse, 1.0 );\nif ( flag < 0.0 ) {\ndiffuseColor.rgb *= vColor;\n} else {\ndiffuseColor.rgb *= vColor2;\n}\n#include alphatest_fragment\noutgoingLight = diffuseColor.rgb;\ngl_FragColor = vec4( outgoingLight, diffuseColor.a * opacity );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Wide Line Buffer
@@ -86303,9 +86543,9 @@
       return CylinderGeometryBuffer;
   }(GeometryBuffer));
 
-  ShaderRegistry.add('shader/CylinderImpostor.vert', "// Open-Source PyMOL is Copyright (C) Schrodinger, LLC.\r\n//\r\n// All Rights Reserved\r\n//\r\n// Permission to use, copy, modify, distribute, and distribute modified\r\n// versions of this software and its built-in documentation for any\r\n// purpose and without fee is hereby granted, provided that the above\r\n// copyright notice appears in all copies and that both the copyright\r\n// notice and this permission notice appear in supporting documentation,\r\n// and that the name of Schrodinger, LLC not be used in advertising or\r\n// publicity pertaining to distribution of the software without specific,\r\n// written prior permission.\r\n//\r\n// SCHRODINGER, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,\r\n// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN\r\n// NO EVENT SHALL SCHRODINGER, LLC BE LIABLE FOR ANY SPECIAL, INDIRECT OR\r\n// CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS\r\n// OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE\r\n// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE\r\n// USE OR PERFORMANCE OF THIS SOFTWARE.\r\n\r\n// Contributions by Alexander Rose\r\n// - ported to WebGL\r\n// - dual color\r\n// - picking color\r\n// - shift\r\n\r\nattribute vec3 mapping;\r\nattribute vec3 position1;\r\nattribute vec3 position2;\r\nattribute float radius;\r\n\r\nvarying vec3 axis;\r\nvarying vec4 base_radius;\r\nvarying vec4 end_b;\r\nvarying vec3 U;\r\nvarying vec3 V;\r\nvarying vec4 w;\r\n\r\n#ifdef PICKING\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\nattribute vec3 color2;\r\nvarying vec3 vColor1;\r\nvarying vec3 vColor2;\r\n#endif\r\n\r\nuniform mat4 modelViewMatrixInverse;\r\nuniform float ortho;\r\n\r\n#include matrix_scale\r\n\r\nvoid main(){\r\n\r\n#ifdef PICKING\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\nvColor1 = color;\r\nvColor2 = color2;\r\n#endif\r\n\r\n// vRadius = radius;\r\nbase_radius.w = radius * matrixScale( modelViewMatrix );\r\n\r\nvec3 center = position;\r\nvec3 dir = normalize( position2 - position1 );\r\nfloat ext = length( position2 - position1 ) / 2.0;\r\n\r\n// using cameraPosition fails on some machines, not sure why\r\n// vec3 cam_dir = normalize( cameraPosition - mix( center, vec3( 0.0 ), ortho ) );\r\nvec3 cam_dir;\r\nif( ortho == 0.0 ){\r\ncam_dir = ( modelViewMatrixInverse * vec4( 0, 0, 0, 1 ) ).xyz - center;\r\n}else{\r\ncam_dir = ( modelViewMatrixInverse * vec4( 0, 0, 1, 0 ) ).xyz;\r\n}\r\ncam_dir = normalize( cam_dir );\r\n\r\nvec3 ldir;\r\n\r\nfloat b = dot( cam_dir, dir );\r\nend_b.w = b;\r\n// direction vector looks away, so flip\r\nif( b < 0.0 )\r\nldir = -ext * dir;\r\n// direction vector already looks in my direction\r\nelse\r\nldir = ext * dir;\r\n\r\nvec3 left = normalize( cross( cam_dir, ldir ) );\r\nleft = radius * left;\r\nvec3 up = radius * normalize( cross( left, ldir ) );\r\n\r\n// transform to modelview coordinates\r\naxis = normalize( normalMatrix * ldir );\r\nU = normalize( normalMatrix * up );\r\nV = normalize( normalMatrix * left );\r\n\r\nvec4 base4 = modelViewMatrix * vec4( center - ldir, 1.0 );\r\nbase_radius.xyz = base4.xyz / base4.w;\r\n\r\nvec4 top_position = modelViewMatrix * vec4( center + ldir, 1.0 );\r\nvec4 end4 = top_position;\r\nend_b.xyz = end4.xyz / end4.w;\r\n\r\nw = modelViewMatrix * vec4(\r\ncenter + mapping.x*ldir + mapping.y*left + mapping.z*up, 1.0\r\n);\r\n\r\ngl_Position = projectionMatrix * w;\r\n\r\n// avoid clipping (1.0 seems to induce flickering with some drivers)\r\ngl_Position.z = 0.99;\r\n\r\n}");
+  ShaderRegistry.add('shader/CylinderImpostor.vert', "\nattribute vec3 mapping;\nattribute vec3 position1;\nattribute vec3 position2;\nattribute float radius;\nvarying vec3 axis;\nvarying vec4 base_radius;\nvarying vec4 end_b;\nvarying vec3 U;\nvarying vec3 V;\nvarying vec4 w;\n#ifdef PICKING\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\nattribute vec3 color2;\nvarying vec3 vColor1;\nvarying vec3 vColor2;\n#endif\nuniform mat4 modelViewMatrixInverse;\nuniform float ortho;\n#include matrix_scale\nvoid main(){\n#ifdef PICKING\nvPickingColor = unpackColor( primitiveId );\n#else\nvColor1 = color;\nvColor2 = color2;\n#endif\nbase_radius.w = radius * matrixScale( modelViewMatrix );\nvec3 center = position;\nvec3 dir = normalize( position2 - position1 );\nfloat ext = length( position2 - position1 ) / 2.0;\nvec3 cam_dir;\nif( ortho == 0.0 ){\ncam_dir = ( modelViewMatrixInverse * vec4( 0, 0, 0, 1 ) ).xyz - center;\n}else{\ncam_dir = ( modelViewMatrixInverse * vec4( 0, 0, 1, 0 ) ).xyz;\n}\ncam_dir = normalize( cam_dir );\nvec3 ldir;\nfloat b = dot( cam_dir, dir );\nend_b.w = b;\nif( b < 0.0 )\nldir = -ext * dir;\nelse\nldir = ext * dir;\nvec3 left = normalize( cross( cam_dir, ldir ) );\nleft = radius * left;\nvec3 up = radius * normalize( cross( left, ldir ) );\naxis = normalize( normalMatrix * ldir );\nU = normalize( normalMatrix * up );\nV = normalize( normalMatrix * left );\nvec4 base4 = modelViewMatrix * vec4( center - ldir, 1.0 );\nbase_radius.xyz = base4.xyz / base4.w;\nvec4 top_position = modelViewMatrix * vec4( center + ldir, 1.0 );\nvec4 end4 = top_position;\nend_b.xyz = end4.xyz / end4.w;\nw = modelViewMatrix * vec4(\ncenter + mapping.x*ldir + mapping.y*left + mapping.z*up, 1.0\n);\ngl_Position = projectionMatrix * w;\ngl_Position.z = 0.99;\n}");
 
-  ShaderRegistry.add('shader/CylinderImpostor.frag', "#define STANDARD\r\n#define IMPOSTOR\r\n\r\n// Open-Source PyMOL is Copyright (C) Schrodinger, LLC.\r\n//\r\n// All Rights Reserved\r\n//\r\n// Permission to use, copy, modify, distribute, and distribute modified\r\n// versions of this software and its built-in documentation for any\r\n// purpose and without fee is hereby granted, provided that the above\r\n// copyright notice appears in all copies and that both the copyright\r\n// notice and this permission notice appear in supporting documentation,\r\n// and that the name of Schrodinger, LLC not be used in advertising or\r\n// publicity pertaining to distribution of the software without specific,\r\n// written prior permission.\r\n//\r\n// SCHRODINGER, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,\r\n// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN\r\n// NO EVENT SHALL SCHRODINGER, LLC BE LIABLE FOR ANY SPECIAL, INDIRECT OR\r\n// CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS\r\n// OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE\r\n// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE\r\n// USE OR PERFORMANCE OF THIS SOFTWARE.\r\n\r\n// Contributions by Alexander Rose\r\n// - ported to WebGL\r\n// - dual color\r\n// - picking color\r\n// - custom clipping\r\n// - three.js lighting\r\n\r\nuniform vec3 diffuse;\r\nuniform vec3 emissive;\r\nuniform vec3 interiorColor;\r\nuniform float interiorDarkening;\r\nuniform float roughness;\r\nuniform float metalness;\r\nuniform float opacity;\r\nuniform float clipNear;\r\nuniform mat4 projectionMatrix;\r\nuniform float ortho;\r\n\r\nvarying vec3 axis;\r\nvarying vec4 base_radius;\r\nvarying vec4 end_b;\r\nvarying vec3 U;\r\nvarying vec3 V;\r\nvarying vec4 w;\r\n\r\n#ifdef PICKING\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\n#else\r\nvarying vec3 vColor1;\r\nvarying vec3 vColor2;\r\n#include common\r\n#include fog_pars_fragment\r\n#include bsdfs\r\n#include lights_pars_begin\r\n#include lights_physical_pars_fragment\r\n#endif\r\n\r\nbool interior = false;\r\n\r\nfloat distSq3( vec3 v3a, vec3 v3b ){\r\nreturn (\r\n( v3a.x - v3b.x ) * ( v3a.x - v3b.x ) +\r\n( v3a.y - v3b.y ) * ( v3a.y - v3b.y ) +\r\n( v3a.z - v3b.z ) * ( v3a.z - v3b.z )\r\n);\r\n}\r\n\r\n// Calculate depth based on the given camera position.\r\nfloat calcDepth( in vec3 cameraPos ){\r\nvec2 clipZW = cameraPos.z * projectionMatrix[2].zw + projectionMatrix[3].zw;\r\nreturn 0.5 + 0.5 * clipZW.x / clipZW.y;\r\n}\r\n\r\nfloat calcClip( vec3 cameraPos ){\r\nreturn dot( vec4( cameraPos, 1.0 ), vec4( 0.0, 0.0, 1.0, clipNear - 0.5 ) );\r\n}\r\n\r\nvoid main(){\r\n\r\nvec3 point = w.xyz / w.w;\r\n\r\n// unpacking\r\nvec3 base = base_radius.xyz;\r\nfloat vRadius = base_radius.w;\r\nvec3 end = end_b.xyz;\r\nfloat b = end_b.w;\r\n\r\nvec3 end_cyl = end;\r\nvec3 surface_point = point;\r\n\r\nvec3 ray_target = surface_point;\r\nvec3 ray_origin = vec3(0.0);\r\nvec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), ortho);\r\nmat3 basis = mat3( U, V, axis );\r\n\r\nvec3 diff = ray_target - 0.5 * (base + end_cyl);\r\nvec3 P = diff * basis;\r\n\r\n// angle (cos) between cylinder cylinder_axis and ray direction\r\nfloat dz = dot( axis, ray_direction );\r\n\r\nfloat radius2 = vRadius*vRadius;\r\n\r\n// calculate distance to the cylinder from ray origin\r\nvec3 D = vec3(dot(U, ray_direction),\r\ndot(V, ray_direction),\r\ndz);\r\nfloat a0 = P.x*P.x + P.y*P.y - radius2;\r\nfloat a1 = P.x*D.x + P.y*D.y;\r\nfloat a2 = D.x*D.x + D.y*D.y;\r\n\r\n// calculate a dicriminant of the above quadratic equation\r\nfloat d = a1*a1 - a0*a2;\r\nif (d < 0.0)\r\n// outside of the cylinder\r\ndiscard;\r\n\r\nfloat dist = (-a1 + sqrt(d)) / a2;\r\n\r\n// point of intersection on cylinder surface\r\nvec3 new_point = ray_target + dist * ray_direction;\r\n\r\nvec3 tmp_point = new_point - base;\r\nvec3 _normal = normalize( tmp_point - axis * dot(tmp_point, axis) );\r\n\r\nray_origin = mix( ray_origin, surface_point, ortho );\r\n\r\n// test caps\r\nfloat front_cap_test = dot( tmp_point, axis );\r\nfloat end_cap_test = dot((new_point - end_cyl), axis);\r\n\r\n// to calculate caps, simply check the angle between\r\n// the point of intersection - cylinder end vector\r\n// and a cap plane normal (which is the cylinder cylinder_axis)\r\n// if the angle < 0, the point is outside of cylinder\r\n// test front cap\r\n\r\n#ifndef CAP\r\nvec3 new_point2 = ray_target + ( (-a1 - sqrt(d)) / a2 ) * ray_direction;\r\nvec3 tmp_point2 = new_point2 - base;\r\n#endif\r\n\r\n// flat\r\nif (front_cap_test < 0.0)\r\n{\r\n// ray-plane intersection\r\nfloat dNV = dot(-axis, ray_direction);\r\nif (dNV < 0.0)\r\ndiscard;\r\nfloat near = dot(-axis, (base)) / dNV;\r\nvec3 front_point = ray_direction * near + ray_origin;\r\n// within the cap radius?\r\nif (dot(front_point - base, front_point-base) > radius2)\r\ndiscard;\r\n\r\n#ifdef CAP\r\nnew_point = front_point;\r\n_normal = axis;\r\n#else\r\nnew_point = ray_target + ( (-a1 - sqrt(d)) / a2 ) * ray_direction;\r\ndNV = dot(-axis, ray_direction);\r\nnear = dot(axis, end_cyl) / dNV;\r\nnew_point2 = ray_direction * near + ray_origin;\r\nif (dot(new_point2 - end_cyl, new_point2-base) < radius2)\r\ndiscard;\r\ninterior = true;\r\n#endif\r\n}\r\n\r\n// test end cap\r\n\r\n\r\n// flat\r\nif( end_cap_test > 0.0 )\r\n{\r\n// ray-plane intersection\r\nfloat dNV = dot(axis, ray_direction);\r\nif (dNV < 0.0)\r\ndiscard;\r\nfloat near = dot(axis, end_cyl) / dNV;\r\nvec3 end_point = ray_direction * near + ray_origin;\r\n// within the cap radius?\r\nif( dot(end_point - end_cyl, end_point-base) > radius2 )\r\ndiscard;\r\n\r\n#ifdef CAP\r\nnew_point = end_point;\r\n_normal = axis;\r\n#else\r\nnew_point = ray_target + ( (-a1 - sqrt(d)) / a2 ) * ray_direction;\r\ndNV = dot(-axis, ray_direction);\r\nnear = dot(-axis, (base)) / dNV;\r\nnew_point2 = ray_direction * near + ray_origin;\r\nif (dot(new_point2 - base, new_point2-base) < radius2)\r\ndiscard;\r\ninterior = true;\r\n#endif\r\n}\r\n\r\ngl_FragDepthEXT = calcDepth( new_point );\r\n\r\n#ifdef NEAR_CLIP\r\nif( calcClip( new_point ) > 0.0 ){\r\ndist = (-a1 - sqrt(d)) / a2;\r\nnew_point = ray_target + dist * ray_direction;\r\nif( calcClip( new_point ) > 0.0 )\r\ndiscard;\r\ninterior = true;\r\ngl_FragDepthEXT = calcDepth( new_point );\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = max( 0.0, calcDepth( vec3( - ( clipNear - 0.5 ) ) ) + ( 0.0000001 / vRadius ) );\r\n}\r\n}else if( gl_FragDepthEXT <= 0.0 ){\r\ndist = (-a1 - sqrt(d)) / a2;\r\nnew_point = ray_target + dist * ray_direction;\r\ninterior = true;\r\ngl_FragDepthEXT = calcDepth( new_point );\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\r\n}\r\n}\r\n#else\r\nif( gl_FragDepthEXT <= 0.0 ){\r\ndist = (-a1 - sqrt(d)) / a2;\r\nnew_point = ray_target + dist * ray_direction;\r\ninterior = true;\r\ngl_FragDepthEXT = calcDepth( new_point );\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\r\n}\r\n}\r\n#endif\r\n\r\n// this is a workaround necessary for Mac\r\n// otherwise the modified fragment won't clip properly\r\nif (gl_FragDepthEXT < 0.0)\r\ndiscard;\r\nif (gl_FragDepthEXT > 1.0)\r\ndiscard;\r\n\r\n#ifdef PICKING\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#else\r\n\r\nvec3 vViewPosition = -new_point;\r\nvec3 vNormal = _normal;\r\nvec3 vColor;\r\n\r\nif( distSq3( new_point, end_cyl ) < distSq3( new_point, base ) ){\r\nif( b < 0.0 ){\r\nvColor = vColor1;\r\n}else{\r\nvColor = vColor2;\r\n}\r\n}else{\r\nif( b > 0.0 ){\r\nvColor = vColor1;\r\n}else{\r\nvColor = vColor2;\r\n}\r\n}\r\n\r\nvec4 diffuseColor = vec4( diffuse, opacity );\r\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\r\nvec3 totalEmissiveLight = emissive;\r\n\r\n#include color_fragment\r\n#include roughnessmap_fragment\r\n#include metalnessmap_fragment\r\n\r\n// @fredludlow: Previous comment from @arose says don't use normal_fragment_begin\r\n// though not clear why, but sticking with it. The r118 version of this chunk also\r\n// defines geometryNormal, so adding that here\r\n// #include normal_fragment_begin\r\nvec3 normal = normalize( vNormal );\r\nvec3 geometryNormal = normal;\r\n\r\n#include lights_physical_fragment\r\n#include lights_fragment_begin\r\n#include lights_fragment_end\r\n\r\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\r\n\r\nif( interior ){\r\n#ifdef USE_INTERIOR_COLOR\r\noutgoingLight.xyz = interiorColor;\r\n#else\r\n#ifdef DIFFUSE_INTERIOR\r\noutgoingLight.xyz = vColor;\r\n#endif\r\n#endif\r\noutgoingLight.xyz *= 1.0 - interiorDarkening;\r\n}\r\n\r\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/CylinderImpostor.frag', "#define STANDARD\n#define IMPOSTOR\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 interiorColor;\nuniform float interiorDarkening;\nuniform float roughness;\nuniform float metalness;\nuniform float opacity;\nuniform float clipNear;\nuniform mat4 projectionMatrix;\nuniform float ortho;\nvarying vec3 axis;\nvarying vec4 base_radius;\nvarying vec4 end_b;\nvarying vec3 U;\nvarying vec3 V;\nvarying vec4 w;\n#ifdef PICKING\nuniform float objectId;\nvarying vec3 vPickingColor;\n#else\nvarying vec3 vColor1;\nvarying vec3 vColor2;\n#include common\n#include fog_pars_fragment\n#include bsdfs\n#include lights_pars_begin\n#include lights_physical_pars_fragment\n#endif\nbool interior = false;\nfloat distSq3( vec3 v3a, vec3 v3b ){\nreturn (\n( v3a.x - v3b.x ) * ( v3a.x - v3b.x ) +\n( v3a.y - v3b.y ) * ( v3a.y - v3b.y ) +\n( v3a.z - v3b.z ) * ( v3a.z - v3b.z )\n);\n}\nfloat calcDepth( in vec3 cameraPos ){\nvec2 clipZW = cameraPos.z * projectionMatrix[2].zw + projectionMatrix[3].zw;\nreturn 0.5 + 0.5 * clipZW.x / clipZW.y;\n}\nfloat calcClip( vec3 cameraPos ){\nreturn dot( vec4( cameraPos, 1.0 ), vec4( 0.0, 0.0, 1.0, clipNear - 0.5 ) );\n}\nvoid main(){\nvec3 point = w.xyz / w.w;\nvec3 base = base_radius.xyz;\nfloat vRadius = base_radius.w;\nvec3 end = end_b.xyz;\nfloat b = end_b.w;\nvec3 end_cyl = end;\nvec3 surface_point = point;\nvec3 ray_target = surface_point;\nvec3 ray_origin = vec3(0.0);\nvec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), ortho);\nmat3 basis = mat3( U, V, axis );\nvec3 diff = ray_target - 0.5 * (base + end_cyl);\nvec3 P = diff * basis;\nfloat dz = dot( axis, ray_direction );\nfloat radius2 = vRadius*vRadius;\nvec3 D = vec3(dot(U, ray_direction),\ndot(V, ray_direction),\ndz);\nfloat a0 = P.x*P.x + P.y*P.y - radius2;\nfloat a1 = P.x*D.x + P.y*D.y;\nfloat a2 = D.x*D.x + D.y*D.y;\nfloat d = a1*a1 - a0*a2;\nif (d < 0.0)\ndiscard;\nfloat dist = (-a1 + sqrt(d)) / a2;\nvec3 new_point = ray_target + dist * ray_direction;\nvec3 tmp_point = new_point - base;\nvec3 _normal = normalize( tmp_point - axis * dot(tmp_point, axis) );\nray_origin = mix( ray_origin, surface_point, ortho );\nfloat front_cap_test = dot( tmp_point, axis );\nfloat end_cap_test = dot((new_point - end_cyl), axis);\n#ifndef CAP\nvec3 new_point2 = ray_target + ( (-a1 - sqrt(d)) / a2 ) * ray_direction;\nvec3 tmp_point2 = new_point2 - base;\n#endif\nif (front_cap_test < 0.0)\n{\nfloat dNV = dot(-axis, ray_direction);\nif (dNV < 0.0)\ndiscard;\nfloat near = dot(-axis, (base)) / dNV;\nvec3 front_point = ray_direction * near + ray_origin;\nif (dot(front_point - base, front_point-base) > radius2)\ndiscard;\n#ifdef CAP\nnew_point = front_point;\n_normal = axis;\n#else\nnew_point = ray_target + ( (-a1 - sqrt(d)) / a2 ) * ray_direction;\ndNV = dot(-axis, ray_direction);\nnear = dot(axis, end_cyl) / dNV;\nnew_point2 = ray_direction * near + ray_origin;\nif (dot(new_point2 - end_cyl, new_point2-base) < radius2)\ndiscard;\ninterior = true;\n#endif\n}\nif( end_cap_test > 0.0 )\n{\nfloat dNV = dot(axis, ray_direction);\nif (dNV < 0.0)\ndiscard;\nfloat near = dot(axis, end_cyl) / dNV;\nvec3 end_point = ray_direction * near + ray_origin;\nif( dot(end_point - end_cyl, end_point-base) > radius2 )\ndiscard;\n#ifdef CAP\nnew_point = end_point;\n_normal = axis;\n#else\nnew_point = ray_target + ( (-a1 - sqrt(d)) / a2 ) * ray_direction;\ndNV = dot(-axis, ray_direction);\nnear = dot(-axis, (base)) / dNV;\nnew_point2 = ray_direction * near + ray_origin;\nif (dot(new_point2 - base, new_point2-base) < radius2)\ndiscard;\ninterior = true;\n#endif\n}\ngl_FragDepthEXT = calcDepth( new_point );\n#ifdef NEAR_CLIP\nif( calcClip( new_point ) > 0.0 ){\ndist = (-a1 - sqrt(d)) / a2;\nnew_point = ray_target + dist * ray_direction;\nif( calcClip( new_point ) > 0.0 )\ndiscard;\ninterior = true;\ngl_FragDepthEXT = calcDepth( new_point );\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = max( 0.0, calcDepth( vec3( - ( clipNear - 0.5 ) ) ) + ( 0.0000001 / vRadius ) );\n}\n}else if( gl_FragDepthEXT <= 0.0 ){\ndist = (-a1 - sqrt(d)) / a2;\nnew_point = ray_target + dist * ray_direction;\ninterior = true;\ngl_FragDepthEXT = calcDepth( new_point );\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\n}\n}\n#else\nif( gl_FragDepthEXT <= 0.0 ){\ndist = (-a1 - sqrt(d)) / a2;\nnew_point = ray_target + dist * ray_direction;\ninterior = true;\ngl_FragDepthEXT = calcDepth( new_point );\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / vRadius );\n}\n}\n#endif\nif (gl_FragDepthEXT < 0.0)\ndiscard;\nif (gl_FragDepthEXT > 1.0)\ndiscard;\n#ifdef PICKING\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#else\nvec3 vViewPosition = -new_point;\nvec3 vNormal = _normal;\nvec3 vColor;\nif( distSq3( new_point, end_cyl ) < distSq3( new_point, base ) ){\nif( b < 0.0 ){\nvColor = vColor1;\n}else{\nvColor = vColor2;\n}\n}else{\nif( b > 0.0 ){\nvColor = vColor1;\n}else{\nvColor = vColor2;\n}\n}\nvec4 diffuseColor = vec4( diffuse, opacity );\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\nvec3 totalEmissiveLight = emissive;\n#include color_fragment\n#include roughnessmap_fragment\n#include metalnessmap_fragment\nvec3 normal = normalize( vNormal );\nvec3 geometryNormal = normal;\n#include lights_physical_fragment\n#include lights_fragment_begin\n#include lights_fragment_end\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\nif( interior ){\n#ifdef USE_INTERIOR_COLOR\noutgoingLight.xyz = interiorColor;\n#else\n#ifdef DIFFUSE_INTERIOR\noutgoingLight.xyz = vColor;\n#endif\n#endif\noutgoingLight.xyz *= 1.0 - interiorDarkening;\n}\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Mapped Aligned Box Buffer
@@ -87513,7 +87753,9 @@
                       majorAxis.push(x);
                       majorAxis.push(y);
                       majorAxis.push(z);
-                      // console.log('major', x, y, z);
+                      // console.log('major', x, y, z); 
+                      var annotation = { x: position[i3], y: position[i3 + 1], z: position[i3 + 2], num: i, label: (i + 1) + '' };
+                      this.divAnnotations.push(annotation);
                       var x1, y1, z1, d1;
                       if (bondData.picking && rawBondData.picking) {
                           var atomIndex2 = bondData.picking.bondStore.atomIndex2;
@@ -87673,9 +87915,13 @@
                   radius.push(0.2 * strength$1);
                   strengthArrray.push(strength$1);
                   if (strength$1 == 3) {
-                      colors.push(1);
-                      colors.push(1);
-                      colors.push(1);
+                      var color = this.viewer.ethernaMode.highColor;
+                      var r = color >> 16 & 255;
+                      var g = color >> 8 & 255;
+                      var b = color & 255;
+                      colors.push(r / 255.0);
+                      colors.push(g / 255.0);
+                      colors.push(b / 255.0);
                   }
                   // else if (strength == 2) {
                   //   colors.push(0.5);
@@ -87688,14 +87934,22 @@
                   //   colors.push(0.5);
                   // }
                   else if (strength$1 == 2) {
-                      colors.push(143 / 255.0); //8F9DB0
-                      colors.push(157 / 255.0);
-                      colors.push(176 / 255.0);
+                      var color = this.viewer.ethernaMode.mediumColor;
+                      var r = color >> 16 & 255;
+                      var g = color >> 8 & 255;
+                      var b = color & 255;
+                      colors.push(r / 255.0);
+                      colors.push(g / 255.0);
+                      colors.push(b / 255.0);
                   }
                   else {
-                      colors.push(84 / 255.0); //546986
-                      colors.push(105 / 255.0);
-                      colors.push(134 / 255.0);
+                      var color = this.viewer.ethernaMode.weakColor;
+                      var r = color >> 16 & 255;
+                      var g = color >> 8 & 255;
+                      var b = color & 255;
+                      colors.push(r / 255.0);
+                      colors.push(g / 255.0);
+                      colors.push(b / 255.0);
                   }
               }
               bondData.position1 = new Float32Array(pos1);
@@ -87751,6 +88005,7 @@
       //   }, this)
       // }
       EBaseRepresentation.prototype.updateData = function updateData (what, data) {
+          // console.log('start');
           if (this.multipleBond !== 'off' && what && what.radius) {
               what.position = true;
           }
@@ -87776,6 +88031,7 @@
                   }
               }
           }
+          // console.log('end');
       };
 
       return EBaseRepresentation;
@@ -90156,9 +90412,9 @@
   }(BallAndStickRepresentation));
   RepresentationRegistry.add('licorice', LicoriceRepresentation);
 
-  ShaderRegistry.add('shader/HyperballStickImpostor.vert', "// Copyright (C) 2010-2011 by\r\n// Laboratoire de Biochimie Theorique (CNRS),\r\n// Laboratoire d'Informatique Fondamentale d'Orleans (Universite d'Orleans), (INRIA) and\r\n// Departement des Sciences de la Simulation et de l'Information (CEA).\r\n//\r\n// License: CeCILL-C license (http://www.cecill.info/)\r\n//\r\n// Contact: Marc Baaden\r\n// E-mail: baaden@smplinux.de\r\n// Webpage: http://hyperballs.sourceforge.net\r\n\r\n// Contributions by Alexander Rose\r\n// - ported to WebGL\r\n// - dual color\r\n// - picking color\r\n\r\nattribute vec3 mapping;\r\nattribute float radius;\r\nattribute float radius2;\r\nattribute vec3 position1;\r\nattribute vec3 position2;\r\n\r\nvarying mat4 matrix_near;\r\nvarying vec4 prime1;\r\nvarying vec4 prime2;\r\nvarying float vRadius;\r\nvarying float vRadius2;\r\n\r\n#ifdef PICKING\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n// attribute vec3 color;\r\nattribute vec3 color2;\r\nvarying vec3 vColor1;\r\nvarying vec3 vColor2;\r\n#endif\r\n\r\nuniform float shrink;\r\nuniform mat4 modelViewProjectionMatrix;\r\nuniform mat4 modelViewProjectionMatrixInverse;\r\n\r\nvoid main(){\r\n\r\nvRadius = radius;\r\nvRadius2 = radius2;\r\n\r\nvec4 spaceposition;\r\nvec3 position_atom1;\r\nvec3 position_atom2;\r\nvec4 vertex_position;\r\n\r\n#ifdef PICKING\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\nvColor1 = color;\r\nvColor2 = color2;\r\n#endif\r\n\r\nfloat radius1 = radius;\r\n\r\nposition_atom1 = position1;\r\nposition_atom2 = position2;\r\n\r\nfloat distance = distance( position_atom1, position_atom2 );\r\n\r\nspaceposition.z = mapping.z * distance;\r\n\r\nif (radius1 > radius2) {\r\nspaceposition.y = mapping.y * 1.5 * radius1;\r\nspaceposition.x = mapping.x * 1.5 * radius1;\r\n} else {\r\nspaceposition.y = mapping.y * 1.5 * radius2;\r\nspaceposition.x = mapping.x * 1.5 * radius2;\r\n}\r\nspaceposition.w = 1.0;\r\n\r\nvec4 e3 = vec4( 1.0 );\r\nvec3 e1, e1_temp, e2, e2_temp;\r\n\r\n// Calculation of bond direction: e3\r\ne3.xyz = normalize(position_atom1-position_atom2);\r\n\r\n// little hack to avoid some problems of precision due to graphic card limitation using float: To improve soon\r\nif (e3.z == 0.0) { e3.z = 0.0000000000001;}\r\nif ( (position_atom1.x - position_atom2.x) == 0.0) { position_atom1.x += 0.001;}\r\nif ( (position_atom1.y - position_atom2.y) == 0.0) { position_atom1.y += 0.001;}\r\nif ( (position_atom1.z - position_atom2.z) == 0.0) { position_atom1.z += 0.001;}\r\n\r\n// Focus calculation\r\nvec4 focus = vec4( 1.0 );\r\nfocus.x = ( position_atom1.x*position_atom1.x - position_atom2.x*position_atom2.x +\r\n( radius2*radius2 - radius1*radius1 )*e3.x*e3.x/shrink )/(2.0*(position_atom1.x - position_atom2.x));\r\nfocus.y = ( position_atom1.y*position_atom1.y - position_atom2.y*position_atom2.y +\r\n( radius2*radius2 - radius1*radius1 )*e3.y*e3.y/shrink )/(2.0*(position_atom1.y - position_atom2.y));\r\nfocus.z = ( position_atom1.z*position_atom1.z - position_atom2.z*position_atom2.z +\r\n( radius2*radius2 - radius1*radius1 )*e3.z*e3.z/shrink )/(2.0*(position_atom1.z - position_atom2.z));\r\n\r\n// e1 calculation\r\ne1.x = 1.0;\r\ne1.y = 1.0;\r\ne1.z = ( (e3.x*focus.x + e3.y*focus.y + e3.z*focus.z) - e1.x*e3.x - e1.y*e3.y)/e3.z;\r\ne1_temp = e1 - focus.xyz;\r\ne1 = normalize(e1_temp);\r\n\r\n// e2 calculation\r\ne2_temp = e1.yzx * e3.zxy - e1.zxy * e3.yzx;\r\ne2 = normalize(e2_temp);\r\n\r\n//ROTATION:\r\n// final form of change of basis matrix:\r\nmat3 R= mat3( e1.xyz, e2.xyz, e3.xyz );\r\n// Apply rotation and translation to the bond primitive\r\nvertex_position.xyz = R * spaceposition.xyz;\r\nvertex_position.w = 1.0;\r\n\r\n// TRANSLATION:\r\nvertex_position.x += (position_atom1.x+position_atom2.x) / 2.0;\r\nvertex_position.y += (position_atom1.y+position_atom2.y) / 2.0;\r\nvertex_position.z += (position_atom1.z+position_atom2.z) / 2.0;\r\n\r\n// New position\r\ngl_Position = modelViewProjectionMatrix * vertex_position;\r\n\r\nvec4 i_near, i_far;\r\n\r\n// Calculate near from position\r\nvec4 near = gl_Position;\r\nnear.z = 0.0 ;\r\nnear = modelViewProjectionMatrixInverse * near;\r\ni_near = near;\r\n\r\n// Calculate far from position\r\nvec4 far = gl_Position;\r\nfar.z = far.w ;\r\ni_far = modelViewProjectionMatrixInverse * far;\r\n\r\nprime1 = vec4( position_atom1 - (position_atom1 - focus.xyz)*shrink, 1.0 );\r\nprime2 = vec4( position_atom2 - (position_atom2 - focus.xyz)*shrink, 1.0 );\r\n\r\nfloat Rsquare = (radius1*radius1/shrink) - (\r\n(position_atom1.x - focus.x)*(position_atom1.x - focus.x) +\r\n(position_atom1.y - focus.y)*(position_atom1.y - focus.y) +\r\n(position_atom1.z - focus.z)*(position_atom1.z - focus.z)\r\n);\r\n\r\nfocus.w = Rsquare;\r\n\r\nmatrix_near = mat4( i_near, i_far, focus, e3 );\r\n\r\n// avoid clipping\r\ngl_Position.z = 1.0;\r\n\r\n}");
+  ShaderRegistry.add('shader/HyperballStickImpostor.vert', "\nattribute vec3 mapping;\nattribute float radius;\nattribute float radius2;\nattribute vec3 position1;\nattribute vec3 position2;\nvarying mat4 matrix_near;\nvarying vec4 prime1;\nvarying vec4 prime2;\nvarying float vRadius;\nvarying float vRadius2;\n#ifdef PICKING\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\nattribute vec3 color2;\nvarying vec3 vColor1;\nvarying vec3 vColor2;\n#endif\nuniform float shrink;\nuniform mat4 modelViewProjectionMatrix;\nuniform mat4 modelViewProjectionMatrixInverse;\nvoid main(){\nvRadius = radius;\nvRadius2 = radius2;\nvec4 spaceposition;\nvec3 position_atom1;\nvec3 position_atom2;\nvec4 vertex_position;\n#ifdef PICKING\nvPickingColor = unpackColor( primitiveId );\n#else\nvColor1 = color;\nvColor2 = color2;\n#endif\nfloat radius1 = radius;\nposition_atom1 = position1;\nposition_atom2 = position2;\nfloat distance = distance( position_atom1, position_atom2 );\nspaceposition.z = mapping.z * distance;\nif (radius1 > radius2) {\nspaceposition.y = mapping.y * 1.5 * radius1;\nspaceposition.x = mapping.x * 1.5 * radius1;\n} else {\nspaceposition.y = mapping.y * 1.5 * radius2;\nspaceposition.x = mapping.x * 1.5 * radius2;\n}\nspaceposition.w = 1.0;\nvec4 e3 = vec4( 1.0 );\nvec3 e1, e1_temp, e2, e2_temp;\ne3.xyz = normalize(position_atom1-position_atom2);\nif (e3.z == 0.0) { e3.z = 0.0000000000001;}\nif ( (position_atom1.x - position_atom2.x) == 0.0) { position_atom1.x += 0.001;}\nif ( (position_atom1.y - position_atom2.y) == 0.0) { position_atom1.y += 0.001;}\nif ( (position_atom1.z - position_atom2.z) == 0.0) { position_atom1.z += 0.001;}\nvec4 focus = vec4( 1.0 );\nfocus.x = ( position_atom1.x*position_atom1.x - position_atom2.x*position_atom2.x +\n( radius2*radius2 - radius1*radius1 )*e3.x*e3.x/shrink )/(2.0*(position_atom1.x - position_atom2.x));\nfocus.y = ( position_atom1.y*position_atom1.y - position_atom2.y*position_atom2.y +\n( radius2*radius2 - radius1*radius1 )*e3.y*e3.y/shrink )/(2.0*(position_atom1.y - position_atom2.y));\nfocus.z = ( position_atom1.z*position_atom1.z - position_atom2.z*position_atom2.z +\n( radius2*radius2 - radius1*radius1 )*e3.z*e3.z/shrink )/(2.0*(position_atom1.z - position_atom2.z));\ne1.x = 1.0;\ne1.y = 1.0;\ne1.z = ( (e3.x*focus.x + e3.y*focus.y + e3.z*focus.z) - e1.x*e3.x - e1.y*e3.y)/e3.z;\ne1_temp = e1 - focus.xyz;\ne1 = normalize(e1_temp);\ne2_temp = e1.yzx * e3.zxy - e1.zxy * e3.yzx;\ne2 = normalize(e2_temp);\nmat3 R= mat3( e1.xyz, e2.xyz, e3.xyz );\nvertex_position.xyz = R * spaceposition.xyz;\nvertex_position.w = 1.0;\nvertex_position.x += (position_atom1.x+position_atom2.x) / 2.0;\nvertex_position.y += (position_atom1.y+position_atom2.y) / 2.0;\nvertex_position.z += (position_atom1.z+position_atom2.z) / 2.0;\ngl_Position = modelViewProjectionMatrix * vertex_position;\nvec4 i_near, i_far;\nvec4 near = gl_Position;\nnear.z = 0.0 ;\nnear = modelViewProjectionMatrixInverse * near;\ni_near = near;\nvec4 far = gl_Position;\nfar.z = far.w ;\ni_far = modelViewProjectionMatrixInverse * far;\nprime1 = vec4( position_atom1 - (position_atom1 - focus.xyz)*shrink, 1.0 );\nprime2 = vec4( position_atom2 - (position_atom2 - focus.xyz)*shrink, 1.0 );\nfloat Rsquare = (radius1*radius1/shrink) - (\n(position_atom1.x - focus.x)*(position_atom1.x - focus.x) +\n(position_atom1.y - focus.y)*(position_atom1.y - focus.y) +\n(position_atom1.z - focus.z)*(position_atom1.z - focus.z)\n);\nfocus.w = Rsquare;\nmatrix_near = mat4( i_near, i_far, focus, e3 );\ngl_Position.z = 1.0;\n}");
 
-  ShaderRegistry.add('shader/HyperballStickImpostor.frag', "#define STANDARD\r\n#define IMPOSTOR\r\n\r\n// Copyright (C) 2010-2011 by\r\n// Laboratoire de Biochimie Theorique (CNRS),\r\n// Laboratoire d'Informatique Fondamentale d'Orleans (Universite d'Orleans), (INRIA) and\r\n// Departement des Sciences de la Simulation et de l'Information (CEA).\r\n//\r\n// License: CeCILL-C license (http://www.cecill.info/)\r\n//\r\n// Contact: Marc Baaden\r\n// E-mail: baaden@smplinux.de\r\n// Webpage: http://hyperballs.sourceforge.net\r\n\r\n// Contributions by Alexander Rose\r\n// - ported to WebGL\r\n// - dual color\r\n// - picking color\r\n// - custom clipping\r\n// - three.js lighting\r\n\r\nuniform vec3 diffuse;\r\nuniform vec3 emissive;\r\nuniform vec3 interiorColor;\r\nuniform float interiorDarkening;\r\nuniform float roughness;\r\nuniform float metalness;\r\nuniform float opacity;\r\nuniform float clipNear;\r\nuniform float shrink;\r\nuniform mat4 modelViewMatrix;\r\nuniform mat4 modelViewProjectionMatrix;\r\nuniform mat4 modelViewMatrixInverseTranspose;\r\nuniform mat4 projectionMatrix;\r\n\r\nvarying mat4 matrix_near;\r\nvarying vec4 prime1;\r\nvarying vec4 prime2;\r\nvarying float vRadius;\r\nvarying float vRadius2;\r\n\r\n#ifdef PICKING\r\nuniform float objectId;\r\nvarying vec3 vPickingColor;\r\n#else\r\nvarying vec3 vColor1;\r\nvarying vec3 vColor2;\r\n#include common\r\n#include fog_pars_fragment\r\n#include bsdfs\r\n#include lights_pars_begin\r\n#include lights_physical_pars_fragment\r\n#endif\r\n\r\nbool interior = false;\r\n\r\nfloat calcClip( vec4 cameraPos ){\r\nreturn dot( cameraPos, vec4( 0.0, 0.0, 1.0, clipNear - 0.5 ) );\r\n}\r\n\r\nfloat calcClip( vec3 cameraPos ){\r\nreturn calcClip( vec4( cameraPos, 1.0 ) );\r\n}\r\n\r\nfloat calcDepth( in vec3 cameraPos ){\r\nvec2 clipZW = cameraPos.z * projectionMatrix[2].zw + projectionMatrix[3].zw;\r\nreturn 0.5 + 0.5 * clipZW.x / clipZW.y;\r\n}\r\n\r\nstruct Ray {\r\nvec3 origin ;\r\nvec3 direction ;\r\n};\r\n\r\nbool cutoff_plane (vec3 M, vec3 cutoff, vec3 x3){\r\nfloat a = x3.x;\r\nfloat b = x3.y;\r\nfloat c = x3.z;\r\nfloat d = -x3.x*cutoff.x-x3.y*cutoff.y-x3.z*cutoff.z;\r\nfloat l = a*M.x+b*M.y+c*M.z+d;\r\nif (l<0.0) {return true;}\r\nelse{return false;}\r\n}\r\n\r\nvec3 isect_surf(Ray r, mat4 matrix_coef){\r\nvec4 direction = vec4(r.direction, 0.0);\r\nvec4 origin = vec4(r.origin, 1.0);\r\nfloat a = dot(direction,(matrix_coef*direction));\r\nfloat b = dot(origin,(matrix_coef*direction));\r\nfloat c = dot(origin,(matrix_coef*origin));\r\nfloat delta =b*b-a*c;\r\ngl_FragColor.a = 1.0;\r\nif (delta<0.0){\r\ndiscard;\r\n// gl_FragColor.a = 0.5;\r\n}\r\nfloat t1 =(-b-sqrt(delta))/a;\r\n\r\n// Second solution not necessary if you don't want\r\n// to see inside spheres and cylinders, save some fps\r\n//float t2 = (-b+sqrt(delta)) / a ;\r\n//float t =(t1<t2) ? t1 : t2;\r\n\r\nreturn r.origin+t1*r.direction;\r\n}\r\n\r\nvec3 isect_surf2(Ray r, mat4 matrix_coef){\r\nvec4 direction = vec4(r.direction, 0.0);\r\nvec4 origin = vec4(r.origin, 1.0);\r\nfloat a = dot(direction,(matrix_coef*direction));\r\nfloat b = dot(origin,(matrix_coef*direction));\r\nfloat c = dot(origin,(matrix_coef*origin));\r\nfloat delta =b*b-a*c;\r\ngl_FragColor.a = 1.0;\r\nif (delta<0.0){\r\ndiscard;\r\n// gl_FragColor.a = 0.5;\r\n}\r\nfloat t2 =(-b+sqrt(delta))/a;\r\n\r\nreturn r.origin+t2*r.direction;\r\n}\r\n\r\nRay primary_ray(vec4 near1, vec4 far1){\r\nvec3 near=near1.xyz/near1.w;\r\nvec3 far=far1.xyz/far1.w;\r\nreturn Ray(near,far-near);\r\n}\r\n\r\nfloat update_z_buffer(vec3 M, mat4 ModelViewP){\r\nfloat depth1;\r\nvec4 Ms=(ModelViewP*vec4(M,1.0));\r\nreturn depth1=(1.0+Ms.z/Ms.w)/2.0;\r\n}\r\n\r\nvoid main(){\r\n\r\nfloat radius = max( vRadius, vRadius2 );\r\n\r\nvec4 i_near, i_far, focus;\r\nvec3 e3, e1, e1_temp, e2;\r\n\r\ni_near = vec4(matrix_near[0][0],matrix_near[0][1],matrix_near[0][2],matrix_near[0][3]);\r\ni_far = vec4(matrix_near[1][0],matrix_near[1][1],matrix_near[1][2],matrix_near[1][3]);\r\nfocus = vec4(matrix_near[2][0],matrix_near[2][1],matrix_near[2][2],matrix_near[2][3]);\r\ne3 = vec3(matrix_near[3][0],matrix_near[3][1],matrix_near[3][2]);\r\n\r\ne1.x = 1.0;\r\ne1.y = 1.0;\r\ne1.z = ( (e3.x*focus.x + e3.y*focus.y + e3.z*focus.z) - e1.x*e3.x - e1.y*e3.y)/e3.z;\r\ne1_temp = e1 - focus.xyz;\r\ne1 = normalize(e1_temp);\r\n\r\ne2 = normalize(cross(e1,e3));\r\n\r\nvec4 equation = focus;\r\n\r\nfloat shrinkfactor = shrink;\r\nfloat t1 = -1.0/(1.0-shrinkfactor);\r\nfloat t2 = 1.0/(shrinkfactor);\r\n// float t3 = 2.0/(shrinkfactor);\r\n\r\nvec4 colonne1, colonne2, colonne3, colonne4;\r\nmat4 mat;\r\n\r\nvec3 equation1 = vec3(t2,t2,t1);\r\n\r\nfloat A1 = - e1.x*equation.x - e1.y*equation.y - e1.z*equation.z;\r\nfloat A2 = - e2.x*equation.x - e2.y*equation.y - e2.z*equation.z;\r\nfloat A3 = - e3.x*equation.x - e3.y*equation.y - e3.z*equation.z;\r\n\r\nfloat A11 = equation1.x*e1.x*e1.x + equation1.y*e2.x*e2.x + equation1.z*e3.x*e3.x;\r\nfloat A21 = equation1.x*e1.x*e1.y + equation1.y*e2.x*e2.y + equation1.z*e3.x*e3.y;\r\nfloat A31 = equation1.x*e1.x*e1.z + equation1.y*e2.x*e2.z + equation1.z*e3.x*e3.z;\r\nfloat A41 = equation1.x*e1.x*A1 + equation1.y*e2.x*A2 + equation1.z*e3.x*A3;\r\n\r\nfloat A22 = equation1.x*e1.y*e1.y + equation1.y*e2.y*e2.y + equation1.z*e3.y*e3.y;\r\nfloat A32 = equation1.x*e1.y*e1.z + equation1.y*e2.y*e2.z + equation1.z*e3.y*e3.z;\r\nfloat A42 = equation1.x*e1.y*A1 + equation1.y*e2.y*A2 + equation1.z*e3.y*A3;\r\n\r\nfloat A33 = equation1.x*e1.z*e1.z + equation1.y*e2.z*e2.z + equation1.z*e3.z*e3.z;\r\nfloat A43 = equation1.x*e1.z*A1 + equation1.y*e2.z*A2 + equation1.z*e3.z*A3;\r\n\r\nfloat A44 = equation1.x*A1*A1 + equation1.y*A2*A2 + equation1.z*A3*A3 - equation.w;\r\n\r\ncolonne1 = vec4(A11,A21,A31,A41);\r\ncolonne2 = vec4(A21,A22,A32,A42);\r\ncolonne3 = vec4(A31,A32,A33,A43);\r\ncolonne4 = vec4(A41,A42,A43,A44);\r\n\r\nmat = mat4(colonne1,colonne2,colonne3,colonne4);\r\n\r\n// Ray calculation using near and far\r\nRay ray = primary_ray(i_near,i_far) ;\r\n\r\n// Intersection between ray and surface for each pixel\r\nvec3 M;\r\nM = isect_surf(ray, mat);\r\n\r\n// cut the extremities of bonds to superimpose bond and spheres surfaces\r\nif (cutoff_plane(M, prime1.xyz, -e3) || cutoff_plane(M, prime2.xyz, e3)){ discard; }\r\n\r\n// Transform normal to model space to view-space\r\nvec4 M1 = vec4(M,1.0);\r\nvec4 M2 = mat*M1;\r\n// vec3 _normal = normalize( ( modelViewMatrixInverseTranspose * M2 ).xyz );\r\nvec3 _normal = ( modelViewMatrixInverseTranspose * M2 ).xyz;\r\n\r\n// Recalculate the depth in function of the new pixel position\r\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix) ;\r\n\r\n#ifdef NEAR_CLIP\r\nif( calcClip( modelViewMatrix * vec4( M, 1.0 ) ) > 0.0 ){\r\nM = isect_surf2(ray, mat);\r\nif( calcClip( modelViewMatrix * vec4( M, 1.0 ) ) > 0.0 )\r\ndiscard;\r\ninterior = true;\r\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix) ;\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = max( 0.0, calcDepth( vec3( - ( clipNear - 0.5 ) ) ) + ( 0.0000001 / radius ) );\r\n}\r\n}else if( gl_FragDepthEXT <= 0.0 ){\r\nM = isect_surf2(ray, mat);\r\ninterior = true;\r\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix);\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / radius );\r\n}\r\n}\r\n#else\r\nif( gl_FragDepthEXT <= 0.0 ){\r\nM = isect_surf2(ray, mat);\r\ninterior = true;\r\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix) ;\r\nif( gl_FragDepthEXT >= 0.0 ){\r\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / radius );\r\n}\r\n}\r\n#endif\r\n\r\n// cut the extremities of bonds to superimpose bond and spheres surfaces\r\nif (cutoff_plane(M, prime1.xyz, -e3) || cutoff_plane(M, prime2.xyz, e3)){ discard; }\r\n\r\nif (gl_FragDepthEXT < 0.0)\r\ndiscard;\r\nif (gl_FragDepthEXT > 1.0)\r\ndiscard;\r\n\r\n// Mix the color bond in function of the two atom colors\r\nfloat distance_ratio = ((M.x-prime2.x)*e3.x + (M.y-prime2.y)*e3.y +(M.z-prime2.z)*e3.z) /\r\ndistance(prime2.xyz,prime1.xyz);\r\n\r\n#ifdef PICKING\r\n\r\nif( opacity < 0.3 )\r\ndiscard;\r\ngl_FragColor = vec4( vPickingColor, objectId );\r\n\r\n#else\r\n\r\nvec3 vViewPosition = -( modelViewMatrix * vec4( M, 1.0 ) ).xyz;\r\nvec3 vNormal = _normal;\r\nvec3 vColor;\r\n\r\nif( distance_ratio>0.5 ){\r\nvColor = vColor1;\r\n}else{\r\nvColor = vColor2;\r\n}\r\n\r\nvec4 diffuseColor = vec4( diffuse, opacity );\r\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\r\nvec3 totalEmissiveLight = emissive;\r\n\r\n#include color_fragment\r\n#include roughnessmap_fragment\r\n#include metalnessmap_fragment\r\n\r\n// don't use #include normal_fragment_begin\r\nvec3 normal = normalize( vNormal );\r\nvec3 geometryNormal = normal;\r\n\r\n#include lights_physical_fragment\r\n#include lights_fragment_begin\r\n#include lights_fragment_end\r\n\r\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\r\n\r\nif( interior ){\r\n#ifdef USE_INTERIOR_COLOR\r\noutgoingLight.xyz = interiorColor;\r\n#else\r\n#ifdef DIFFUSE_INTERIOR\r\noutgoingLight.xyz = vColor;\r\n#endif\r\n#endif\r\noutgoingLight.xyz *= 1.0 - interiorDarkening;\r\n}\r\n\r\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\r\n\r\n#include premultiplied_alpha_fragment\r\n#include tonemapping_fragment\r\n#include encodings_fragment\r\n#include fog_fragment\r\n\r\n#endif\r\n\r\n}");
+  ShaderRegistry.add('shader/HyperballStickImpostor.frag', "#define STANDARD\n#define IMPOSTOR\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 interiorColor;\nuniform float interiorDarkening;\nuniform float roughness;\nuniform float metalness;\nuniform float opacity;\nuniform float clipNear;\nuniform float shrink;\nuniform mat4 modelViewMatrix;\nuniform mat4 modelViewProjectionMatrix;\nuniform mat4 modelViewMatrixInverseTranspose;\nuniform mat4 projectionMatrix;\nvarying mat4 matrix_near;\nvarying vec4 prime1;\nvarying vec4 prime2;\nvarying float vRadius;\nvarying float vRadius2;\n#ifdef PICKING\nuniform float objectId;\nvarying vec3 vPickingColor;\n#else\nvarying vec3 vColor1;\nvarying vec3 vColor2;\n#include common\n#include fog_pars_fragment\n#include bsdfs\n#include lights_pars_begin\n#include lights_physical_pars_fragment\n#endif\nbool interior = false;\nfloat calcClip( vec4 cameraPos ){\nreturn dot( cameraPos, vec4( 0.0, 0.0, 1.0, clipNear - 0.5 ) );\n}\nfloat calcClip( vec3 cameraPos ){\nreturn calcClip( vec4( cameraPos, 1.0 ) );\n}\nfloat calcDepth( in vec3 cameraPos ){\nvec2 clipZW = cameraPos.z * projectionMatrix[2].zw + projectionMatrix[3].zw;\nreturn 0.5 + 0.5 * clipZW.x / clipZW.y;\n}\nstruct Ray {\nvec3 origin ;\nvec3 direction ;\n};\nbool cutoff_plane (vec3 M, vec3 cutoff, vec3 x3){\nfloat a = x3.x;\nfloat b = x3.y;\nfloat c = x3.z;\nfloat d = -x3.x*cutoff.x-x3.y*cutoff.y-x3.z*cutoff.z;\nfloat l = a*M.x+b*M.y+c*M.z+d;\nif (l<0.0) {return true;}\nelse{return false;}\n}\nvec3 isect_surf(Ray r, mat4 matrix_coef){\nvec4 direction = vec4(r.direction, 0.0);\nvec4 origin = vec4(r.origin, 1.0);\nfloat a = dot(direction,(matrix_coef*direction));\nfloat b = dot(origin,(matrix_coef*direction));\nfloat c = dot(origin,(matrix_coef*origin));\nfloat delta =b*b-a*c;\ngl_FragColor.a = 1.0;\nif (delta<0.0){\ndiscard;\n}\nfloat t1 =(-b-sqrt(delta))/a;\nreturn r.origin+t1*r.direction;\n}\nvec3 isect_surf2(Ray r, mat4 matrix_coef){\nvec4 direction = vec4(r.direction, 0.0);\nvec4 origin = vec4(r.origin, 1.0);\nfloat a = dot(direction,(matrix_coef*direction));\nfloat b = dot(origin,(matrix_coef*direction));\nfloat c = dot(origin,(matrix_coef*origin));\nfloat delta =b*b-a*c;\ngl_FragColor.a = 1.0;\nif (delta<0.0){\ndiscard;\n}\nfloat t2 =(-b+sqrt(delta))/a;\nreturn r.origin+t2*r.direction;\n}\nRay primary_ray(vec4 near1, vec4 far1){\nvec3 near=near1.xyz/near1.w;\nvec3 far=far1.xyz/far1.w;\nreturn Ray(near,far-near);\n}\nfloat update_z_buffer(vec3 M, mat4 ModelViewP){\nfloat depth1;\nvec4 Ms=(ModelViewP*vec4(M,1.0));\nreturn depth1=(1.0+Ms.z/Ms.w)/2.0;\n}\nvoid main(){\nfloat radius = max( vRadius, vRadius2 );\nvec4 i_near, i_far, focus;\nvec3 e3, e1, e1_temp, e2;\ni_near = vec4(matrix_near[0][0],matrix_near[0][1],matrix_near[0][2],matrix_near[0][3]);\ni_far = vec4(matrix_near[1][0],matrix_near[1][1],matrix_near[1][2],matrix_near[1][3]);\nfocus = vec4(matrix_near[2][0],matrix_near[2][1],matrix_near[2][2],matrix_near[2][3]);\ne3 = vec3(matrix_near[3][0],matrix_near[3][1],matrix_near[3][2]);\ne1.x = 1.0;\ne1.y = 1.0;\ne1.z = ( (e3.x*focus.x + e3.y*focus.y + e3.z*focus.z) - e1.x*e3.x - e1.y*e3.y)/e3.z;\ne1_temp = e1 - focus.xyz;\ne1 = normalize(e1_temp);\ne2 = normalize(cross(e1,e3));\nvec4 equation = focus;\nfloat shrinkfactor = shrink;\nfloat t1 = -1.0/(1.0-shrinkfactor);\nfloat t2 = 1.0/(shrinkfactor);\nvec4 colonne1, colonne2, colonne3, colonne4;\nmat4 mat;\nvec3 equation1 = vec3(t2,t2,t1);\nfloat A1 = - e1.x*equation.x - e1.y*equation.y - e1.z*equation.z;\nfloat A2 = - e2.x*equation.x - e2.y*equation.y - e2.z*equation.z;\nfloat A3 = - e3.x*equation.x - e3.y*equation.y - e3.z*equation.z;\nfloat A11 = equation1.x*e1.x*e1.x + equation1.y*e2.x*e2.x + equation1.z*e3.x*e3.x;\nfloat A21 = equation1.x*e1.x*e1.y + equation1.y*e2.x*e2.y + equation1.z*e3.x*e3.y;\nfloat A31 = equation1.x*e1.x*e1.z + equation1.y*e2.x*e2.z + equation1.z*e3.x*e3.z;\nfloat A41 = equation1.x*e1.x*A1 + equation1.y*e2.x*A2 + equation1.z*e3.x*A3;\nfloat A22 = equation1.x*e1.y*e1.y + equation1.y*e2.y*e2.y + equation1.z*e3.y*e3.y;\nfloat A32 = equation1.x*e1.y*e1.z + equation1.y*e2.y*e2.z + equation1.z*e3.y*e3.z;\nfloat A42 = equation1.x*e1.y*A1 + equation1.y*e2.y*A2 + equation1.z*e3.y*A3;\nfloat A33 = equation1.x*e1.z*e1.z + equation1.y*e2.z*e2.z + equation1.z*e3.z*e3.z;\nfloat A43 = equation1.x*e1.z*A1 + equation1.y*e2.z*A2 + equation1.z*e3.z*A3;\nfloat A44 = equation1.x*A1*A1 + equation1.y*A2*A2 + equation1.z*A3*A3 - equation.w;\ncolonne1 = vec4(A11,A21,A31,A41);\ncolonne2 = vec4(A21,A22,A32,A42);\ncolonne3 = vec4(A31,A32,A33,A43);\ncolonne4 = vec4(A41,A42,A43,A44);\nmat = mat4(colonne1,colonne2,colonne3,colonne4);\nRay ray = primary_ray(i_near,i_far) ;\nvec3 M;\nM = isect_surf(ray, mat);\nif (cutoff_plane(M, prime1.xyz, -e3) || cutoff_plane(M, prime2.xyz, e3)){ discard; }\nvec4 M1 = vec4(M,1.0);\nvec4 M2 = mat*M1;\nvec3 _normal = ( modelViewMatrixInverseTranspose * M2 ).xyz;\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix) ;\n#ifdef NEAR_CLIP\nif( calcClip( modelViewMatrix * vec4( M, 1.0 ) ) > 0.0 ){\nM = isect_surf2(ray, mat);\nif( calcClip( modelViewMatrix * vec4( M, 1.0 ) ) > 0.0 )\ndiscard;\ninterior = true;\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix) ;\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = max( 0.0, calcDepth( vec3( - ( clipNear - 0.5 ) ) ) + ( 0.0000001 / radius ) );\n}\n}else if( gl_FragDepthEXT <= 0.0 ){\nM = isect_surf2(ray, mat);\ninterior = true;\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix);\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / radius );\n}\n}\n#else\nif( gl_FragDepthEXT <= 0.0 ){\nM = isect_surf2(ray, mat);\ninterior = true;\ngl_FragDepthEXT = update_z_buffer(M, modelViewProjectionMatrix) ;\nif( gl_FragDepthEXT >= 0.0 ){\ngl_FragDepthEXT = 0.0 + ( 0.0000001 / radius );\n}\n}\n#endif\nif (cutoff_plane(M, prime1.xyz, -e3) || cutoff_plane(M, prime2.xyz, e3)){ discard; }\nif (gl_FragDepthEXT < 0.0)\ndiscard;\nif (gl_FragDepthEXT > 1.0)\ndiscard;\nfloat distance_ratio = ((M.x-prime2.x)*e3.x + (M.y-prime2.y)*e3.y +(M.z-prime2.z)*e3.z) /\ndistance(prime2.xyz,prime1.xyz);\n#ifdef PICKING\nif( opacity < 0.3 )\ndiscard;\ngl_FragColor = vec4( vPickingColor, objectId );\n#else\nvec3 vViewPosition = -( modelViewMatrix * vec4( M, 1.0 ) ).xyz;\nvec3 vNormal = _normal;\nvec3 vColor;\nif( distance_ratio>0.5 ){\nvColor = vColor1;\n}else{\nvColor = vColor2;\n}\nvec4 diffuseColor = vec4( diffuse, opacity );\nReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\nvec3 totalEmissiveLight = emissive;\n#include color_fragment\n#include roughnessmap_fragment\n#include metalnessmap_fragment\nvec3 normal = normalize( vNormal );\nvec3 geometryNormal = normal;\n#include lights_physical_fragment\n#include lights_fragment_begin\n#include lights_fragment_end\nvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveLight;\nif( interior ){\n#ifdef USE_INTERIOR_COLOR\noutgoingLight.xyz = interiorColor;\n#else\n#ifdef DIFFUSE_INTERIOR\noutgoingLight.xyz = vColor;\n#endif\n#endif\noutgoingLight.xyz *= 1.0 - interiorDarkening;\n}\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n#endif\n}");
 
   /**
    * @file Mapped Box Buffer
@@ -92661,7 +92917,7 @@
   }(StructureRepresentation));
   RepresentationRegistry.add('point', PointRepresentation);
 
-  ShaderRegistry.add('shader/Ribbon.vert', "#define STANDARD\r\n\r\nuniform float clipNear;\r\nuniform vec3 clipCenter;\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\r\nvarying vec3 vViewPosition;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvarying vec3 vClipCenter;\r\n#endif\r\n\r\nattribute vec3 dir;\r\nattribute float size;\r\n\r\n#ifdef PICKING\r\n#include unpack_color\r\nattribute float primitiveId;\r\nvarying vec3 vPickingColor;\r\n#else\r\n#include color_pars_vertex\r\n#ifndef FLAT_SHADED\r\nvarying vec3 vNormal;\r\n#endif\r\n#endif\r\n\r\n#include common\r\n\r\nvoid main(void){\r\n\r\n#ifdef PICKING\r\nvPickingColor = unpackColor( primitiveId );\r\n#else\r\n#include color_vertex\r\n#include beginnormal_vertex\r\n#include defaultnormal_vertex\r\n// Normal computed with derivatives when FLAT_SHADED\r\n#ifndef FLAT_SHADED\r\nvNormal = normalize( transformedNormal );\r\n#endif\r\n#endif\r\n\r\n#include begin_vertex\r\n\r\ntransformed += normalize( dir ) * size;\r\n\r\n#include project_vertex\r\n\r\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\r\nvViewPosition = -mvPosition.xyz;\r\n#endif\r\n\r\n#if defined( RADIUS_CLIP )\r\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\r\n#endif\r\n\r\n#include nearclip_vertex\r\n\r\n}");
+  ShaderRegistry.add('shader/Ribbon.vert', "#define STANDARD\nuniform float clipNear;\nuniform vec3 clipCenter;\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\nvarying vec3 vViewPosition;\n#endif\n#if defined( RADIUS_CLIP )\nvarying vec3 vClipCenter;\n#endif\nattribute vec3 dir;\nattribute float size;\n#ifdef PICKING\n#include unpack_color\nattribute float primitiveId;\nvarying vec3 vPickingColor;\n#else\n#include color_pars_vertex\n#ifndef FLAT_SHADED\nvarying vec3 vNormal;\n#endif\n#endif\n#include common\nvoid main(void){\n#ifdef PICKING\nvPickingColor = unpackColor( primitiveId );\n#else\n#include color_vertex\n#include beginnormal_vertex\n#include defaultnormal_vertex\n#ifndef FLAT_SHADED\nvNormal = normalize( transformedNormal );\n#endif\n#endif\n#include begin_vertex\ntransformed += normalize( dir ) * size;\n#include project_vertex\n#if defined( NEAR_CLIP ) || defined( RADIUS_CLIP ) || !defined( PICKING )\nvViewPosition = -mvPosition.xyz;\n#endif\n#if defined( RADIUS_CLIP )\nvClipCenter = -( modelViewMatrix * vec4( clipCenter, 1.0 ) ).xyz;\n#endif\n#include nearclip_vertex\n}");
 
   /**
    * @file Ribbon Buffer
@@ -93171,8 +93427,7 @@
           this.type = 'spacefill';
           this.parameters = Object.assign({
               sphereDetail: true,
-              disableImpostor: true,
-              ellipsoid: false,
+              disableImpostor: true
           }, this.parameters);
           this.init(params);
       }
@@ -93183,19 +93438,16 @@
       SpacefillRepresentation.prototype.init = function init (params) {
           var p = params || {};
           p.useInteriorColor = defaults(p.useInteriorColor, true);
-          p.ellipsoid = defaults(p.ellipsoid, false);
           StructureRepresentation.prototype.init.call(this, p);
       };
       SpacefillRepresentation.prototype.createData = function createData (sview) {
-          var bufferList = [];
           var sphereBuffer = new SphereBuffer(sview.getAtomData(this.getAtomParams()), this.getBufferParams({
               sphereDetail: this.sphereDetail,
               dullInterior: true,
               disableImpostor: this.disableImpostor
           }));
-          bufferList.push(sphereBuffer);
           return {
-              bufferList: bufferList
+              bufferList: [sphereBuffer]
           };
       };
       SpacefillRepresentation.prototype.updateData = function updateData (what, data) {
@@ -95419,6 +95671,7 @@
                   atomIndices1 = atomIndices2;
                   atomIndices2 = tmpB;
               }
+              // console.log( k, l );
               if (k === 0 || l === 0) {
                   if (exports.Debug)
                       { Log.warn('no atoms found for', sele1, sele2); }
@@ -95866,7 +96119,6 @@
                   assignSecondaryStructure(s, secStruct);
               }
               buildUnitcellAssembly(s);
-              console.log(secStruct, s);
               s.extraData.cif = cif;
           }
           if (exports.Debug)
@@ -105384,7 +105636,7 @@
       ambientIntensity: NumberParam(2, 10, 0),
       hoverTimeout: IntegerParam(10000, -1),
       tooltip: BooleanParam(),
-      mousePreset: SelectParam.apply(void 0, Object.keys(MouseActionPresets))
+      mousePreset: SelectParam.apply(void 0, Object.keys(MouseActionPresets)),
   };
 
   var version = "2.0.0-dev.39";

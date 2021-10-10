@@ -19,13 +19,13 @@ import ResidueProxy from '../proxy/residue-proxy'
 
 import { UnknownBackboneType, AA3, Bases } from './structure-constants'
 
-export function reorderAtoms(structure: Structure) {
+export function reorderAtoms (structure: Structure) {
   if (Debug) Log.time('reorderAtoms')
 
   var ap1 = structure.getAtomProxy()
   var ap2 = structure.getAtomProxy()
 
-  function compareModelChainResno(index1: number, index2: number) {
+  function compareModelChainResno (index1: number, index2: number) {
     ap1.index = index1
     ap2.index = index2
     if (ap1.modelIndex < ap2.modelIndex) {
@@ -59,7 +59,7 @@ export interface SecStruct {
   sheets: [string, number, string, string, number, string][]
 }
 
-export function assignSecondaryStructure(structure: Structure, secStruct: SecStruct) {
+export function assignSecondaryStructure (structure: Structure, secStruct: SecStruct) {
   if (!secStruct) return
 
   if (Debug) Log.time('assignSecondaryStructure')
@@ -77,17 +77,17 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
     chainnamesIndex.push(chainnames.indexOf(c))
   })
 
-  // helix assignment
+    // helix assignment
 
   const helices = secStruct.helices.filter(function (h) {
-    return binarySearchIndexOf(chainnamesSorted, h[0]) >= 0
+    return binarySearchIndexOf(chainnamesSorted, h[ 0 ]) >= 0
   })
 
   helices.sort(function (h1, h2) {
-    const c1 = h1[0]
-    const c2 = h2[0]
-    const r1 = h1[1]
-    const r2 = h2[1]
+    const c1 = h1[ 0 ]
+    const c2 = h2[ 0 ]
+    const r1 = h1[ 1 ]
+    const r2 = h2[ 1 ]
 
     if (c1 === c2) {
       if (r1 === r2) {
@@ -98,7 +98,7 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
     } else {
       const idx1 = binarySearchIndexOf(chainnamesSorted, c1)
       const idx2 = binarySearchIndexOf(chainnamesSorted, c2)
-      return chainnamesIndex[idx1] < chainnamesIndex[idx2] ? -1 : 1
+      return chainnamesIndex[ idx1 ] < chainnamesIndex[ idx2 ] ? -1 : 1
     }
   })
 
@@ -108,30 +108,30 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
     let i = 0
     const n = helices.length
     if (n === 0) return
-    let helix = helices[i]
+    let helix = helices[ i ]
     let helixRun = false
     let done = false
 
     mp.eachChain(function (cp) {
       let chainChange = false
 
-      if (cp.chainname === helix[0]) {
+      if (cp.chainname === helix[ 0 ]) {
         const count = cp.residueCount
         const offset = cp.residueOffset
         const end = offset + count
 
         for (let j = offset; j < end; ++j) {
-          if (residueStore.resno[j] === helix[1] &&  // resnoBeg
-            residueStore.getInscode(j) === helix[2]   // inscodeBeg
+          if (residueStore.resno[ j ] === helix[ 1 ] &&  // resnoBeg
+              residueStore.getInscode(j) === helix[ 2 ]   // inscodeBeg
           ) {
             helixRun = true
           }
 
           if (helixRun) {
-            residueStore.sstruc[j] = helix[6]
+            residueStore.sstruc[ j ] = helix[ 6 ]
 
-            if (residueStore.resno[j] === helix[4] &&  // resnoEnd
-              residueStore.getInscode(j) === helix[5]   // inscodeEnd
+            if (residueStore.resno[ j ] === helix[ 4 ] &&  // resnoEnd
+                residueStore.getInscode(j) === helix[ 5 ]   // inscodeEnd
             ) {
               helixRun = false
               i += 1
@@ -140,8 +140,8 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
                 // must look at previous residues as
                 // residues may not be ordered by resno
                 j = offset - 1
-                helix = helices[i]
-                chainChange = cp.chainname !== helix[0]
+                helix = helices[ i ]
+                chainChange = cp.chainname !== helix[ 0 ]
               } else {
                 done = true
               }
@@ -154,20 +154,20 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
     })
   })
 
-  // sheet assignment
+    // sheet assignment
 
   const sheets = secStruct.sheets.filter(function (s) {
-    return binarySearchIndexOf(chainnamesSorted, s[0]) >= 0
+    return binarySearchIndexOf(chainnamesSorted, s[ 0 ]) >= 0
   })
 
   sheets.sort(function (s1, s2) {
-    const c1 = s1[0]
-    const c2 = s2[0]
+    const c1 = s1[ 0 ]
+    const c2 = s2[ 0 ]
 
     if (c1 === c2) return 0
     const idx1 = binarySearchIndexOf(chainnamesSorted, c1)
     const idx2 = binarySearchIndexOf(chainnamesSorted, c2)
-    return chainnamesIndex[idx1] < chainnamesIndex[idx2] ? -1 : 1
+    return chainnamesIndex[ idx1 ] < chainnamesIndex[ idx2 ] ? -1 : 1
   })
 
   const strandCharCode = 'e'.charCodeAt(0)
@@ -175,30 +175,30 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
     let i = 0
     const n = sheets.length
     if (n === 0) return
-    let sheet = sheets[i]
+    let sheet = sheets[ i ]
     let sheetRun = false
     let done = false
 
     mp.eachChain(function (cp) {
       let chainChange = false
 
-      if (cp.chainname === sheet[0]) {
+      if (cp.chainname === sheet[ 0 ]) {
         const count = cp.residueCount
         const offset = cp.residueOffset
         const end = offset + count
 
         for (let j = offset; j < end; ++j) {
-          if (residueStore.resno[j] === sheet[1] &&  // resnoBeg
-            residueStore.getInscode(j) === sheet[2]   // inscodeBeg
+          if (residueStore.resno[ j ] === sheet[ 1 ] &&  // resnoBeg
+              residueStore.getInscode(j) === sheet[ 2 ]   // inscodeBeg
           ) {
             sheetRun = true
           }
 
           if (sheetRun) {
-            residueStore.sstruc[j] = strandCharCode
+            residueStore.sstruc[ j ] = strandCharCode
 
-            if (residueStore.resno[j] === sheet[4] &&  // resnoEnd
-              residueStore.getInscode(j) === sheet[5]   // inscodeEnd
+            if (residueStore.resno[ j ] === sheet[ 4 ] &&  // resnoEnd
+                residueStore.getInscode(j) === sheet[ 5 ]   // inscodeEnd
             ) {
               sheetRun = false
               i += 1
@@ -207,8 +207,8 @@ export function assignSecondaryStructure(structure: Structure, secStruct: SecStr
                 // must look at previous residues as
                 // residues may not be ordered by resno
                 j = offset - 1
-                sheet = sheets[i]
-                chainChange = cp.chainname !== sheet[0]
+                sheet = sheets[ i ]
+                chainChange = cp.chainname !== sheet[ 0 ]
               } else {
                 done = true
               }
@@ -255,7 +255,7 @@ export const calculateSecondaryStructure = (function () {
 
         const d = ap1.distanceTo(ap2)
 
-        if (Math.abs(d - distances[k - 2]) > delta) {
+        if (Math.abs(d - distances[ k - 2 ]) > delta) {
           return false
         }
       }
@@ -265,13 +265,13 @@ export const calculateSecondaryStructure = (function () {
   }
 
   const isHelical = function (polymer: Polymer, i: number) {
-    const helixDistances = [5.45, 5.18, 6.37]
+    const helixDistances = [ 5.45, 5.18, 6.37 ]
     const helixDelta = 2.1
     return zhangSkolnickSS(polymer, i, helixDistances, helixDelta)
   }
 
   const isSheet = function (polymer: Polymer, i: number) {
-    const sheetDistances = [6.1, 10.4, 13.0]
+    const sheetDistances = [ 6.1, 10.4, 13.0 ]
     const sheetDelta = 1.42
     return zhangSkolnickSS(polymer, i, sheetDistances, sheetDelta)
   }
@@ -286,7 +286,7 @@ export const calculateSecondaryStructure = (function () {
       } else if (isSheet(p, i)) {
         sstruc = 'e'
       }
-      residueStore.sstruc[offset + i] = sstruc.charCodeAt(0)
+      residueStore.sstruc[ offset + i ] = sstruc.charCodeAt(0)
     }
   }
 
@@ -308,14 +308,14 @@ export const calculateSecondaryStructure = (function () {
       c2.fromArray(pos.center as any, i * 3 + 3)  // TODO
       const d = c1.distanceTo(c2)
 
-      if (d < centerDist && d > 1.0 && pos.bending[i] < localAngle) {
-        residueStore.sstruc[offset + i] = 'h'.charCodeAt(0)
-        residueStore.sstruc[offset + i + 1] = 'h'.charCodeAt(0)
+      if (d < centerDist && d > 1.0 && pos.bending[ i ] < localAngle) {
+        residueStore.sstruc[ offset + i ] = 'h'.charCodeAt(0)
+        residueStore.sstruc[ offset + i + 1 ] = 'h'.charCodeAt(0)
       }
     }
   }
 
-  return function calculateSecondaryStructure(structure: Structure) {
+  return function calculateSecondaryStructure (structure: Structure) {
     if (Debug) Log.time('calculateSecondaryStructure')
 
     structure.eachPolymer(function (p) {
@@ -355,7 +355,7 @@ export const calculateSecondaryStructure = (function () {
 //                           "0123456789";
 const ChainnameAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-export function getChainname(index: number) {
+export function getChainname (index: number) {
   const n = ChainnameAlphabet.length
   let j = index
   let k = 0
@@ -378,7 +378,7 @@ interface ChainData {
   rCount: number
 }
 
-export function calculateChainnames(structure: Structure, useExistingBonds = false) {
+export function calculateChainnames (structure: Structure, useExistingBonds = false) {
   if (Debug) Log.time('calculateChainnames')
 
   let doAutoChainName = true
@@ -394,16 +394,16 @@ export function calculateChainnames(structure: Structure, useExistingBonds = fal
     const addChain = function (mIndex: number, chainname: string, rOffset: number, rCount: number) {
       const ci = chainStore.count
       for (let i = 0; i < rCount; ++i) {
-        residueStore.chainIndex[rOffset + i] = ci
+        residueStore.chainIndex[ rOffset + i ] = ci
       }
       chainStore.growIfFull()
-      chainStore.modelIndex[ci] = mIndex
+      chainStore.modelIndex[ ci ] = mIndex
       chainStore.setChainname(ci, chainname)
       chainStore.setChainid(ci, chainname)
-      chainStore.residueOffset[ci] = rOffset
-      chainStore.residueCount[ci] = rCount
+      chainStore.residueOffset[ ci ] = rOffset
+      chainStore.residueCount[ ci ] = rCount
       chainStore.count += 1
-      modelStore.chainCount[mIndex] += 1
+      modelStore.chainCount[ mIndex ] += 1
     }
 
     const ap1 = structure.getAtomProxy()
@@ -492,16 +492,16 @@ export function calculateChainnames(structure: Structure, useExistingBonds = fal
 
     let chainOffset = 0
     structure.eachModel(function (mp) {
-      modelStore.chainOffset[mp.index] = chainOffset
-      modelStore.chainCount[mp.index] -= 1
-      chainOffset += modelStore.chainCount[mp.index]
+      modelStore.chainOffset[ mp.index ] = chainOffset
+      modelStore.chainCount[ mp.index ] -= 1
+      chainOffset += modelStore.chainCount[ mp.index ]
     })
   }
 
   if (Debug) Log.timeEnd('calculateChainnames')
 }
 
-export function calculateBonds(structure: Structure) {
+export function calculateBonds (structure: Structure) {
   if (Debug) Log.time('calculateBonds')
 
   calculateBondsWithin(structure)
@@ -566,14 +566,14 @@ const BondOrderTable: { [k: string]: number } = {
   'DT|C2|O2': 2,
   'DT|C4|O4': 2
 }
-function getBondOrderFromTable(resname: string, atomname1: string, atomname2: string) {
-  [atomname1, atomname2] = atomname1 < atomname2 ? [atomname1, atomname2] : [atomname2, atomname1]
+function getBondOrderFromTable (resname: string, atomname1: string, atomname2: string) {
+  [ atomname1, atomname2 ] = atomname1 < atomname2 ? [ atomname1, atomname2 ] : [ atomname2, atomname1 ]
   if (AA3.includes(resname) && atomname1 === 'C' && atomname2 === 'O') return 2
   if (Bases.includes(resname) && atomname1 === 'OP1' && atomname2 === 'P') return 2
-  return BondOrderTable[`${resname}|${atomname1}|${atomname2}`] || 1
+  return BondOrderTable[ `${resname}|${atomname1}|${atomname2}` ] || 1
 }
 
-export function calculateResidueBonds(r: ResidueProxy) {
+export function calculateResidueBonds (r: ResidueProxy) {
   const structure = r.structure
   const a1 = structure.getAtomProxy()
   const a2 = structure.getAtomProxy()
@@ -600,7 +600,7 @@ export function calculateResidueBonds(r: ResidueProxy) {
         const nearestAtoms = kdtree.nearest(a1 as any, Infinity, maxd * maxd)  // TODO
         const m = nearestAtoms.length
         for (let j = 0; j < m; ++j) {
-          a2.index = nearestAtoms[j].index
+          a2.index = nearestAtoms[ j ].index
           if (a1.index < a2.index) {
             if (a1.connectedTo(a2)) {
               atomIndices1.push(a1.index - offset)
@@ -632,7 +632,7 @@ export function calculateResidueBonds(r: ResidueProxy) {
   }
 }
 
-export function calculateAtomBondMap(structure: Structure) {
+export function calculateAtomBondMap (structure: Structure) {
   if (Debug) Log.time('calculateAtomBondMap')
 
   var atomBondMap: number[][] = []
@@ -640,8 +640,8 @@ export function calculateAtomBondMap(structure: Structure) {
   structure.eachBond(function (bp) {
     var ai1 = bp.atomIndex1
     var ai2 = bp.atomIndex2
-    if (atomBondMap[ai1] === undefined) atomBondMap[ai1] = []
-    atomBondMap[ai1][ai2] = bp.index
+    if (atomBondMap[ ai1 ] === undefined) atomBondMap[ ai1 ] = []
+    atomBondMap[ ai1 ][ ai2 ] = bp.index
   })
 
   if (Debug) Log.timeEnd('calculateAtomBondMap')
@@ -649,7 +649,7 @@ export function calculateAtomBondMap(structure: Structure) {
   return atomBondMap
 }
 
-export function calculateBondsWithin(structure: Structure, onlyAddRung = false) {
+export function calculateBondsWithin (structure: Structure, onlyAddRung = false) {
   if (Debug) Log.time('calculateBondsWithin')
 
   const bondStore = structure.bondStore
@@ -677,21 +677,21 @@ export function calculateBondsWithin(structure: Structure, onlyAddRung = false) 
       const nn = atomIndices1.length
 
       for (let i = 0; i < nn; ++i) {
-        const rai1 = atomIndices1[i]
-        const rai2 = atomIndices2[i]
+        const rai1 = atomIndices1[ i ]
+        const rai2 = atomIndices2[ i ]
         const ai1 = rai1 + offset
         const ai2 = rai2 + offset
-        const tmp = atomBondMap[ai1]
-        if (tmp !== undefined && tmp[ai2] !== undefined) {
-          bp.index = tmp[ai2]
+        const tmp = atomBondMap[ ai1 ]
+        if (tmp !== undefined && tmp[ ai2 ] !== undefined) {
+          bp.index = tmp[ ai2 ]
           const residueTypeBondIndex = r.residueType.getBondIndex(rai1, rai2)!  // TODO
           // overwrite residueType bondOrder with value from existing bond
-          bondOrders[residueTypeBondIndex] = bp.bondOrder
+          bondOrders[ residueTypeBondIndex ] = bp.bondOrder
         } else {
           a1.index = ai1
           a2.index = ai2
           // only add bond if not already in bondStore
-          bondStore.addBond(a1, a2, bondOrders[i])
+          bondStore.addBond(a1, a2, bondOrders[ i ])
         }
       }
     }
@@ -713,7 +713,7 @@ export function calculateBondsWithin(structure: Structure, onlyAddRung = false) 
   if (Debug) Log.timeEnd('calculateBondsWithin')
 }
 
-export function calculateBondsBetween(structure: Structure, onlyAddBackbone = false, useExistingBonds = false) {
+export function calculateBondsBetween (structure: Structure, onlyAddBackbone = false, useExistingBonds = false) {
   if (Debug) Log.time('calculateBondsBetween')
 
   const bondStore = structure.bondStore
@@ -726,7 +726,7 @@ export function calculateBondsBetween(structure: Structure, onlyAddBackbone = fa
     backboneBondStore.resize(structure.residueStore.count)
   }
 
-  function addBondIfConnected(rp1: ResidueProxy, rp2: ResidueProxy) {
+  function addBondIfConnected (rp1: ResidueProxy, rp2: ResidueProxy) {
     const bbType1 = rp1.backboneType
     const bbType2 = rp2.backboneType
     if (bbType1 !== UnknownBackboneType && bbType1 === bbType2) {
@@ -770,8 +770,8 @@ export function calculateBondsBetween(structure: Structure, onlyAddBackbone = fa
           spatialHash!.eachWithin(ap.x, ap.y, ap.z, 4, function (idx) {  // TODO
             ap2.index = idx
             if (ap.modelIndex === ap2.modelIndex &&
-              ap.residueIndex !== ap2.residueIndex &&
-              !ap2.isMetal()
+                ap.residueIndex !== ap2.residueIndex &&
+                !ap2.isMetal()
             ) {
               bondStore.addBondIfConnected(ap, ap2, 1)  // assume single bond
             }
@@ -785,7 +785,7 @@ export function calculateBondsBetween(structure: Structure, onlyAddBackbone = fa
   if (Debug) Log.timeEnd('calculateBondsBetween')
 }
 
-export function buildUnitcellAssembly(structure: Structure) {
+export function buildUnitcellAssembly (structure: Structure) {
   if (!structure.unitcell) return
 
   if (Debug) Log.time('buildUnitcellAssembly')
@@ -799,11 +799,11 @@ export function buildUnitcellAssembly(structure: Structure) {
   const centerFracSymop = new Vector3()
   const positionFracSymop = new Vector3()
 
-  function getMatrixList(shift?: Vector3) {
+  function getMatrixList (shift?: Vector3) {
     const matrixList: Matrix4[] = []
 
     Object.keys(symopDict).forEach(function (name) {
-      const m = symopDict[name].clone()
+      const m = symopDict[ name ].clone()
 
       centerFracSymop.copy(structureCenterFrac).applyMatrix4(m).floor()
       positionFracSymop.setFromMatrixPosition(m)
@@ -827,7 +827,7 @@ export function buildUnitcellAssembly(structure: Structure) {
   const ncsMatrixList: Matrix4[] = []
   if (structure.biomolDict.NCS) {
     ncsMatrixList.push(
-      new Matrix4(), ...structure.biomolDict.NCS.partList[0].matrixList
+      new Matrix4(), ...structure.biomolDict.NCS.partList[ 0 ].matrixList
     )
     const ncsUnitcellMatrixList: Matrix4[] = []
     unitcellMatrixList.forEach(sm => {
@@ -895,14 +895,14 @@ export function buildUnitcellAssembly(structure: Structure) {
   if (Debug) Log.timeEnd('buildUnitcellAssembly')
 }
 
-const elm1 = ['H', 'C', 'O', 'N', 'S', 'P']
-const elm2 = ['NA', 'CL', 'FE']
+const elm1 = [ 'H', 'C', 'O', 'N', 'S', 'P' ]
+const elm2 = [ 'NA', 'CL', 'FE' ]
 
-export function guessElement(atomName: string) {
+export function guessElement (atomName: string) {
   let at = atomName.trim().toUpperCase()
   // parseInt('C') -> NaN; (NaN > -1) -> false
   if (parseInt(at.charAt(0)) > -1) at = at.substr(1)
-  // parse again to check for a second integer
+    // parse again to check for a second integer
   if (parseInt(at.charAt(0)) > -1) at = at.substr(1)
   const n = at.length
 
@@ -923,7 +923,7 @@ export function guessElement(atomName: string) {
  * @param {Structure} structure - the structure object
  * @return {undefined}
  */
-export function assignResidueTypeBonds(structure: Structure) {
+export function assignResidueTypeBonds (structure: Structure) {
   // if( Debug ) Log.time( "assignResidueTypeBonds" )
 
   const bondHash = structure.bondHash!  // TODO
@@ -946,10 +946,10 @@ export function assignResidueTypeBonds(structure: Structure) {
 
     rp.eachAtom(function (ap) {
       const index = ap.index
-      const offset = offsetArray[index]
-      const count = countArray[index]
+      const offset = offsetArray[ index ]
+      const count = countArray[ index ]
       for (let i = 0, il = count; i < il; ++i) {
-        bp.index = indexArray[offset + i]
+        bp.index = indexArray[ offset + i ]
         let idx1 = bp.atomIndex1
         if (idx1 < atomOffset || idx1 >= nextAtomOffset) {
           // Don't add bonds outside of this resiude
@@ -966,8 +966,8 @@ export function assignResidueTypeBonds(structure: Structure) {
           idx1 = tmp
         }
         const hash = idx1 + '|' + idx2
-        if (bondDict[hash] === undefined) {
-          bondDict[hash] = true
+        if (bondDict[ hash ] === undefined) {
+          bondDict[ hash ] = true
           atomIndices1.push(idx1 - atomOffset)
           atomIndices2.push(idx2 - atomOffset)
           bondOrders.push(bp.bondOrder)
@@ -985,8 +985,8 @@ export function assignResidueTypeBonds(structure: Structure) {
   // if( Debug ) Log.timeEnd( "assignResidueTypeBonds" )
 }
 
-export function concatStructures(name: string, ...structures: Structure[]) {
-  if (Debug) Log.time("concatStructures")
+export function concatStructures (name: string, ...structures: Structure[]) {
+  if( Debug ) Log.time( "concatStructures" )
 
   const s = new Structure(name, '')
   const sb = new StructureBuilder(s)
@@ -1004,17 +1004,17 @@ export function concatStructures(name: string, ...structures: Structure[]) {
   structures.forEach(structure => {
     structure.eachAtom(a => {
       atomStore.growIfFull()
-      atomStore.atomTypeId[idx] = atomMap.add(a.atomname, a.element)
+      atomStore.atomTypeId[ idx ] = atomMap.add(a.atomname, a.element)
 
-      atomStore.x[idx] = a.x
-      atomStore.y[idx] = a.y
-      atomStore.z[idx] = a.z
-      atomStore.serial[idx] = a.serial
-      atomStore.formalCharge[idx] = a.formalCharge
-      atomStore.partialCharge[idx] = a.partialCharge
-      atomStore.altloc[idx] = a.altloc
-      atomStore.occupancy[idx] = a.occupancy
-      atomStore.bfactor[idx] = a.bfactor
+      atomStore.x[ idx ] = a.x
+      atomStore.y[ idx ] = a.y
+      atomStore.z[ idx ] = a.z
+      atomStore.serial[ idx ] = a.serial
+      atomStore.formalCharge[ idx ] = a.formalCharge
+      atomStore.partialCharge[ idx ] = a.partialCharge
+      atomStore.altloc[ idx ] = a.altloc
+      atomStore.occupancy[ idx ] = a.occupancy
+      atomStore.bfactor[ idx ] = a.bfactor
 
       sb.addAtom(
         a.modelIndex + modelCount,
@@ -1041,8 +1041,8 @@ export function concatStructures(name: string, ...structures: Structure[]) {
   atomCount = 0
   structures.forEach(structure => {
     structure.eachBond(b => {
-      a1.index = atomIndexDict[b.atomIndex1 + atomCount]
-      a2.index = atomIndexDict[b.atomIndex2 + atomCount]
+      a1.index = atomIndexDict[ b.atomIndex1 + atomCount ]
+      a2.index = atomIndexDict[ b.atomIndex2 + atomCount ]
       bondStore.addBond(a1, a2, b.bondOrder)
     })
     atomCount += structure.atomStore.count
@@ -1057,7 +1057,7 @@ export function concatStructures(name: string, ...structures: Structure[]) {
   s.finalizeBonds()
   assignResidueTypeBonds(s)
 
-  if (Debug) Log.timeEnd("concatStructures")
+  if( Debug ) Log.timeEnd( "concatStructures" )
 
   return s
 }

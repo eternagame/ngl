@@ -103,13 +103,14 @@ class TrackballControls {
   pan (x: number, y: number) {
     this._setPanVector(x, y)
 
-    // Adjust for scene rotation
-    tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix)
+    //kkk
+    // // Adjust for scene rotation
+    // tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix)
 
-    // Adjust for camera rotation
-    tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix))
+    // // Adjust for camera rotation
+    // tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix))
 
-    tmpPanVector.applyMatrix4(tmpPanMatrix)
+    // tmpPanVector.applyMatrix4(tmpPanMatrix)
     this.controls.translate(tmpPanVector)
   }
 
@@ -143,23 +144,24 @@ class TrackballControls {
     // rotate around screen X then screen Y
     this._getCameraRotation(tmpRotateMatrix)
     tmpRotateVector.set(1, 0, 0) // X axis
-    tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X
+    // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X //kkk
     tmpRotateQuaternion.setFromAxisAngle(tmpRotateVector, dy)
 
     tmpRotateVector.set(0, 1, 0) // Y axis
-    tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y
+    // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y //kkk
     tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector, dx)
 
     tmpRotateQuaternion.multiply(tmpRotateQuaternion2)
     tmpRotateMatrix.makeRotationFromQuaternion(tmpRotateQuaternion)
-    this.controls.applyMatrix(tmpRotateMatrix)
+
+    this.controls.applyRotateMatrix(tmpRotateMatrix);
   }
 
   zRotate (x: number, y: number) {
     const dz = this.rotateSpeed * ((-x + y) / -2) * 0.01
 
     tmpRotateZMatrix.makeRotationZ(dz)
-    this.controls.applyMatrix(tmpRotateZMatrix)
+    this.controls.applyRotateMatrix(tmpRotateZMatrix)
   }
 
   rotateComponent (x: number, y: number) {
