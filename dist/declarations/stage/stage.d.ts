@@ -115,7 +115,7 @@ export declare const StageDefaultParameters: {
     ambientIntensity: number;
     hoverTimeout: number;
     tooltip: boolean;
-    mousePreset: "default" | "pymol" | "coot" | "astexviewer";
+    mousePreset: "default" | "eterna" | "pymol" | "coot" | "astexviewer";
 };
 export declare type StageParameters = typeof StageDefaultParameters;
 export interface StageLoadFileParams extends LoaderParameters {
@@ -193,7 +193,7 @@ declare class Stage {
         ambientIntensity: number;
         hoverTimeout: number;
         tooltip: boolean;
-        mousePreset: "default" | "pymol" | "coot" | "astexviewer";
+        mousePreset: "default" | "eterna" | "pymol" | "coot" | "astexviewer";
     };
     /**
      * Create default representations for the given component

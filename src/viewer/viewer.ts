@@ -243,7 +243,8 @@ export default class Viewer {
     ethernaNucleotideBase: 1,
     highColor: 0xFFFFFF,
     mediumColor: 0x8F9DB0,
-    weakColor: 0x546986
+    weakColor: 0x546986,
+    zeroColor: 0xC0C0C0,
   } //kkk
 
   private supportsHalfFloat: boolean
@@ -353,6 +354,7 @@ export default class Viewer {
     this.ethernaMode.highColor = colors[0];
     this.ethernaMode.mediumColor = colors[1];
     this.ethernaMode.weakColor = colors[2];
+    this.ethernaMode.zeroColor = colors[3];
   }
   //kkk
   setPixiCallback(callback: PixiRenderCallback) {
@@ -1661,12 +1663,18 @@ export default class Viewer {
       this.__renderSuperSample(camera, renderTarget)
       this.__renderModelGroup(camera, renderTarget)
       //kkk
-      if(this.pixiCallback) this.pixiCallback(this.renderer.domElement, this.width, this.height)
+      if(this.pixiCallback) {
+        this.signals.rendered.dispatch()
+        this.pixiCallback(this.renderer.domElement, this.width, this.height)
+      }
     } 
     else {
       this.__renderModelGroup(camera, renderTarget);
       //kkk
-      if(this.pixiCallback) this.pixiCallback(this.renderer.domElement, this.width, this.height)
+      if(this.pixiCallback) {
+        this.signals.rendered.dispatch()
+        this.pixiCallback(this.renderer.domElement, this.width, this.height)
+      }
     }
   }
 

@@ -326,12 +326,12 @@ class MouseObserver {
     this.buttons = getMouseButtons(event)
     this.pressed = true
     //kkk //broadcast mouse down event in forms of custom event.
-    window.dispatchEvent(new CustomEvent('kkk', {
-      detail: {
-        'clientX': event.clientX,
-        'clientY': event.clientY,
-      }
-    }));
+    // window.dispatchEvent(new CustomEvent('kkk', {
+    //   detail: {
+    //     'clientX': event.clientX,
+    //     'clientY': event.clientY,
+    //   }
+    // }));
   }
 
   /**

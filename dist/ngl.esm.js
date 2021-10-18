@@ -61764,7 +61764,8 @@
             ethernaNucleotideBase: 1,
             highColor: 0xFFFFFF,
             mediumColor: 0x8F9DB0,
-            weakColor: 0x546986
+            weakColor: 0x546986,
+            zeroColor: 0xC0C0C0,
         }; //kkk
         this.boundingBox = new Box3();
         this.boundingBoxSize = new Vector3();
@@ -61844,6 +61845,7 @@
         this.ethernaMode.highColor = colors[0];
         this.ethernaMode.mediumColor = colors[1];
         this.ethernaMode.weakColor = colors[2];
+        this.ethernaMode.zeroColor = colors[3];
     };
     //kkk
     Viewer.prototype.setPixiCallback = function setPixiCallback (callback) {
@@ -62997,14 +62999,18 @@
             this.__renderSuperSample(camera, renderTarget);
             this.__renderModelGroup(camera, renderTarget);
             //kkk
-            if (this.pixiCallback)
-                { this.pixiCallback(this.renderer.domElement, this.width, this.height); }
+            if (this.pixiCallback) {
+                this.signals.rendered.dispatch();
+                this.pixiCallback(this.renderer.domElement, this.width, this.height);
+            }
         }
         else {
             this.__renderModelGroup(camera, renderTarget);
             //kkk
-            if (this.pixiCallback)
-                { this.pixiCallback(this.renderer.domElement, this.width, this.height); }
+            if (this.pixiCallback) {
+                this.signals.rendered.dispatch();
+                this.pixiCallback(this.renderer.domElement, this.width, this.height);
+            }
         }
     };
     Viewer.prototype.render = function render (picking, renderTarget) {
@@ -63423,12 +63429,12 @@
       this.buttons = getMouseButtons(event);
       this.pressed = true;
       //kkk //broadcast mouse down event in forms of custom event.
-      window.dispatchEvent(new CustomEvent('kkk', {
-          detail: {
-              'clientX': event.clientX,
-              'clientY': event.clientY,
-          }
-      }));
+      // window.dispatchEvent(new CustomEvent('kkk', {
+      //   detail: {
+      // 'clientX': event.clientX,
+      // 'clientY': event.clientY,
+      //   }
+      // }));
   };
   /**
    * handle mouse up
@@ -73984,6 +73990,20 @@
    * @return {undefined}
    */
   MouseActions.movePick = function movePick (stage, pickingProxy) {
+      if (pickingProxy) {
+          // stage.animationControls.move(pickingProxy.position.clone())
+          //kkk transfer clicked picking result to etherna
+          var result = pickingProxy.checkBase();
+          if (result.isBase) {
+              window.dispatchEvent(new CustomEvent('picking', {
+                  detail: {
+                      'resno': result.resno,
+                      'resname': result.resname,
+                      'action': 'clicked',
+                  }
+              }));
+          }
+      }
   };
   /**
    * Show tooltip with information of picked element
@@ -74031,9 +74051,17 @@
           if (tt.innerText.length == 0)
               { tt.style.display = 'none'; }
           else {
-              tt.style.display = 'block';
+              tt.style.display = 'none'; //'block'
               tt.style.width = getTextWidth(tt.innerText, getCanvasFontSize(tt)) + 'px'; //rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
           }
+          //kkk send tooltip to eterna
+          window.dispatchEvent(new CustomEvent('tooltip', {
+              detail: {
+                  'x': mp.x,
+                  'y': mp.y,
+                  'label': pickingProxy.getLabel(),
+              }
+          }));
           //kkk
           // check picking and send message that contain picking result
           var result = pickingProxy.checkBase();
@@ -74043,6 +74071,7 @@
                   detail: {
                       'resno': result.resno,
                       'resname': result.resname,
+                      'action': 'hover',
                   }
               }));
           }
@@ -74053,6 +74082,13 @@
           tt.style.display = 'none';
           //kkk
           stage.viewer.selectEBaseObject(-1);
+          window.dispatchEvent(new CustomEvent('tooltip', {
+              detail: {
+                  'x': 0,
+                  'y': 0,
+                  'label': '',
+              }
+          }));
       }
   };
   MouseActions.measurePick = function measurePick (stage, pickingProxy) {
@@ -74076,12 +74112,21 @@
           ['drag-ctrl-left', MouseActions.panDrag],
           ['drag-ctrl-right', MouseActions.zRotateDrag],
           ['drag-shift-left', MouseActions.zoomDrag],
-          // [ 'drag-middle', MouseActions.zoomFocusDrag ], //kkk
+          ['drag-middle', MouseActions.zoomFocusDrag],
           ['drag-ctrl-shift-right', MouseActions.panComponentDrag],
           ['drag-ctrl-shift-left', MouseActions.rotateComponentDrag],
           ['clickPick-right', MouseActions.measurePick],
           ['clickPick-ctrl-left', MouseActions.measurePick],
           ['clickPick-middle', MouseActions.movePick],
+          ['clickPick-left', MouseActions.movePick],
+          ['hoverPick', MouseActions.tooltipPick]
+      ],
+      //kkk add eterna preset
+      eterna: [
+          ['scroll', MouseActions.zoomScroll],
+          ['drag-left', MouseActions.rotateDrag],
+          ['drag-ctrl-left', MouseActions.panDrag],
+          ['drag-shift-left', MouseActions.zoomDrag],
           ['clickPick-left', MouseActions.movePick],
           ['hoverPick', MouseActions.tooltipPick]
       ],
@@ -91415,134 +91460,129 @@
       };
       EBaseRepresentation.prototype.createData = function createData (sview) {
           var bufferList = [];
-          if (this.lineOnly) {
-              this.lineBuffer = new WideLineBuffer(this.getBondData(sview, { position: true, color: true, picking: true }), this.getBufferParams({ linewidth: this.linewidth }));
-              bufferList.push(this.lineBuffer);
-          }
-          else {
-              var p = this.getBondParams({ position: true, picking: true });
-              var rawBondData = sview.getBondData(p);
-              var bondData = this.getBondData(sview);
-              // console.log(bondData, rawBondData);
-              // console.log(bondData.picking, rawBondData.picking);
-              this.fullBondData = bondData;
-              var pos1 = bondData.position1;
-              var pos2 = bondData.position2;
-              var majorAxis = new Array();
-              var minorAxis = new Array();
-              if (pos1 && pos2) {
-                  var position = new Float32Array(pos1.length);
-                  var radius = new Float32Array(pos1.length / 3);
-                  for (var i = 0; i < pos1.length / 3; i++) {
-                      var i3 = i * 3;
-                      position[i3] = (pos1[i3] + pos2[i3]) / 2;
-                      position[i3 + 1] = (pos1[i3 + 1] + pos2[i3 + 1]) / 2;
-                      position[i3 + 2] = (pos1[i3 + 2] + pos2[i3 + 2]) / 2;
-                      var r = 0;
-                      r += (pos1[i3] - position[i3]) * (pos1[i3] - position[i3]);
-                      r += (pos1[i3 + 1] - position[i3 + 1]) * (pos1[i3 + 1] - position[i3 + 1]);
-                      r += (pos1[i3 + 2] - position[i3 + 2]) * (pos1[i3 + 2] - position[i3 + 2]);
-                      radius[i] = Math.sqrt(r);
-                      var x = (pos2[i3] - position[i3]);
-                      var y = (pos2[i3 + 1] - position[i3 + 1]);
-                      var z = (pos2[i3 + 2] - position[i3 + 2]);
-                      majorAxis.push(x);
-                      majorAxis.push(y);
-                      majorAxis.push(z);
-                      // console.log('major', x, y, z); 
-                      var annotation = { x: position[i3], y: position[i3 + 1], z: position[i3 + 2], num: i, label: (i + 1) + '' };
-                      this.divAnnotations.push(annotation);
-                      var x1, y1, z1, d1;
-                      if (bondData.picking && rawBondData.picking) {
-                          var atomIndex2 = bondData.picking.bondStore.atomIndex2;
-                          var id = atomIndex2[i];
-                          var id2;
-                          var n1;
-                          if (n1 = rawBondData.picking.bondStore.atomIndex1.indexOf(id), n1 >= 0) {
-                              id2 = rawBondData.picking.bondStore.atomIndex2[n1];
-                          }
-                          else if (n1 = rawBondData.picking.bondStore.atomIndex2.indexOf(id), n1 >= 0) {
-                              id2 = rawBondData.picking.bondStore.atomIndex1[n1];
-                          }
-                          else
-                              { id2 = id + 1; }
-                          var ap1 = new AtomProxy(bondData.picking.structure);
-                          ap1.index = id;
-                          var ap2 = new AtomProxy(bondData.picking.structure);
-                          ap2.index = id2;
-                          var dx, dy, dz;
-                          dx = ap2.x - ap1.x;
-                          dy = ap2.y - ap1.y;
-                          dz = ap2.z - ap1.z;
-                          x1 = y * dz - z * dy;
-                          y1 = z * dx - x * dz;
-                          z1 = x * dy - y * dx;
+          var p = this.getBondParams({ position: true, picking: true });
+          var rawBondData = sview.getBondData(p);
+          var bondData = this.getBondData(sview);
+          // console.log(bondData, rawBondData);
+          // console.log(bondData.picking, rawBondData.picking);
+          this.fullBondData = bondData;
+          var pos1 = bondData.position1;
+          var pos2 = bondData.position2;
+          var majorAxis = new Array();
+          var minorAxis = new Array();
+          if (pos1 && pos2) {
+              var position = new Float32Array(pos1.length);
+              var radius = new Float32Array(pos1.length / 3);
+              for (var i = 0; i < pos1.length / 3; i++) {
+                  var i3 = i * 3;
+                  position[i3] = (pos1[i3] + pos2[i3]) / 2;
+                  position[i3 + 1] = (pos1[i3 + 1] + pos2[i3 + 1]) / 2;
+                  position[i3 + 2] = (pos1[i3 + 2] + pos2[i3 + 2]) / 2;
+                  var r = 0;
+                  r += (pos1[i3] - position[i3]) * (pos1[i3] - position[i3]);
+                  r += (pos1[i3 + 1] - position[i3 + 1]) * (pos1[i3 + 1] - position[i3 + 1]);
+                  r += (pos1[i3 + 2] - position[i3 + 2]) * (pos1[i3 + 2] - position[i3 + 2]);
+                  radius[i] = Math.sqrt(r);
+                  var x = (pos2[i3] - position[i3]);
+                  var y = (pos2[i3 + 1] - position[i3 + 1]);
+                  var z = (pos2[i3 + 2] - position[i3 + 2]);
+                  majorAxis.push(x);
+                  majorAxis.push(y);
+                  majorAxis.push(z);
+                  // console.log('major', x, y, z); 
+                  var annotation = { x: position[i3], y: position[i3 + 1], z: position[i3 + 2], num: i, label: (i + 1) + '' };
+                  this.divAnnotations.push(annotation);
+                  var x1, y1, z1, d1;
+                  if (bondData.picking && rawBondData.picking) {
+                      var atomIndex2 = bondData.picking.bondStore.atomIndex2;
+                      var id = atomIndex2[i];
+                      var id2;
+                      var n1;
+                      if (n1 = rawBondData.picking.bondStore.atomIndex1.indexOf(id), n1 >= 0) {
+                          id2 = rawBondData.picking.bondStore.atomIndex2[n1];
                       }
-                      else {
-                          if (z != 0) {
-                              x1 = 1, y1 = 1;
-                              z1 = -(x1 * x + y1 * y) / z;
-                          }
-                          else if (y != 0) {
-                              x1 = 1, z1 = 1;
-                              y1 = -(x1 * x + z1 * z) / y;
-                          }
-                          else {
-                              y1 = 1, z1 = 1;
-                              x1 = -(y1 * y + z1 * z) / x;
-                          }
+                      else if (n1 = rawBondData.picking.bondStore.atomIndex2.indexOf(id), n1 >= 0) {
+                          id2 = rawBondData.picking.bondStore.atomIndex1[n1];
                       }
-                      d1 = Math.sqrt(x1 * x1 + y1 * y1 + z1 * z1);
-                      x1 /= d1;
-                      y1 /= d1;
-                      z1 /= d1;
-                      // console.log('minor', x1, y1, z1);
-                      var wScale = 0.05;
-                      minorAxis.push(x1 * r * wScale);
-                      minorAxis.push(y1 * r * wScale);
-                      minorAxis.push(z1 * r * wScale);
+                      else
+                          { id2 = id + 1; }
+                      var ap1 = new AtomProxy(bondData.picking.structure);
+                      ap1.index = id;
+                      var ap2 = new AtomProxy(bondData.picking.structure);
+                      ap2.index = id2;
+                      var dx, dy, dz;
+                      dx = ap2.x - ap1.x;
+                      dy = ap2.y - ap1.y;
+                      dz = ap2.z - ap1.z;
+                      x1 = y * dz - z * dy;
+                      y1 = z * dx - x * dz;
+                      z1 = x * dy - y * dx;
                   }
-                  // console.log(bondData);
-                  var dataParam = bondData;
-                  dataParam.position = position;
-                  dataParam.color = bondData.color;
-                  dataParam.radius = radius;
-                  dataParam.vScale = this.vScale;
-                  dataParam.majorAxis = new Float32Array(majorAxis);
-                  dataParam.minorAxis = new Float32Array(minorAxis);
-                  var elilipsoidBuffer = new EllipsoidBuffer(dataParam);
-                  elilipsoidBuffer.geometry.name = 'ebase';
-                  bufferList.push(elilipsoidBuffer);
-                  var pairsDatas = this.getPairData(bondData);
-                  if (pairsDatas !== null) {
-                      if (pairsDatas.length == 1) {
-                          var cylinderBuffer = new CylinderBuffer(pairsDatas[0], this.getBufferParams({
-                              openEnded: false,
-                              radialSegments: this.radialSegments,
-                              disableImpostor: this.disableImpostor,
-                              dullInterior: true
-                          }));
-                          bufferList.push(cylinderBuffer);
+                  else {
+                      if (z != 0) {
+                          x1 = 1, y1 = 1;
+                          z1 = -(x1 * x + y1 * y) / z;
+                      }
+                      else if (y != 0) {
+                          x1 = 1, z1 = 1;
+                          y1 = -(x1 * x + z1 * z) / y;
                       }
                       else {
-                          var coneBuffer = new ConeBuffer(pairsDatas[0], this.getBufferParams({
-                              openEnded: false,
-                              radialSegments: this.radialSegments,
-                              disableImpostor: this.disableImpostor,
-                              dullInterior: true
-                          }));
-                          bufferList.push(coneBuffer);
-                          var coneBuffer2 = new ConeBuffer(pairsDatas[1], this.getBufferParams({
-                              openEnded: false,
-                              radialSegments: this.radialSegments,
-                              disableImpostor: this.disableImpostor,
-                              dullInterior: true
-                          }));
-                          bufferList.push(coneBuffer2);
+                          y1 = 1, z1 = 1;
+                          x1 = -(y1 * y + z1 * z) / x;
                       }
+                  }
+                  d1 = Math.sqrt(x1 * x1 + y1 * y1 + z1 * z1);
+                  x1 /= d1;
+                  y1 /= d1;
+                  z1 /= d1;
+                  // console.log('minor', x1, y1, z1);
+                  var wScale = 0.05;
+                  minorAxis.push(x1 * r * wScale);
+                  minorAxis.push(y1 * r * wScale);
+                  minorAxis.push(z1 * r * wScale);
+              }
+              // console.log(bondData);
+              var dataParam = bondData;
+              dataParam.position = position;
+              dataParam.color = bondData.color;
+              dataParam.radius = radius;
+              dataParam.vScale = this.vScale;
+              dataParam.majorAxis = new Float32Array(majorAxis);
+              dataParam.minorAxis = new Float32Array(minorAxis);
+              var elilipsoidBuffer = new EllipsoidBuffer(dataParam);
+              elilipsoidBuffer.geometry.name = 'ebase';
+              bufferList.push(elilipsoidBuffer);
+              var pairsDatas = this.getPairData(bondData);
+              if (pairsDatas !== null) {
+                  if (pairsDatas.length == 1) {
+                      var cylinderBuffer = new CylinderBuffer(pairsDatas[0], this.getBufferParams({
+                          openEnded: false,
+                          radialSegments: this.radialSegments,
+                          disableImpostor: this.disableImpostor,
+                          dullInterior: true
+                      }));
+                      bufferList.push(cylinderBuffer);
+                  }
+                  else {
+                      var coneBuffer = new ConeBuffer(pairsDatas[0], this.getBufferParams({
+                          openEnded: false,
+                          radialSegments: this.radialSegments,
+                          disableImpostor: this.disableImpostor,
+                          dullInterior: true
+                      }));
+                      bufferList.push(coneBuffer);
+                      var coneBuffer2 = new ConeBuffer(pairsDatas[1], this.getBufferParams({
+                          openEnded: false,
+                          radialSegments: this.radialSegments,
+                          disableImpostor: this.disableImpostor,
+                          dullInterior: true
+                      }));
+                      bufferList.push(coneBuffer2);
+                      var lineBuffer = new WideLineBuffer(pairsDatas[2], this.getBufferParams({ linewidth: 1 }));
+                      bufferList.push(lineBuffer);
                   }
               }
-              if (!this.cylinderOnly) ;
           }
           return {
               bufferList: bufferList
@@ -91550,7 +91590,9 @@
       };
       EBaseRepresentation.prototype.getPairData = function getPairData (data) {
           if (this.viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
-              var bondData = {};
+              var pos01 = [];
+              var pos02 = [];
+              var colors0 = [];
               var pos1 = [];
               var pos2 = [];
               var colors = [];
@@ -91589,8 +91631,7 @@
                       else if (ap1.resname == 'U' && ap2.resname == 'G' || ap1.resname == 'G' && ap2.resname == 'U')
                           { strength$1 = 1; }
                   }
-                  if (strength$1 == 0)
-                      { continue; }
+                  // if (strength == 0) continue;
                   var x1 = data.position2[i * 3], y1 = data.position2[i * 3 + 1], z1 = data.position2[i * 3 + 2];
                   var x2 = data.position2[pairNum * 3], y2 = data.position2[pairNum * 3 + 1], z2 = data.position2[pairNum * 3 + 2];
                   var dx = x2 - x1;
@@ -91602,14 +91643,24 @@
                   var dz = z2 - z1;
                   z1 = z1 + dz / 40;
                   z2 = z2 - dz / 40;
-                  pos1.push(x1);
-                  pos1.push(y1);
-                  pos1.push(z1);
-                  pos2.push(x2);
-                  pos2.push(y2);
-                  pos2.push(z2);
-                  radius.push(0.2 * strength$1);
-                  strengthArrray.push(strength$1);
+                  if (strength$1 > 0) {
+                      pos1.push(x1);
+                      pos1.push(y1);
+                      pos1.push(z1);
+                      pos2.push(x2);
+                      pos2.push(y2);
+                      pos2.push(z2);
+                      radius.push(0.2 * strength$1);
+                      strengthArrray.push(strength$1);
+                  }
+                  else {
+                      pos01.push(x1);
+                      pos01.push(y1);
+                      pos01.push(z1);
+                      pos02.push(x2);
+                      pos02.push(y2);
+                      pos02.push(z2);
+                  }
                   if (strength$1 == 3) {
                       var color = this.viewer.ethernaMode.highColor;
                       var r = color >> 16 & 255;
@@ -91619,16 +91670,6 @@
                       colors.push(g / 255.0);
                       colors.push(b / 255.0);
                   }
-                  // else if (strength == 2) {
-                  //   colors.push(0.5);
-                  //   colors.push(0.8);
-                  //   colors.push(0.8);
-                  // }
-                  // else {
-                  //   colors.push(0.5);
-                  //   colors.push(0.5);
-                  //   colors.push(0.5);
-                  // }
                   else if (strength$1 == 2) {
                       var color = this.viewer.ethernaMode.mediumColor;
                       var r = color >> 16 & 255;
@@ -91638,7 +91679,7 @@
                       colors.push(g / 255.0);
                       colors.push(b / 255.0);
                   }
-                  else {
+                  else if (strength$1 == 1) {
                       var color = this.viewer.ethernaMode.weakColor;
                       var r = color >> 16 & 255;
                       var g = color >> 8 & 255;
@@ -91647,13 +91688,22 @@
                       colors.push(g / 255.0);
                       colors.push(b / 255.0);
                   }
+                  else {
+                      var color = this.viewer.ethernaMode.zeroColor;
+                      var r = color >> 16 & 255;
+                      var g = color >> 8 & 255;
+                      var b = color & 255;
+                      colors0.push(r / 255.0);
+                      colors0.push(g / 255.0);
+                      colors0.push(b / 255.0);
+                  }
               }
+              var bondData = {};
               bondData.position1 = new Float32Array(pos1);
               bondData.position2 = new Float32Array(pos2);
               bondData.radius = new Float32Array(radius);
               bondData.color = new Float32Array(colors);
               bondData.color2 = new Float32Array(colors);
-              // return [bondData];
               var weight = [0.0, 0.55, 0.8, 1.0];
               var rweight = [0, 4, 4, 4];
               var pos1 = [];
@@ -91688,20 +91738,16 @@
               bondData2.radius = bondData.radius;
               bondData2.color = bondData.color;
               bondData2.color2 = bondData.color2;
-              return [bondData1, bondData2];
+              var bondData3 = {};
+              bondData3.position1 = new Float32Array(pos01);
+              bondData3.position2 = new Float32Array(pos02);
+              bondData3.color = new Float32Array(colors0);
+              bondData3.color2 = new Float32Array(colors0);
+              return [bondData1, bondData2, bondData3];
           }
           return null;
       };
-      // update(what: BondDataFields | AtomDataFields) {
-      //   super.update(what);
-      //   this.dataList.forEach((data) => {
-      //     if (data.bufferList.length > 0) {
-      //       this.updateData(what, data)
-      //     }
-      //   }, this)
-      // }
       EBaseRepresentation.prototype.updateData = function updateData (what, data) {
-          // console.log('start');
           if (this.multipleBond !== 'off' && what && what.radius) {
               what.position = true;
           }
@@ -91716,18 +91762,13 @@
               });
           }
           data.bufferList[0].setAttributes(ellipsoidData);
-          if (data.bufferList[1]) {
-              var pairsDatas = this.getPairData(this.fullBondData);
-              if (pairsDatas !== null) {
-                  if (pairsDatas.length == 1)
-                      { data.bufferList[1].setAttributes(pairsDatas[0]); }
-                  else {
-                      data.bufferList[1].setAttributes(pairsDatas[0]);
-                      data.bufferList[2].setAttributes(pairsDatas[1]);
-                  }
-              }
+          var pairsDatas = this.getPairData(this.fullBondData);
+          if (pairsDatas !== null) {
+              data.bufferList[1].setAttributes(pairsDatas[0]);
+              data.bufferList[2].setAttributes(pairsDatas[1]);
+              data.bufferList[3].setAttributes(pairsDatas[2]);
           }
-          // console.log('end');
+          this.build();
       };
 
       return EBaseRepresentation;

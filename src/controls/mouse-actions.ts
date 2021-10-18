@@ -184,6 +184,17 @@ class MouseActions {
   static movePick(stage: Stage, pickingProxy: PickingProxy) {
     if (pickingProxy) {
       // stage.animationControls.move(pickingProxy.position.clone())
+      //kkk transfer clicked picking result to etherna
+      var result = pickingProxy.checkBase();
+      if (result.isBase) {
+        window.dispatchEvent(new CustomEvent('picking', {
+          detail: {
+            'resno': result.resno,
+            'resname': result.resname,
+            'action': 'clicked',
+          }
+        }));
+      }
     }
   }
 
@@ -234,9 +245,17 @@ class MouseActions {
 
       if(tt.innerText.length == 0) tt.style.display = 'none'
       else {
-        tt.style.display = 'block'
+        tt.style.display = 'none';//'block'
         tt.style.width = getTextWidth(tt.innerText, getCanvasFontSize(tt)) + 'px';//rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
       }
+      //kkk send tooltip to eterna
+      window.dispatchEvent(new CustomEvent('tooltip', {
+        detail: {
+          'x': mp.x,
+          'y': mp.y,
+          'label': pickingProxy.getLabel(),
+        }
+      }));
 
       //kkk
       // check picking and send message that contain picking result
@@ -247,6 +266,7 @@ class MouseActions {
           detail: {
             'resno': result.resno,
             'resname': result.resname,
+            'action': 'hover',
           }
         }));
       } else
@@ -255,6 +275,13 @@ class MouseActions {
       tt.style.display = 'none'
       //kkk
       stage.viewer.selectEBaseObject(-1);
+      window.dispatchEvent(new CustomEvent('tooltip', {
+        detail: {
+          'x': 0,
+          'y': 0,
+          'label': '',
+        }
+      }));
     }
   }
 
@@ -282,7 +309,7 @@ export const MouseActionPresets = {
     ['drag-ctrl-left', MouseActions.panDrag],
     ['drag-ctrl-right', MouseActions.zRotateDrag],
     ['drag-shift-left', MouseActions.zoomDrag],
-    // [ 'drag-middle', MouseActions.zoomFocusDrag ], //kkk
+    ['drag-middle', MouseActions.zoomFocusDrag ], //kkk
 
     ['drag-ctrl-shift-right', MouseActions.panComponentDrag],
     ['drag-ctrl-shift-left', MouseActions.rotateComponentDrag],
@@ -290,6 +317,17 @@ export const MouseActionPresets = {
     ['clickPick-right', MouseActions.measurePick],
     ['clickPick-ctrl-left', MouseActions.measurePick],
     ['clickPick-middle', MouseActions.movePick],
+    ['clickPick-left', MouseActions.movePick],
+    ['hoverPick', MouseActions.tooltipPick]
+  ] as MouseActionPreset,
+  //kkk add eterna preset
+  eterna: [
+    ['scroll', MouseActions.zoomScroll],
+
+    ['drag-left', MouseActions.rotateDrag],
+    ['drag-ctrl-left', MouseActions.panDrag],
+    ['drag-shift-left', MouseActions.zoomDrag],
+
     ['clickPick-left', MouseActions.movePick],
     ['hoverPick', MouseActions.tooltipPick]
   ] as MouseActionPreset,
