@@ -74124,9 +74124,10 @@
       //kkk add eterna preset
       eterna: [
           ['scroll', MouseActions.zoomScroll],
-          ['drag-left', MouseActions.rotateDrag],
-          ['drag-ctrl-left', MouseActions.panDrag],
+          ['drag-left', MouseActions.panDrag],
+          ['drag-ctrl-left', MouseActions.rotateDrag],
           ['drag-shift-left', MouseActions.zoomDrag],
+          ['drag-right', MouseActions.rotateDrag],
           ['clickPick-left', MouseActions.movePick],
           ['hoverPick', MouseActions.tooltipPick]
       ],
