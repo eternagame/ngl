@@ -15,7 +15,7 @@ import {
   ShaderMaterial, 
   PlaneGeometry, Geometry,
   Scene, Mesh, Group, Object3D, Uniform,
-  Fog, SpotLight, AmbientLight,
+  Fog, SpotLight, AmbientLight, SpriteMaterial,Sprite,TextureLoader,Texture,
   BufferGeometry, BufferAttribute, //AxesHelper,
   LineSegments, //TextureLoader, IcosahedronGeometry,
   LinearEncoding, sRGBEncoding, TextureEncoding, MeshBasicMaterial
@@ -145,7 +145,8 @@ export type ColorWorkflow = 'linear' | 'sRGB'
 
 export interface ViewerSignals {
   ticked: Signal,
-  rendered: Signal
+  rendered: Signal,
+  nextFrame: Signal
 }
 
 export interface ViewerParameters {
@@ -178,6 +179,62 @@ export interface ViewerParameters {
 
 export interface BufferInstance {
   matrix: Matrix4
+}
+class Spark {
+  sparkArray: Sprite[] = [];
+  textSprite: Sprite | null = null;
+  size: number = 0;
+  counter:number = 0;
+  period: number = 0;
+  polling: NodeJS.Timeout;
+  unit:Vector3[] = [
+    new Vector3(1,0,0), new Vector3(-1,0,0), 
+    new Vector3(0,1,0), new Vector3(0,-1,0)
+  ];
+  material:SpriteMaterial;
+  center:Vector3;
+  reset() {
+    this.sparkArray.forEach((m)=>{
+      m.geometry.dispose();
+    });
+    this.sparkArray = [];
+    this.material.opacity = 1.0;
+    this.counter = 0;
+    this.period = 0;
+    this.center = new Vector3(0,0,0);
+    this.size = 0;
+    this.unit = [
+      new Vector3(1,0,0), new Vector3(-1,0,0), 
+      new Vector3(0,1,0), new Vector3(0,-1,0)
+    ];
+    this.textSprite = null;
+  }
+  setURL(url1:string) {
+    const textureLoader = new TextureLoader();
+    const map1 = textureLoader.load(url1);
+		this.material = new SpriteMaterial( { map: map1, color: 0xffffff, fog: true } );
+  }
+  makeTextSprite(message:string) {
+    var fontface = "Arial";
+    var fontsize = 100;
+
+    var canvas = document.createElement('canvas');
+    var context = canvas.getContext('2d');
+    if(!context) return;
+
+    context.font = "Bold " + fontsize + "px " + fontface;
+    context.fillStyle = "white";
+    context.fillText( message, 0, fontsize);
+
+    var texture = new Texture(canvas) 
+    texture.needsUpdate = true;
+
+    var spriteMaterial = new SpriteMaterial( { map: texture, color: 0xFFFFFF, fog: true} );
+    var sprite = new Sprite( spriteMaterial );
+    var scale = 1;//10/metrics.width;
+    sprite.scale.set(10, 2, 1*scale);
+    this.textSprite = sprite;  
+  }
 }
 
 //kkk
@@ -222,6 +279,8 @@ export default class Viewer {
   private selectGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
   private selectGroup2: Group //kkk //add variable to implement outline highlight effect of the selected bases.
   private markGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
+  private sparkGroup: Group //kkk 
+  private sparkSpriteGroup: Group //kkk 
 
   private pickingGroup: Group
   private backgroundGroup: Group
@@ -246,6 +305,7 @@ export default class Viewer {
     weakColor: 0x546986,
     zeroColor: 0xC0C0C0,
   } //kkk
+  spark: Spark = new Spark();
 
   private supportsHalfFloat: boolean
 
@@ -293,7 +353,8 @@ export default class Viewer {
     this.stage = stage;//kkk
     this.signals = {
       ticked: new Signal(),
-      rendered: new Signal()
+      rendered: new Signal(),
+      nextFrame: new Signal()
     }
 
     this.container = idOrElement
@@ -329,8 +390,138 @@ export default class Viewer {
     this.setFog()
 
     this.animate = this.animate.bind(this)
+
+    this.signals.nextFrame.add(this.updateSpark, this)
   }
 
+  //kkk //
+  beginSpark() {
+    this.sparkSpriteGroup.children.forEach((mesh) => {
+      this.sparkSpriteGroup.remove(mesh);
+    });
+    this.sparkGroup.children.forEach((mesh) => {
+      if(mesh instanceof Group) {}
+      else this.sparkGroup.remove(mesh);
+    });
+    this.spark.reset();
+    this.sparkGroup.visible = false;
+    clearInterval(this.spark.polling);
+    // this.spark.unit.forEach((u)=>{
+    //   u
+    //   .unproject(this.camera)
+    //   .sub(this.translationGroup.position)
+    //   .applyMatrix4(new Matrix4().getInverse(this.rotationGroup.matrix))
+    // });
+  }
+  makeTextSprite(msg:string) {
+    this.spark.makeTextSprite(msg);
+  }
+  //kkk //
+  addSpark(resno: number) {
+    this.modelGroup.children.forEach(group => {
+      if (group.name == 'meshGroup') {
+        let mesh: Mesh = <Mesh>group.children[0];
+        let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
+        if (geometry.name == 'ebase') {
+          let posInfo = geometry.getAttribute('position');
+          let posArray = <Float32Array>posInfo.array;
+          let idInfo = geometry.getAttribute('primitiveId');
+          let idArray = <Float32Array>idInfo.array;
+          var x0 = 0, y0 = 0, z0 = 0;
+          var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+          var count = 0;
+          for (var i = 0; i < idArray.length; i++) {
+            if (idArray[i] == resno) {
+              var x = posArray[i * 3], y = posArray[i * 3 + 1], z = posArray[i * 3 + 2];
+              x0 += x;
+              y0 += y;
+              z0 += z;
+              if(x > maxX) maxX = x;
+              if(y > maxY) maxY = y;
+              if(z > maxZ) maxZ = z;
+              count++;
+            }
+          }
+          x0 /= count;
+          y0 /= count;
+          z0 /= count;
+          var R = Math.sqrt((maxX-x0)*(maxX-x0) + (maxY-y0)*(maxY-y0) + (maxZ-z0)*(maxZ-z0));
+
+          for(var i=0;i<4;i++) {
+            const sprite = new Sprite(this.spark.material);
+            sprite.position.set( x0, y0, z0);
+            sprite.name = i+'';
+            sprite.scale.set(R, R, 1.0 );
+            this.spark.sparkArray.push(sprite);
+          } 
+          // const sprite = new Sprite(this.spark.material);
+					// sprite.position.set( x0, y0, z0);
+          // var n = Math.floor(Math.random()*400);
+          // sprite.name = (n%4)+'';
+					// sprite.scale.set(R, R, 1.0 );
+          // this.spark.sparkArray.push(sprite);
+
+          this.spark.size = Math.max(this.spark.size, R);
+        }
+      }
+    });
+  }
+  //kkk //
+  endSpark(period:number) {
+    // console.log('end spark = ', period); 
+    this.spark.counter = 0;
+    this.spark.period = period;   
+    var count = 0;
+    this.spark.sparkArray.forEach((m)=>{
+      this.spark.center.add(m.position);
+      this.sparkSpriteGroup.add(m);
+      count++;
+    });
+    this.spark.center.divideScalar(count);
+    // if(this.spark.textSprite) {
+    //   this.sparkGroup.add(this.spark.textSprite);
+    //   this.spark.textSprite.position.set(this.spark.center.x, this.spark.center.y, this.spark.center.z)
+    //   console.log('xxxxxxxxxx', this.spark.center);
+    // }
+    this.sparkGroup.visible = true;
+    this.requestRender();
+    this.spark.polling = setInterval(()=>{
+      this.requestRender();
+    }, 1);
+  }
+
+  updateSpark() {
+    if (this.sparkGroup.visible) {
+      var opacity = 1.0;
+      if(this.spark.counter<this.spark.period)
+        opacity = 1.0 - this.spark.counter/this.spark.period;
+
+      this.sparkSpriteGroup.children.forEach((obj) => {
+        if(obj.visible) {
+          var delta = (this.spark.size/4)*(this.spark.period-this.spark.counter)/this.spark.period;
+          var i = parseInt(obj.name, 10);
+          obj.translateOnAxis(this.spark.unit[i], delta);
+          var p2 = this.stage.viewerControls.getPositionOnCanvas(obj.position);
+          if(p2.x<0 || p2.x>this.width || p2.y<0 || p2.y > this.height) {
+            obj.visible = false;
+          }
+          var sprite = <Sprite>obj;
+          sprite.material.opacity = opacity;
+					sprite.scale.set(this.spark.size,this.spark.size, 1.0 );
+        }
+      });
+      // this.spark.textSprite?.scale.set(10,2,1);
+  
+      this.spark.counter++;
+      if(this.spark.counter >= this.spark.period) {
+        this.sparkGroup.visible = false;
+        // console.log('updateSpark --- ', this.spark.counter, this.spark.period);
+        this.spark.reset();
+        clearInterval(this.spark.polling);
+      }
+      this.requestRender();
+    }
+  }
   //kkk //setPosition
   setPosition(x:number, y:number) {
     this.left = x;
@@ -445,6 +636,13 @@ export default class Viewer {
     this.modelGroup.name = 'modelGroup'
     this.rotationGroup.add(this.modelGroup)
 
+    //kkk
+    this.sparkGroup = new Group()
+    this.sparkGroup.name = 'spark'
+    this.sparkSpriteGroup = new Group();
+    this.sparkGroup.add(this.sparkSpriteGroup);
+    this.modelGroup.add(this.sparkGroup);
+    this.sparkGroup.visible = false;
     //kkk
     this.selectGroup = new Group()
     this.selectGroup.name = 'selectGroup'
@@ -668,7 +866,7 @@ export default class Viewer {
         });
         this.requestRender();
       }
-    }, 500)
+    }, 500);
   }
 
   private _initHelper() {
@@ -1569,7 +1767,7 @@ export default class Viewer {
     this.composer.render();
     // this.renderer.render(this.scene, camera)
     this.renderer.setRenderTarget(null) // set back to default canvas
-    this.updateInfo()
+    this.updateInfo();
   }
 
   private __renderSuperSample(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
@@ -1665,6 +1863,7 @@ export default class Viewer {
       //kkk
       if(this.pixiCallback) {
         this.signals.rendered.dispatch()
+        this.signals.nextFrame.dispatch() 
         this.pixiCallback(this.renderer.domElement, this.width, this.height)
       }
     } 
@@ -1673,6 +1872,7 @@ export default class Viewer {
       //kkk
       if(this.pixiCallback) {
         this.signals.rendered.dispatch()
+        this.signals.nextFrame.dispatch()
         this.pixiCallback(this.renderer.domElement, this.width, this.height)
       }
     }

@@ -58051,6 +58051,56 @@
           }
       }
   }
+  var Spark = function Spark() {
+        this.sparkArray = [];
+        this.textSprite = null;
+        this.size = 0;
+        this.counter = 0;
+        this.period = 0;
+        this.unit = [
+            new three.Vector3(1, 0, 0), new three.Vector3(-1, 0, 0),
+            new three.Vector3(0, 1, 0), new three.Vector3(0, -1, 0)
+        ];
+    };
+    Spark.prototype.reset = function reset () {
+        this.sparkArray.forEach(function (m) {
+            m.geometry.dispose();
+        });
+        this.sparkArray = [];
+        this.material.opacity = 1.0;
+        this.counter = 0;
+        this.period = 0;
+        this.center = new three.Vector3(0, 0, 0);
+        this.size = 0;
+        this.unit = [
+            new three.Vector3(1, 0, 0), new three.Vector3(-1, 0, 0),
+            new three.Vector3(0, 1, 0), new three.Vector3(0, -1, 0)
+        ];
+        this.textSprite = null;
+    };
+    Spark.prototype.setURL = function setURL (url1) {
+        var textureLoader = new three.TextureLoader();
+        var map1 = textureLoader.load(url1);
+        this.material = new three.SpriteMaterial({ map: map1, color: 0xffffff, fog: true });
+    };
+    Spark.prototype.makeTextSprite = function makeTextSprite (message) {
+        var fontface = "Arial";
+        var fontsize = 100;
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        if (!context)
+            { return; }
+        context.font = "Bold " + fontsize + "px " + fontface;
+        context.fillStyle = "white";
+        context.fillText(message, 0, fontsize);
+        var texture = new three.Texture(canvas);
+        texture.needsUpdate = true;
+        var spriteMaterial = new three.SpriteMaterial({ map: texture, color: 0xFFFFFF, fog: true });
+        var sprite = new three.Sprite(spriteMaterial);
+        var scale = 1; //10/metrics.width;
+        sprite.scale.set(10, 2, 1 * scale);
+        this.textSprite = sprite;
+    };
   //kkk
   /**
    * Viewer class
@@ -58071,6 +58121,7 @@
             weakColor: 0x546986,
             zeroColor: 0xC0C0C0,
         }; //kkk
+        this.spark = new Spark();
         this.boundingBox = new three.Box3();
         this.boundingBoxSize = new three.Vector3();
         this.boundingBoxLength = 0;
@@ -58094,7 +58145,8 @@
         this.stage = stage; //kkk
         this.signals = {
             ticked: new signalsWrapper.Signal(),
-            rendered: new signalsWrapper.Signal()
+            rendered: new signalsWrapper.Signal(),
+            nextFrame: new signalsWrapper.Signal()
         };
         this.container = idOrElement;
         this.pixiCallback = pixiCallback;
@@ -58123,9 +58175,145 @@
         this.setBackground();
         this.setFog();
         this.animate = this.animate.bind(this);
+        this.signals.nextFrame.add(this.updateSpark, this);
     };
 
   var prototypeAccessors$x = { cameraDistance: { configurable: true } };
+    //kkk //
+    Viewer.prototype.beginSpark = function beginSpark () {
+          var this$1$1 = this;
+
+        this.sparkSpriteGroup.children.forEach(function (mesh) {
+            this$1$1.sparkSpriteGroup.remove(mesh);
+        });
+        this.sparkGroup.children.forEach(function (mesh) {
+            if (mesh instanceof three.Group) ;
+            else
+                { this$1$1.sparkGroup.remove(mesh); }
+        });
+        this.spark.reset();
+        this.sparkGroup.visible = false;
+        clearInterval(this.spark.polling);
+        // this.spark.unit.forEach((u)=>{
+        // u
+        // .unproject(this.camera)
+        // .sub(this.translationGroup.position)
+        // .applyMatrix4(new Matrix4().getInverse(this.rotationGroup.matrix))
+        // });
+    };
+    Viewer.prototype.makeTextSprite = function makeTextSprite (msg) {
+        this.spark.makeTextSprite(msg);
+    };
+    //kkk //
+    Viewer.prototype.addSpark = function addSpark (resno) {
+          var this$1$1 = this;
+
+        this.modelGroup.children.forEach(function (group) {
+            if (group.name == 'meshGroup') {
+                var mesh = group.children[0];
+                var geometry = mesh.geometry;
+                if (geometry.name == 'ebase') {
+                    var posInfo = geometry.getAttribute('position');
+                    var posArray = posInfo.array;
+                    var idInfo = geometry.getAttribute('primitiveId');
+                    var idArray = idInfo.array;
+                    var x0 = 0, y0 = 0, z0 = 0;
+                    var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+                    var count = 0;
+                    for (var i = 0; i < idArray.length; i++) {
+                        if (idArray[i] == resno) {
+                            var x = posArray[i * 3], y = posArray[i * 3 + 1], z = posArray[i * 3 + 2];
+                            x0 += x;
+                            y0 += y;
+                            z0 += z;
+                            if (x > maxX)
+                                { maxX = x; }
+                            if (y > maxY)
+                                { maxY = y; }
+                            if (z > maxZ)
+                                { maxZ = z; }
+                            count++;
+                        }
+                    }
+                    x0 /= count;
+                    y0 /= count;
+                    z0 /= count;
+                    var R = Math.sqrt((maxX - x0) * (maxX - x0) + (maxY - y0) * (maxY - y0) + (maxZ - z0) * (maxZ - z0));
+                    for (var i = 0; i < 4; i++) {
+                        var sprite = new three.Sprite(this$1$1.spark.material);
+                        sprite.position.set(x0, y0, z0);
+                        sprite.name = i + '';
+                        sprite.scale.set(R, R, 1.0);
+                        this$1$1.spark.sparkArray.push(sprite);
+                    }
+                    // const sprite = new Sprite(this.spark.material);
+                    // sprite.position.set( x0, y0, z0);
+                    // var n = Math.floor(Math.random()*400);
+                    // sprite.name = (n%4)+'';
+                    // sprite.scale.set(R, R, 1.0 );
+                    // this.spark.sparkArray.push(sprite);
+                    this$1$1.spark.size = Math.max(this$1$1.spark.size, R);
+                }
+            }
+        });
+    };
+    //kkk //
+    Viewer.prototype.endSpark = function endSpark (period) {
+          var this$1$1 = this;
+
+        // console.log('end spark = ', period); 
+        this.spark.counter = 0;
+        this.spark.period = period;
+        var count = 0;
+        this.spark.sparkArray.forEach(function (m) {
+            this$1$1.spark.center.add(m.position);
+            this$1$1.sparkSpriteGroup.add(m);
+            count++;
+        });
+        this.spark.center.divideScalar(count);
+        // if(this.spark.textSprite) {
+        // this.sparkGroup.add(this.spark.textSprite);
+        // this.spark.textSprite.position.set(this.spark.center.x, this.spark.center.y, this.spark.center.z)
+        // console.log('xxxxxxxxxx', this.spark.center);
+        // }
+        this.sparkGroup.visible = true;
+        this.requestRender();
+        this.spark.polling = setInterval(function () {
+            this$1$1.requestRender();
+        }, 1);
+    };
+    Viewer.prototype.updateSpark = function updateSpark () {
+          var this$1$1 = this;
+
+        if (this.sparkGroup.visible) {
+            var opacity = 1.0;
+            if (this.spark.counter < this.spark.period)
+                { opacity = 1.0 - this.spark.counter / this.spark.period; }
+            this.sparkSpriteGroup.children.forEach(function (obj) {
+                if (obj.visible) {
+                    var delta = (this$1$1.spark.size / 4) * (this$1$1.spark.period - this$1$1.spark.counter) / this$1$1.spark.period;
+                    var i = parseInt(obj.name, 10);
+                    obj.translateOnAxis(this$1$1.spark.unit[i], delta);
+                    var p2 = this$1$1.stage.viewerControls.getPositionOnCanvas(obj.position);
+                    if (p2.x < 0 || p2.x > this$1$1.width || p2.y < 0 || p2.y > this$1$1.height) {
+                        obj.visible = false;
+                    }
+                    var sprite = obj;
+                    sprite.material.opacity = opacity;
+                    sprite.scale.set(this$1$1.spark.size, this$1$1.spark.size, 1.0);
+                }
+            });
+            // this.spark.textSprite?.scale.set(10,2,1);
+            this.spark.counter++;
+            if (this.spark.counter >= this.spark.period) {
+                this.sparkGroup.visible = false;
+                // console.log('updateSpark --- ', this.spark.counter, this.spark.period);
+                this.spark.reset();
+                clearInterval(this.spark.polling);
+            }
+            this.requestRender();
+        }
+    };
     //kkk //setPosition
     Viewer.prototype.setPosition = function setPosition (x, y) {
         this.left = x;
@@ -58222,6 +58410,13 @@
         this.modelGroup = new three.Group();
         this.modelGroup.name = 'modelGroup';
         this.rotationGroup.add(this.modelGroup);
+        //kkk
+        this.sparkGroup = new three.Group();
+        this.sparkGroup.name = 'spark';
+        this.sparkSpriteGroup = new three.Group();
+        this.sparkGroup.add(this.sparkSpriteGroup);
+        this.modelGroup.add(this.sparkGroup);
+        this.sparkGroup.visible = false;
         //kkk
         this.selectGroup = new three.Group();
         this.selectGroup.name = 'selectGroup';
@@ -59305,6 +59500,7 @@
             //kkk
             if (this.pixiCallback) {
                 this.signals.rendered.dispatch();
+                this.signals.nextFrame.dispatch();
                 this.pixiCallback(this.renderer.domElement, this.width, this.height);
             }
         }
@@ -59313,6 +59509,7 @@
             //kkk
             if (this.pixiCallback) {
                 this.signals.rendered.dispatch();
+                this.signals.nextFrame.dispatch();
                 this.pixiCallback(this.renderer.domElement, this.width, this.height);
             }
         }

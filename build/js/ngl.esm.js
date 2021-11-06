@@ -1,5 +1,5 @@
 import _Promise from 'promise-polyfill';
-import { Vector2 as Vector2$1, Vector3 as Vector3$1, Matrix4 as Matrix4$1, Quaternion as Quaternion$1, Color as Color$1, ShaderChunk as ShaderChunk$1, Points as Points$1, Box3 as Box3$1, LinearEncoding as LinearEncoding$1, PerspectiveCamera as PerspectiveCamera$1, OrthographicCamera as OrthographicCamera$1, StereoCamera as StereoCamera$1, Scene as Scene$1, Group as Group$1, Fog as Fog$1, SpotLight as SpotLight$1, AmbientLight as AmbientLight$1, WebGLRenderer as WebGLRenderer$1, WebGLRenderTarget as WebGLRenderTarget$1, NearestFilter as NearestFilter$1, RGBAFormat as RGBAFormat$1, UnsignedByteType as UnsignedByteType$1, LinearFilter as LinearFilter$1, Uniform as Uniform$1, ShaderMaterial as ShaderMaterial$1, AdditiveBlending as AdditiveBlending$1, Mesh as Mesh$1, PlaneGeometry as PlaneGeometry$1, BufferGeometry as BufferGeometry$1, BufferAttribute as BufferAttribute$1, LineSegments as LineSegments$1, MeshBasicMaterial as MeshBasicMaterial$1, sRGBEncoding as sRGBEncoding$1, FloatType as FloatType$1, Geometry as Geometry$1, Matrix3 as Matrix3$1, UniformsUtils as UniformsUtils$1, UniformsLib as UniformsLib$1, NoBlending as NoBlending$1, FrontSide as FrontSide$1, BackSide as BackSide$1, DoubleSide as DoubleSide$1, IcosahedronBufferGeometry as IcosahedronBufferGeometry$1, DataTexture as DataTexture$1, NormalBlending as NormalBlending$1, Euler as Euler$1, CanvasTexture as CanvasTexture$1, CylinderBufferGeometry as CylinderBufferGeometry$1, ConeBufferGeometry as ConeBufferGeometry$1, BoxBufferGeometry as BoxBufferGeometry$1, OctahedronBufferGeometry as OctahedronBufferGeometry$1, TetrahedronBufferGeometry as TetrahedronBufferGeometry$1, TorusBufferGeometry as TorusBufferGeometry$1, Face3 as Face3$1 } from 'three';
+import { Vector2 as Vector2$1, Vector3 as Vector3$1, Matrix4 as Matrix4$1, Quaternion as Quaternion$1, Color as Color$1, ShaderChunk as ShaderChunk$1, Points as Points$1, Box3 as Box3$1, Group as Group$1, Sprite as Sprite$1, LinearEncoding as LinearEncoding$1, PerspectiveCamera as PerspectiveCamera$1, OrthographicCamera as OrthographicCamera$1, StereoCamera as StereoCamera$1, Scene as Scene$1, Fog as Fog$1, SpotLight as SpotLight$1, AmbientLight as AmbientLight$1, WebGLRenderer as WebGLRenderer$1, WebGLRenderTarget as WebGLRenderTarget$1, NearestFilter as NearestFilter$1, RGBAFormat as RGBAFormat$1, UnsignedByteType as UnsignedByteType$1, LinearFilter as LinearFilter$1, Uniform as Uniform$1, ShaderMaterial as ShaderMaterial$1, AdditiveBlending as AdditiveBlending$1, Mesh as Mesh$1, PlaneGeometry as PlaneGeometry$1, BufferGeometry as BufferGeometry$1, BufferAttribute as BufferAttribute$1, LineSegments as LineSegments$1, MeshBasicMaterial as MeshBasicMaterial$1, sRGBEncoding as sRGBEncoding$1, TextureLoader as TextureLoader$1, SpriteMaterial as SpriteMaterial$1, Texture as Texture$1, FloatType as FloatType$1, Geometry as Geometry$1, Matrix3 as Matrix3$1, UniformsUtils as UniformsUtils$1, UniformsLib as UniformsLib$1, NoBlending as NoBlending$1, FrontSide as FrontSide$1, BackSide as BackSide$1, DoubleSide as DoubleSide$1, IcosahedronBufferGeometry as IcosahedronBufferGeometry$1, DataTexture as DataTexture$1, NormalBlending as NormalBlending$1, Euler as Euler$1, CanvasTexture as CanvasTexture$1, CylinderBufferGeometry as CylinderBufferGeometry$1, ConeBufferGeometry as ConeBufferGeometry$1, BoxBufferGeometry as BoxBufferGeometry$1, OctahedronBufferGeometry as OctahedronBufferGeometry$1, TetrahedronBufferGeometry as TetrahedronBufferGeometry$1, TorusBufferGeometry as TorusBufferGeometry$1, Face3 as Face3$1 } from 'three';
 export { Box3, Color, Euler, Matrix3, Matrix4, Plane, Quaternion, Vector2, Vector3 } from 'three';
 import * as chroma from 'chroma-js';
 import * as signalsWrapper from 'signals';
@@ -58028,6 +58028,56 @@ function onBeforeRender(renderer, scene, camera, geometry, material /*, group */
         }
     }
 }
+var Spark = function Spark() {
+      this.sparkArray = [];
+      this.textSprite = null;
+      this.size = 0;
+      this.counter = 0;
+      this.period = 0;
+      this.unit = [
+          new Vector3$1(1, 0, 0), new Vector3$1(-1, 0, 0),
+          new Vector3$1(0, 1, 0), new Vector3$1(0, -1, 0)
+      ];
+  };
+  Spark.prototype.reset = function reset () {
+      this.sparkArray.forEach(function (m) {
+          m.geometry.dispose();
+      });
+      this.sparkArray = [];
+      this.material.opacity = 1.0;
+      this.counter = 0;
+      this.period = 0;
+      this.center = new Vector3$1(0, 0, 0);
+      this.size = 0;
+      this.unit = [
+          new Vector3$1(1, 0, 0), new Vector3$1(-1, 0, 0),
+          new Vector3$1(0, 1, 0), new Vector3$1(0, -1, 0)
+      ];
+      this.textSprite = null;
+  };
+  Spark.prototype.setURL = function setURL (url1) {
+      var textureLoader = new TextureLoader$1();
+      var map1 = textureLoader.load(url1);
+      this.material = new SpriteMaterial$1({ map: map1, color: 0xffffff, fog: true });
+  };
+  Spark.prototype.makeTextSprite = function makeTextSprite (message) {
+      var fontface = "Arial";
+      var fontsize = 100;
+      var canvas = document.createElement('canvas');
+      var context = canvas.getContext('2d');
+      if (!context)
+          { return; }
+      context.font = "Bold " + fontsize + "px " + fontface;
+      context.fillStyle = "white";
+      context.fillText(message, 0, fontsize);
+      var texture = new Texture$1(canvas);
+      texture.needsUpdate = true;
+      var spriteMaterial = new SpriteMaterial$1({ map: texture, color: 0xFFFFFF, fog: true });
+      var sprite = new Sprite$1(spriteMaterial);
+      var scale = 1; //10/metrics.width;
+      sprite.scale.set(10, 2, 1 * scale);
+      this.textSprite = sprite;
+  };
 //kkk
 /**
  * Viewer class
@@ -58048,6 +58098,7 @@ var Viewer = function Viewer(idOrElement, stage, pixiCallback) {
           weakColor: 0x546986,
           zeroColor: 0xC0C0C0,
       }; //kkk
+      this.spark = new Spark();
       this.boundingBox = new Box3$1();
       this.boundingBoxSize = new Vector3$1();
       this.boundingBoxLength = 0;
@@ -58071,7 +58122,8 @@ var Viewer = function Viewer(idOrElement, stage, pixiCallback) {
       this.stage = stage; //kkk
       this.signals = {
           ticked: new Signal(),
-          rendered: new Signal()
+          rendered: new Signal(),
+          nextFrame: new Signal()
       };
       this.container = idOrElement;
       this.pixiCallback = pixiCallback;
@@ -58100,9 +58152,145 @@ var Viewer = function Viewer(idOrElement, stage, pixiCallback) {
       this.setBackground();
       this.setFog();
       this.animate = this.animate.bind(this);
+      this.signals.nextFrame.add(this.updateSpark, this);
   };
 
 var prototypeAccessors$x = { cameraDistance: { configurable: true } };
+  //kkk //
+  Viewer.prototype.beginSpark = function beginSpark () {
+        var this$1$1 = this;
+
+      this.sparkSpriteGroup.children.forEach(function (mesh) {
+          this$1$1.sparkSpriteGroup.remove(mesh);
+      });
+      this.sparkGroup.children.forEach(function (mesh) {
+          if (mesh instanceof Group$1) ;
+          else
+              { this$1$1.sparkGroup.remove(mesh); }
+      });
+      this.spark.reset();
+      this.sparkGroup.visible = false;
+      clearInterval(this.spark.polling);
+      // this.spark.unit.forEach((u)=>{
+      // u
+      // .unproject(this.camera)
+      // .sub(this.translationGroup.position)
+      // .applyMatrix4(new Matrix4().getInverse(this.rotationGroup.matrix))
+      // });
+  };
+  Viewer.prototype.makeTextSprite = function makeTextSprite (msg) {
+      this.spark.makeTextSprite(msg);
+  };
+  //kkk //
+  Viewer.prototype.addSpark = function addSpark (resno) {
+        var this$1$1 = this;
+
+      this.modelGroup.children.forEach(function (group) {
+          if (group.name == 'meshGroup') {
+              var mesh = group.children[0];
+              var geometry = mesh.geometry;
+              if (geometry.name == 'ebase') {
+                  var posInfo = geometry.getAttribute('position');
+                  var posArray = posInfo.array;
+                  var idInfo = geometry.getAttribute('primitiveId');
+                  var idArray = idInfo.array;
+                  var x0 = 0, y0 = 0, z0 = 0;
+                  var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+                  var count = 0;
+                  for (var i = 0; i < idArray.length; i++) {
+                      if (idArray[i] == resno) {
+                          var x = posArray[i * 3], y = posArray[i * 3 + 1], z = posArray[i * 3 + 2];
+                          x0 += x;
+                          y0 += y;
+                          z0 += z;
+                          if (x > maxX)
+                              { maxX = x; }
+                          if (y > maxY)
+                              { maxY = y; }
+                          if (z > maxZ)
+                              { maxZ = z; }
+                          count++;
+                      }
+                  }
+                  x0 /= count;
+                  y0 /= count;
+                  z0 /= count;
+                  var R = Math.sqrt((maxX - x0) * (maxX - x0) + (maxY - y0) * (maxY - y0) + (maxZ - z0) * (maxZ - z0));
+                  for (var i = 0; i < 4; i++) {
+                      var sprite = new Sprite$1(this$1$1.spark.material);
+                      sprite.position.set(x0, y0, z0);
+                      sprite.name = i + '';
+                      sprite.scale.set(R, R, 1.0);
+                      this$1$1.spark.sparkArray.push(sprite);
+                  }
+                  // const sprite = new Sprite(this.spark.material);
+                  // sprite.position.set( x0, y0, z0);
+                  // var n = Math.floor(Math.random()*400);
+                  // sprite.name = (n%4)+'';
+                  // sprite.scale.set(R, R, 1.0 );
+                  // this.spark.sparkArray.push(sprite);
+                  this$1$1.spark.size = Math.max(this$1$1.spark.size, R);
+              }
+          }
+      });
+  };
+  //kkk //
+  Viewer.prototype.endSpark = function endSpark (period) {
+        var this$1$1 = this;
+
+      // console.log('end spark = ', period); 
+      this.spark.counter = 0;
+      this.spark.period = period;
+      var count = 0;
+      this.spark.sparkArray.forEach(function (m) {
+          this$1$1.spark.center.add(m.position);
+          this$1$1.sparkSpriteGroup.add(m);
+          count++;
+      });
+      this.spark.center.divideScalar(count);
+      // if(this.spark.textSprite) {
+      // this.sparkGroup.add(this.spark.textSprite);
+      // this.spark.textSprite.position.set(this.spark.center.x, this.spark.center.y, this.spark.center.z)
+      // console.log('xxxxxxxxxx', this.spark.center);
+      // }
+      this.sparkGroup.visible = true;
+      this.requestRender();
+      this.spark.polling = setInterval(function () {
+          this$1$1.requestRender();
+      }, 1);
+  };
+  Viewer.prototype.updateSpark = function updateSpark () {
+        var this$1$1 = this;
+
+      if (this.sparkGroup.visible) {
+          var opacity = 1.0;
+          if (this.spark.counter < this.spark.period)
+              { opacity = 1.0 - this.spark.counter / this.spark.period; }
+          this.sparkSpriteGroup.children.forEach(function (obj) {
+              if (obj.visible) {
+                  var delta = (this$1$1.spark.size / 4) * (this$1$1.spark.period - this$1$1.spark.counter) / this$1$1.spark.period;
+                  var i = parseInt(obj.name, 10);
+                  obj.translateOnAxis(this$1$1.spark.unit[i], delta);
+                  var p2 = this$1$1.stage.viewerControls.getPositionOnCanvas(obj.position);
+                  if (p2.x < 0 || p2.x > this$1$1.width || p2.y < 0 || p2.y > this$1$1.height) {
+                      obj.visible = false;
+                  }
+                  var sprite = obj;
+                  sprite.material.opacity = opacity;
+                  sprite.scale.set(this$1$1.spark.size, this$1$1.spark.size, 1.0);
+              }
+          });
+          // this.spark.textSprite?.scale.set(10,2,1);
+          this.spark.counter++;
+          if (this.spark.counter >= this.spark.period) {
+              this.sparkGroup.visible = false;
+              // console.log('updateSpark --- ', this.spark.counter, this.spark.period);
+              this.spark.reset();
+              clearInterval(this.spark.polling);
+          }
+          this.requestRender();
+      }
+  };
   //kkk //setPosition
   Viewer.prototype.setPosition = function setPosition (x, y) {
       this.left = x;
@@ -58199,6 +58387,13 @@ var prototypeAccessors$x = { cameraDistance: { configurable: true } };
       this.modelGroup = new Group$1();
       this.modelGroup.name = 'modelGroup';
       this.rotationGroup.add(this.modelGroup);
+      //kkk
+      this.sparkGroup = new Group$1();
+      this.sparkGroup.name = 'spark';
+      this.sparkSpriteGroup = new Group$1();
+      this.sparkGroup.add(this.sparkSpriteGroup);
+      this.modelGroup.add(this.sparkGroup);
+      this.sparkGroup.visible = false;
       //kkk
       this.selectGroup = new Group$1();
       this.selectGroup.name = 'selectGroup';
@@ -59282,6 +59477,7 @@ var prototypeAccessors$x = { cameraDistance: { configurable: true } };
           //kkk
           if (this.pixiCallback) {
               this.signals.rendered.dispatch();
+              this.signals.nextFrame.dispatch();
               this.pixiCallback(this.renderer.domElement, this.width, this.height);
           }
       }
@@ -59290,6 +59486,7 @@ var prototypeAccessors$x = { cameraDistance: { configurable: true } };
           //kkk
           if (this.pixiCallback) {
               this.signals.rendered.dispatch();
+              this.signals.nextFrame.dispatch();
               this.pixiCallback(this.renderer.domElement, this.width, this.height);
           }
       }

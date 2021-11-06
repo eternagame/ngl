@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * @file Viewer
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -5,7 +6,7 @@
  */
 import { Signal } from 'signals';
 import Stage, { PixiRenderCallback } from '../stage/stage';
-import { PerspectiveCamera, OrthographicCamera, Vector2, Box3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, TextureEncoding } from 'three';
+import { PerspectiveCamera, OrthographicCamera, Vector2, Box3, Vector3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, SpriteMaterial, Sprite, TextureEncoding } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
@@ -21,6 +22,7 @@ export declare type ColorWorkflow = 'linear' | 'sRGB';
 export interface ViewerSignals {
     ticked: Signal;
     rendered: Signal;
+    nextFrame: Signal;
 }
 export interface ViewerParameters {
     fogColor: Color;
@@ -45,6 +47,20 @@ export interface ViewerParameters {
 }
 export interface BufferInstance {
     matrix: Matrix4;
+}
+declare class Spark {
+    sparkArray: Sprite[];
+    textSprite: Sprite | null;
+    size: number;
+    counter: number;
+    period: number;
+    polling: NodeJS.Timeout;
+    unit: Vector3[];
+    material: SpriteMaterial;
+    center: Vector3;
+    reset(): void;
+    setURL(url1: string): void;
+    makeTextSprite(message: string): void;
 }
 /**
  * Viewer class
@@ -79,6 +95,8 @@ export default class Viewer {
     private selectGroup;
     private selectGroup2;
     private markGroup;
+    private sparkGroup;
+    private sparkSpriteGroup;
     private pickingGroup;
     private backgroundGroup;
     private helperGroup;
@@ -91,6 +109,7 @@ export default class Viewer {
     flashCount: number;
     baseColor: number;
     ethernaMode: any;
+    spark: Spark;
     private supportsHalfFloat;
     private pickingTarget;
     private sampleTarget;
@@ -111,6 +130,11 @@ export default class Viewer {
     fromOuter: boolean;
     pixiCallback: PixiRenderCallback | undefined;
     constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined);
+    beginSpark(): void;
+    makeTextSprite(msg: string): void;
+    addSpark(resno: number): void;
+    endSpark(period: number): void;
+    updateSpark(): void;
     setPosition(x: number, y: number): void;
     setEthernaPairs(pairs: number[] | undefined): void;
     setEthernaSequence(sequence: string, num: number): void;
@@ -210,3 +234,4 @@ export default class Viewer {
     isPointInBoundBox(x: number, y: number, bEulerSys?: boolean): boolean;
     getWebGLCanvas(): HTMLCanvasElement;
 }
+export {};
