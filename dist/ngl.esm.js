@@ -65206,40 +65206,6 @@
    * @private
    */
   /**
-   * Representation parameter object.
-   * @typedef {Object} RepresentationParameters - representation parameters
-   * @property {Boolean} [lazy] - only build & update the representation when visible
-   *                            otherwise defer changes until set visible again
-   * @property {Integer} [clipNear] - position of camera near/front clipping plane
-   *                                in percent of scene bounding box
-   * @property {Integer} [clipRadius] - radius of clipping sphere
-   * @property {Vector3} [clipCenter] - position of for spherical clipping
-   * @property {Boolean} [flatShaded] - render flat shaded
-   * @property {Float} [opacity] - translucency: 1 is fully opaque, 0 is fully transparent
-   * @property {Boolean} [depthWrite] - depth write
-   * @property {String} [side] - which triangle sides to render, "front" front-side,
-   *                            "back" back-side, "double" front- and back-side
-   * @property {Boolean} [wireframe] - render as wireframe
-   * @property {String} [colorScheme] - color scheme
-   * @property {String} [colorScale] - color scale, either a string for a
-   *                                 predefined scale or an array of
-   *                                 colors to be used as the scale
-   * @property {Boolean} [colorReverse] - reverse color scale
-   * @property {Color} [colorValue] - color value
-   * @property {Integer[]} [colorDomain] - scale value range
-   * @property {Integer} colorDomain.0 - min value
-   * @property {Integer} colorDomain.1 - max value
-   * @property {String} [colorMode] - color mode, one of rgb, hsv, hsl, hsi, lab, hcl
-   * @property {Float} [roughness] - how rough the material is, between 0 and 1
-   * @property {Float} [metalness] - how metallic the material is, between 0 and 1
-   * @property {Color} [diffuse] - diffuse color for lighting
-   * @property {Boolean} [diffuseInterior] - diffuse interior, i.e. ignore normal
-   * @property {Boolean} [useInteriorColor] - use interior color
-   * @property {Color} [interiorColor] - interior color
-   * @property {Float} [interiorDarkening] - interior darkening: 0 no darking, 1 fully darkened
-   * @property {Boolean} [disablePicking] - disable picking
-   */
-  /**
    * Representation object
    * @interface
    * @param {Object} object - the object to be represented
@@ -91688,7 +91654,13 @@
                   majorAxis.push(y);
                   majorAxis.push(z);
                   // console.log('major', x, y, z); 
-                  var annotation = { x: position[i3], y: position[i3 + 1], z: position[i3 + 2], num: i, label: (i + 1) + '' };
+                  var annotation = {
+                      x: position[i3],
+                      y: position[i3 + 1],
+                      z: position[i3 + 2],
+                      num: i,
+                      label: (i + 1) + ''
+                  };
                   this.divAnnotations.push(annotation);
                   var x1, y1, z1, d1;
                   if (bondData.picking && rawBondData.picking) {
@@ -109598,6 +109570,7 @@
 
   exports.ArrowBuffer = ArrowBuffer;
   exports.Assembly = Assembly;
+  exports.AtomProxy = AtomProxy;
   exports.Box3 = Box3;
   exports.BoxBuffer = BoxBuffer;
   exports.BufferRepresentation = BufferRepresentation;
@@ -109634,6 +109607,7 @@
   exports.PointBuffer = PointBuffer;
   exports.Quaternion = Quaternion;
   exports.Queue = Queue;
+  exports.Representation = Representation;
   exports.RepresentationCollection = RepresentationCollection;
   exports.RepresentationElement = RepresentationElement;
   exports.RepresentationRegistry = RepresentationRegistry;

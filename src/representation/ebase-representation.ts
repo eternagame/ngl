@@ -18,6 +18,7 @@ import AtomProxy from '../proxy/atom-proxy';
 import CylinderBuffer, { CylinderBufferData } from '../buffer/cylinder-buffer'
 import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer'
 import ConeBuffer, { ConeBufferData } from '../buffer/cone-buffer'
+import { DivAnnotation } from './representation';
 
 
 /**
@@ -113,7 +114,13 @@ class EBaseRepresentation extends BallAndStickRepresentation {
                 majorAxis.push(z);
                 // console.log('major', x, y, z); 
 
-                const annotation = {x:position[i3], y:position[i3+1], z:position[i3+2], num:i, label: (i+1)+''};
+                const annotation: DivAnnotation = {
+                    x:position[i3], 
+                    y:position[i3+1], 
+                    z:position[i3+2], 
+                    num:i, 
+                    label: (i+1)+''
+                };
                 this.divAnnotations.push(annotation); 
 
                 var x1, y1, z1, d1;

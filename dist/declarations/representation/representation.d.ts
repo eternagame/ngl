@@ -78,6 +78,13 @@ export interface RepresentationParameters {
  * @property {Float} [interiorDarkening] - interior darkening: 0 no darking, 1 fully darkened
  * @property {Boolean} [disablePicking] - disable picking
  */
+export interface DivAnnotation {
+    x: number;
+    y: number;
+    z: number;
+    num: number;
+    label: string;
+}
 /**
  * Representation object
  * @interface
@@ -92,7 +99,7 @@ declare class Representation {
     tasks: Counter;
     private queue;
     bufferList: Buffer[];
-    divAnnotations: any[];
+    divAnnotations: DivAnnotation[];
     lazy: boolean;
     lazyProps: {
         build: boolean;
@@ -134,7 +141,7 @@ declare class Representation {
     protected toBePrepared: boolean;
     [key: string]: any;
     constructor(object: any, viewer: Viewer, params: Partial<RepresentationParameters>);
-    getAnnotations(): any[];
+    getAnnotations(): DivAnnotation[];
     resetAnnotations(): void;
     init(params: Partial<RepresentationParameters>): void;
     getColorParams(p?: {

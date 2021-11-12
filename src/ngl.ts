@@ -26,7 +26,7 @@ import Selection from './selection/selection'
 import PdbWriter from './writer/pdb-writer'
 import SdfWriter from './writer/sdf-writer'
 import StlWriter from './writer/stl-writer'
-import Stage from './stage/stage'
+import Stage, {PixiRenderCallback} from './stage/stage'
 import Viewer from './viewer/viewer'
 import Collection from './component/collection'
 import ComponentCollection from './component/component-collection'
@@ -35,6 +35,7 @@ import ShapeComponent from './component/shape-component'
 import StructureComponent, { StructureRepresentationType } from './component/structure-component'
 import SurfaceComponent from './component/surface-component'
 import VolumeComponent, { VolumeRepresentationType } from './component/volume-component'
+import Representation, {DivAnnotation} from './representation/representation'
 import RepresentationCollection from './component/representation-collection'
 import RepresentationElement from './component/representation-element'
 import Assembly from './symmetry/assembly'
@@ -199,6 +200,7 @@ export { MouseActionCallback } from './controls/mouse-actions'
 import MouseActions from './controls/mouse-actions'
 import KeyActions from './controls/key-actions'
 import PickingProxy from './controls/picking-proxy'
+import AtomProxy from './proxy/atom-proxy'
 
 //
 
@@ -277,5 +279,11 @@ export {
 
   MouseActions,
   KeyActions,
-  PickingProxy
+  PickingProxy,
+
+  // kkk
+  AtomProxy,
+  Representation, 
+  DivAnnotation,
+  PixiRenderCallback,
 }
