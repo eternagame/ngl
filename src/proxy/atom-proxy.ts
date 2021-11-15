@@ -29,7 +29,6 @@ import ResidueType from '../store/residue-type';
 import ResidueProxy from './residue-proxy';
 import Entity from '../structure/entity';
 import BondHash from '../store/bond-hash';
-import { defaults } from '../utils' //kkk
 
 /**
  * Atom proxy
@@ -157,7 +156,7 @@ class AtomProxy {
   get resname() {
     return this.residueType.resname
   }
-  //kkk //set resname 
+
   set resname(name) {
     this.residueType.resname = name;
   }
@@ -411,30 +410,6 @@ class AtomProxy {
     } else {
       return false
     }
-  }
-
-  //kkk
-  //decide whether the atom is in sugar section.
-  isSugarAtom() {
-    return this.atomname.includes("'") || this.atomname.includes("*");
-  }
-  //kkk
-  //decide whether the atom is in sugar back bone.
-  isSugarBondAtom() {
-    return this.atomname.includes("C5'") || this.atomname.includes("C5*") || this.atomname.includes("O5'") || this.atomname.includes("O5*") ||
-      this.atomname.includes("C4'") || this.atomname.includes("C4*") || this.atomname.includes("O4'") || this.atomname.includes("O4*") ||
-      this.atomname.includes("C3'") || this.atomname.includes("C3*") || this.atomname.includes("O3'") || this.atomname.includes("O3*");
-  }
-  //kkk
-  //decide whether the atom is in sugar back bone.
-  isExtCandidate(bExtSugar?: boolean): boolean {
-    var bExt: boolean = defaults(bExtSugar, true);
-    if (this.isBackbone()) {
-      if (bExt && this.isSugarAtom() && !this.isSugarBondAtom())
-        return false;
-      else return true;
-    }
-    return false;
   }
 
   /**
@@ -792,7 +767,6 @@ class AtomProxy {
     return connectedAtomIndices
   }
 
-  //kkk
   qualifiedName(noResname = false) {
     var name = ''
     if (this.resname && !noResname) name += '[' + this.resname + ']'

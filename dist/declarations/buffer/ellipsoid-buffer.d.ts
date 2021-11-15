@@ -10,7 +10,6 @@ export interface EllipsoidBufferData extends BufferData {
     majorAxis: Float32Array;
     minorAxis: Float32Array;
     radius: Float32Array;
-    vScale: number;
 }
 export declare const EllipsoidBufferDefaultParameters: {
     sphereDetail: number;
@@ -81,7 +80,6 @@ declare class EllipsoidBuffer extends GeometryBuffer {
     _majorAxis: Float32Array;
     _minorAxis: Float32Array;
     _radius: Float32Array;
-    _vScale: number;
     constructor(data: EllipsoidBufferData, params?: Partial<EllipsoidBufferParameters>);
     applyPositionTransform(matrix: Matrix4, i: number, i3: number): void;
     setAttributes(data?: Partial<EllipsoidBufferData>, initNormals?: boolean): void;

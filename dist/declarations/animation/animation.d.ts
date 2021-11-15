@@ -93,12 +93,6 @@ export declare class MoveAnimation extends Animation {
     _init(moveFrom: number[] | Vector3, moveTo: number[] | Vector3): void;
     _tick(): void;
 }
-export declare class MoveAnimation2 extends Animation {
-    moveFrom: Vector3;
-    moveTo: Vector3;
-    _init(moveFrom: number[] | Vector3, moveTo: number[] | Vector3): void;
-    _tick(): void;
-}
 /**
  * Zoom animation. Gradually change the zoom level.
  */

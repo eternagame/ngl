@@ -58226,2395 +58226,6 @@
       this.signals.countChanged.dispose();
   };
 
-  /**
-   * @author alteredq / http://alteredqualia.com/
-   *
-   * Full-screen textured quad shader
-   */
-
-
-
-  var CopyShader = {
-
-  	uniforms: {
-
-  		"tDiffuse": { value: null },
-  		"opacity": { value: 1.0 }
-
-  	},
-
-  	vertexShader: [
-
-  		"varying vec2 vUv;",
-
-  		"void main() {",
-
-  		"	vUv = uv;",
-  		"	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
-
-  		"}"
-
-  	].join( "\n" ),
-
-  	fragmentShader: [
-
-  		"uniform float opacity;",
-
-  		"uniform sampler2D tDiffuse;",
-
-  		"varying vec2 vUv;",
-
-  		"void main() {",
-
-  		"	vec4 texel = texture2D( tDiffuse, vUv );",
-  		"	gl_FragColor = opacity * texel;",
-
-  		"}"
-
-  	].join( "\n" )
-
-  };
-
-  function Pass$1() {
-
-  	// if set to true, the pass is processed by the composer
-  	this.enabled = true;
-
-  	// if set to true, the pass indicates to swap read and write buffer after rendering
-  	this.needsSwap = true;
-
-  	// if set to true, the pass clears its buffer before rendering
-  	this.clear = false;
-
-  	// if set to true, the result of the pass is rendered to screen. This is set automatically by EffectComposer.
-  	this.renderToScreen = false;
-
-  }
-
-  Object.assign( Pass$1.prototype, {
-
-  	setSize: function ( /* width, height */ ) {},
-
-  	render: function ( /* renderer, writeBuffer, readBuffer, deltaTime, maskActive */ ) {
-
-  		console.error( 'THREE.Pass: .render() must be implemented in derived pass.' );
-
-  	}
-
-  } );
-
-  // Helper for passes that need to fill the viewport with a single quad.
-
-  Pass$1.FullScreenQuad = ( function () {
-
-  	var camera = new OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
-  	var geometry = new PlaneBufferGeometry( 2, 2 );
-
-  	var FullScreenQuad = function ( material ) {
-
-  		this._mesh = new Mesh( geometry, material );
-
-  	};
-
-  	Object.defineProperty( FullScreenQuad.prototype, 'material', {
-
-  		get: function () {
-
-  			return this._mesh.material;
-
-  		},
-
-  		set: function ( value ) {
-
-  			this._mesh.material = value;
-
-  		}
-
-  	} );
-
-  	Object.assign( FullScreenQuad.prototype, {
-
-  		dispose: function () {
-
-  			this._mesh.geometry.dispose();
-
-  		},
-
-  		render: function ( renderer ) {
-
-  			renderer.render( this._mesh, camera );
-
-  		}
-
-  	} );
-
-  	return FullScreenQuad;
-
-  } )();
-
-  /**
-   * @author alteredq / http://alteredqualia.com/
-   */
-
-  var ShaderPass = function ( shader, textureID ) {
-
-  	Pass$1.call( this );
-
-  	this.textureID = ( textureID !== undefined ) ? textureID : "tDiffuse";
-
-  	if ( shader instanceof ShaderMaterial ) {
-
-  		this.uniforms = shader.uniforms;
-
-  		this.material = shader;
-
-  	} else if ( shader ) {
-
-  		this.uniforms = UniformsUtils.clone( shader.uniforms );
-
-  		this.material = new ShaderMaterial( {
-
-  			defines: Object.assign( {}, shader.defines ),
-  			uniforms: this.uniforms,
-  			vertexShader: shader.vertexShader,
-  			fragmentShader: shader.fragmentShader
-
-  		} );
-
-  	}
-
-  	this.fsQuad = new Pass$1.FullScreenQuad( this.material );
-
-  };
-
-  ShaderPass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
-
-  	constructor: ShaderPass,
-
-  	render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
-
-  		if ( this.uniforms[ this.textureID ] ) {
-
-  			this.uniforms[ this.textureID ].value = readBuffer.texture;
-
-  		}
-
-  		this.fsQuad.material = this.material;
-
-  		if ( this.renderToScreen ) {
-
-  			renderer.setRenderTarget( null );
-  			this.fsQuad.render( renderer );
-
-  		} else {
-
-  			renderer.setRenderTarget( writeBuffer );
-  			// TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
-  			if ( this.clear ) { renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil ); }
-  			this.fsQuad.render( renderer );
-
-  		}
-
-  	}
-
-  } );
-
-  /**
-   * @author alteredq / http://alteredqualia.com/
-   */
-
-  var MaskPass = function ( scene, camera ) {
-
-  	Pass$1.call( this );
-
-  	this.scene = scene;
-  	this.camera = camera;
-
-  	this.clear = true;
-  	this.needsSwap = false;
-
-  	this.inverse = false;
-
-  };
-
-  MaskPass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
-
-  	constructor: MaskPass,
-
-  	render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
-
-  		var context = renderer.getContext();
-  		var state = renderer.state;
-
-  		// don't update color or depth
-
-  		state.buffers.color.setMask( false );
-  		state.buffers.depth.setMask( false );
-
-  		// lock buffers
-
-  		state.buffers.color.setLocked( true );
-  		state.buffers.depth.setLocked( true );
-
-  		// set up stencil
-
-  		var writeValue, clearValue;
-
-  		if ( this.inverse ) {
-
-  			writeValue = 0;
-  			clearValue = 1;
-
-  		} else {
-
-  			writeValue = 1;
-  			clearValue = 0;
-
-  		}
-
-  		state.buffers.stencil.setTest( true );
-  		state.buffers.stencil.setOp( context.REPLACE, context.REPLACE, context.REPLACE );
-  		state.buffers.stencil.setFunc( context.ALWAYS, writeValue, 0xffffffff );
-  		state.buffers.stencil.setClear( clearValue );
-  		state.buffers.stencil.setLocked( true );
-
-  		// draw into the stencil buffer
-
-  		renderer.setRenderTarget( readBuffer );
-  		if ( this.clear ) { renderer.clear(); }
-  		renderer.render( this.scene, this.camera );
-
-  		renderer.setRenderTarget( writeBuffer );
-  		if ( this.clear ) { renderer.clear(); }
-  		renderer.render( this.scene, this.camera );
-
-  		// unlock color and depth buffer for subsequent rendering
-
-  		state.buffers.color.setLocked( false );
-  		state.buffers.depth.setLocked( false );
-
-  		// only render where stencil is set to 1
-
-  		state.buffers.stencil.setLocked( false );
-  		state.buffers.stencil.setFunc( context.EQUAL, 1, 0xffffffff ); // draw if == 1
-  		state.buffers.stencil.setOp( context.KEEP, context.KEEP, context.KEEP );
-  		state.buffers.stencil.setLocked( true );
-
-  	}
-
-  } );
-
-
-  var ClearMaskPass = function () {
-
-  	Pass$1.call( this );
-
-  	this.needsSwap = false;
-
-  };
-
-  ClearMaskPass.prototype = Object.create( Pass$1.prototype );
-
-  Object.assign( ClearMaskPass.prototype, {
-
-  	render: function ( renderer /*, writeBuffer, readBuffer, deltaTime, maskActive */ ) {
-
-  		renderer.state.buffers.stencil.setLocked( false );
-  		renderer.state.buffers.stencil.setTest( false );
-
-  	}
-
-  } );
-
-  /**
-   * @author alteredq / http://alteredqualia.com/
-   */
-
-  var EffectComposer = function ( renderer, renderTarget ) {
-
-  	this.renderer = renderer;
-
-  	if ( renderTarget === undefined ) {
-
-  		var parameters = {
-  			minFilter: LinearFilter,
-  			magFilter: LinearFilter,
-  			format: RGBAFormat,
-  			stencilBuffer: false
-  		};
-
-  		var size = renderer.getSize( new Vector2() );
-  		this._pixelRatio = renderer.getPixelRatio();
-  		this._width = size.width;
-  		this._height = size.height;
-
-  		renderTarget = new WebGLRenderTarget( this._width * this._pixelRatio, this._height * this._pixelRatio, parameters );
-  		renderTarget.texture.name = 'EffectComposer.rt1';
-
-  	} else {
-
-  		this._pixelRatio = 1;
-  		this._width = renderTarget.width;
-  		this._height = renderTarget.height;
-
-  	}
-
-  	this.renderTarget1 = renderTarget;
-  	this.renderTarget2 = renderTarget.clone();
-  	this.renderTarget2.texture.name = 'EffectComposer.rt2';
-
-  	this.writeBuffer = this.renderTarget1;
-  	this.readBuffer = this.renderTarget2;
-
-  	this.renderToScreen = true;
-
-  	this.passes = [];
-
-  	// dependencies
-
-  	if ( CopyShader === undefined ) {
-
-  		console.error( 'THREE.EffectComposer relies on CopyShader' );
-
-  	}
-
-  	if ( ShaderPass === undefined ) {
-
-  		console.error( 'THREE.EffectComposer relies on ShaderPass' );
-
-  	}
-
-  	this.copyPass = new ShaderPass( CopyShader );
-
-  	this.clock = new Clock();
-
-  };
-
-  Object.assign( EffectComposer.prototype, {
-
-  	swapBuffers: function () {
-
-  		var tmp = this.readBuffer;
-  		this.readBuffer = this.writeBuffer;
-  		this.writeBuffer = tmp;
-
-  	},
-
-  	addPass: function ( pass ) {
-
-  		this.passes.push( pass );
-  		pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
-
-  	},
-
-  	insertPass: function ( pass, index ) {
-
-  		this.passes.splice( index, 0, pass );
-  		pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
-
-  	},
-
-  	isLastEnabledPass: function ( passIndex ) {
-
-  		for ( var i = passIndex + 1; i < this.passes.length; i ++ ) {
-
-  			if ( this.passes[ i ].enabled ) {
-
-  				return false;
-
-  			}
-
-  		}
-
-  		return true;
-
-  	},
-
-  	render: function ( deltaTime ) {
-
-  		// deltaTime value is in seconds
-
-  		if ( deltaTime === undefined ) {
-
-  			deltaTime = this.clock.getDelta();
-
-  		}
-
-  		var currentRenderTarget = this.renderer.getRenderTarget();
-
-  		var maskActive = false;
-
-  		var pass, i, il = this.passes.length;
-
-  		for ( i = 0; i < il; i ++ ) {
-
-  			pass = this.passes[ i ];
-
-  			if ( pass.enabled === false ) { continue; }
-
-  			pass.renderToScreen = ( this.renderToScreen && this.isLastEnabledPass( i ) );
-  			pass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime, maskActive );
-
-  			if ( pass.needsSwap ) {
-
-  				if ( maskActive ) {
-
-  					var context = this.renderer.getContext();
-  					var stencil = this.renderer.state.buffers.stencil;
-
-  					//context.stencilFunc( context.NOTEQUAL, 1, 0xffffffff );
-  					stencil.setFunc( context.NOTEQUAL, 1, 0xffffffff );
-
-  					this.copyPass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime );
-
-  					//context.stencilFunc( context.EQUAL, 1, 0xffffffff );
-  					stencil.setFunc( context.EQUAL, 1, 0xffffffff );
-
-  				}
-
-  				this.swapBuffers();
-
-  			}
-
-  			if ( MaskPass !== undefined ) {
-
-  				if ( pass instanceof MaskPass ) {
-
-  					maskActive = true;
-
-  				} else if ( pass instanceof ClearMaskPass ) {
-
-  					maskActive = false;
-
-  				}
-
-  			}
-
-  		}
-
-  		this.renderer.setRenderTarget( currentRenderTarget );
-
-  	},
-
-  	reset: function ( renderTarget ) {
-
-  		if ( renderTarget === undefined ) {
-
-  			var size = this.renderer.getSize( new Vector2() );
-  			this._pixelRatio = this.renderer.getPixelRatio();
-  			this._width = size.width;
-  			this._height = size.height;
-
-  			renderTarget = this.renderTarget1.clone();
-  			renderTarget.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
-
-  		}
-
-  		this.renderTarget1.dispose();
-  		this.renderTarget2.dispose();
-  		this.renderTarget1 = renderTarget;
-  		this.renderTarget2 = renderTarget.clone();
-
-  		this.writeBuffer = this.renderTarget1;
-  		this.readBuffer = this.renderTarget2;
-
-  	},
-
-  	setSize: function ( width, height ) {
-
-  		this._width = width;
-  		this._height = height;
-
-  		var effectiveWidth = this._width * this._pixelRatio;
-  		var effectiveHeight = this._height * this._pixelRatio;
-
-  		this.renderTarget1.setSize( effectiveWidth, effectiveHeight );
-  		this.renderTarget2.setSize( effectiveWidth, effectiveHeight );
-
-  		for ( var i = 0; i < this.passes.length; i ++ ) {
-
-  			this.passes[ i ].setSize( effectiveWidth, effectiveHeight );
-
-  		}
-
-  	},
-
-  	setPixelRatio: function ( pixelRatio ) {
-
-  		this._pixelRatio = pixelRatio;
-
-  		this.setSize( this._width, this._height );
-
-  	}
-
-  } );
-
-
-  var Pass = function () {
-
-  	// if set to true, the pass is processed by the composer
-  	this.enabled = true;
-
-  	// if set to true, the pass indicates to swap read and write buffer after rendering
-  	this.needsSwap = true;
-
-  	// if set to true, the pass clears its buffer before rendering
-  	this.clear = false;
-
-  	// if set to true, the result of the pass is rendered to screen. This is set automatically by EffectComposer.
-  	this.renderToScreen = false;
-
-  };
-
-  Object.assign( Pass.prototype, {
-
-  	setSize: function ( /* width, height */ ) {},
-
-  	render: function ( /* renderer, writeBuffer, readBuffer, deltaTime, maskActive */ ) {
-
-  		console.error( 'THREE.Pass: .render() must be implemented in derived pass.' );
-
-  	}
-
-  } );
-
-  // Helper for passes that need to fill the viewport with a single quad.
-  Pass.FullScreenQuad = ( function () {
-
-  	var camera = new OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
-  	var geometry = new PlaneBufferGeometry( 2, 2 );
-
-  	var FullScreenQuad = function ( material ) {
-
-  		this._mesh = new Mesh( geometry, material );
-
-  	};
-
-  	Object.defineProperty( FullScreenQuad.prototype, 'material', {
-
-  		get: function () {
-
-  			return this._mesh.material;
-
-  		},
-
-  		set: function ( value ) {
-
-  			this._mesh.material = value;
-
-  		}
-
-  	} );
-
-  	Object.assign( FullScreenQuad.prototype, {
-
-  		dispose: function () {
-
-  			this._mesh.geometry.dispose();
-
-  		},
-
-  		render: function ( renderer ) {
-
-  			renderer.render( this._mesh, camera );
-
-  		}
-
-  	} );
-
-  	return FullScreenQuad;
-
-  } )();
-
-  /**
-   * @author alteredq / http://alteredqualia.com/
-   */
-
-  var RenderPass = function ( scene, camera, overrideMaterial, clearColor, clearAlpha ) {
-
-  	Pass$1.call( this );
-
-  	this.scene = scene;
-  	this.camera = camera;
-
-  	this.overrideMaterial = overrideMaterial;
-
-  	this.clearColor = clearColor;
-  	this.clearAlpha = ( clearAlpha !== undefined ) ? clearAlpha : 0;
-
-  	this.clear = true;
-  	this.clearDepth = false;
-  	this.needsSwap = false;
-
-  };
-
-  RenderPass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
-
-  	constructor: RenderPass,
-
-  	render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
-
-  		var oldAutoClear = renderer.autoClear;
-  		renderer.autoClear = false;
-
-  		var oldClearColor, oldClearAlpha, oldOverrideMaterial;
-
-  		if ( this.overrideMaterial !== undefined ) {
-
-  			oldOverrideMaterial = this.scene.overrideMaterial;
-
-  			this.scene.overrideMaterial = this.overrideMaterial;
-
-  		}
-
-  		if ( this.clearColor ) {
-
-  			oldClearColor = renderer.getClearColor().getHex();
-  			oldClearAlpha = renderer.getClearAlpha();
-
-  			renderer.setClearColor( this.clearColor, this.clearAlpha );
-
-  		}
-
-  		if ( this.clearDepth ) {
-
-  			renderer.clearDepth();
-
-  		}
-
-  		renderer.setRenderTarget( this.renderToScreen ? null : readBuffer );
-
-  		// TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
-  		if ( this.clear ) { renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil ); }
-  		renderer.render( this.scene, this.camera );
-
-  		if ( this.clearColor ) {
-
-  			renderer.setClearColor( oldClearColor, oldClearAlpha );
-
-  		}
-
-  		if ( this.overrideMaterial !== undefined ) {
-
-  			this.scene.overrideMaterial = oldOverrideMaterial;
-
-  		}
-
-  		renderer.autoClear = oldAutoClear;
-
-  	}
-
-  } );
-
-  /**
-   * @author spidersharma / http://eduperiment.com/
-   */
-
-  var OutlinePass = function ( resolution, scene, camera, selectedObjects ) {
-
-  	this.renderScene = scene;
-  	this.renderCamera = camera;
-  	this.selectedObjects = selectedObjects !== undefined ? selectedObjects : [];
-  	this.visibleEdgeColor = new Color( 1, 1, 1 );
-  	this.hiddenEdgeColor = new Color( 0.1, 0.04, 0.02 );
-  	this.edgeGlow = 0.0;
-  	this.usePatternTexture = false;
-  	this.edgeThickness = 1.0;
-  	this.edgeStrength = 3.0;
-  	this.downSampleRatio = 2;
-  	this.pulsePeriod = 0;
-
-  	Pass$1.call( this );
-
-  	this.resolution = ( resolution !== undefined ) ? new Vector2( resolution.x, resolution.y ) : new Vector2( 256, 256 );
-
-  	var pars = { minFilter: LinearFilter, magFilter: LinearFilter, format: RGBAFormat };
-
-  	var resx = Math.round( this.resolution.x / this.downSampleRatio );
-  	var resy = Math.round( this.resolution.y / this.downSampleRatio );
-
-  	this.maskBufferMaterial = new MeshBasicMaterial( { color: 0xffffff } );
-  	this.maskBufferMaterial.side = DoubleSide;
-  	this.renderTargetMaskBuffer = new WebGLRenderTarget( this.resolution.x, this.resolution.y, pars );
-  	this.renderTargetMaskBuffer.texture.name = "OutlinePass.mask";
-  	this.renderTargetMaskBuffer.texture.generateMipmaps = false;
-
-  	this.depthMaterial = new MeshDepthMaterial();
-  	this.depthMaterial.side = DoubleSide;
-  	this.depthMaterial.depthPacking = RGBADepthPacking;
-  	this.depthMaterial.blending = NoBlending;
-
-  	this.prepareMaskMaterial = this.getPrepareMaskMaterial();
-  	this.prepareMaskMaterial.side = DoubleSide;
-  	this.prepareMaskMaterial.fragmentShader = replaceDepthToViewZ( this.prepareMaskMaterial.fragmentShader, this.renderCamera );
-
-  	this.renderTargetDepthBuffer = new WebGLRenderTarget( this.resolution.x, this.resolution.y, pars );
-  	this.renderTargetDepthBuffer.texture.name = "OutlinePass.depth";
-  	this.renderTargetDepthBuffer.texture.generateMipmaps = false;
-
-  	this.renderTargetMaskDownSampleBuffer = new WebGLRenderTarget( resx, resy, pars );
-  	this.renderTargetMaskDownSampleBuffer.texture.name = "OutlinePass.depthDownSample";
-  	this.renderTargetMaskDownSampleBuffer.texture.generateMipmaps = false;
-
-  	this.renderTargetBlurBuffer1 = new WebGLRenderTarget( resx, resy, pars );
-  	this.renderTargetBlurBuffer1.texture.name = "OutlinePass.blur1";
-  	this.renderTargetBlurBuffer1.texture.generateMipmaps = false;
-  	this.renderTargetBlurBuffer2 = new WebGLRenderTarget( Math.round( resx / 2 ), Math.round( resy / 2 ), pars );
-  	this.renderTargetBlurBuffer2.texture.name = "OutlinePass.blur2";
-  	this.renderTargetBlurBuffer2.texture.generateMipmaps = false;
-
-  	this.edgeDetectionMaterial = this.getEdgeDetectionMaterial();
-  	this.renderTargetEdgeBuffer1 = new WebGLRenderTarget( resx, resy, pars );
-  	this.renderTargetEdgeBuffer1.texture.name = "OutlinePass.edge1";
-  	this.renderTargetEdgeBuffer1.texture.generateMipmaps = false;
-  	this.renderTargetEdgeBuffer2 = new WebGLRenderTarget( Math.round( resx / 2 ), Math.round( resy / 2 ), pars );
-  	this.renderTargetEdgeBuffer2.texture.name = "OutlinePass.edge2";
-  	this.renderTargetEdgeBuffer2.texture.generateMipmaps = false;
-
-  	var MAX_EDGE_THICKNESS = 4;
-  	var MAX_EDGE_GLOW = 4;
-
-  	this.separableBlurMaterial1 = this.getSeperableBlurMaterial( MAX_EDGE_THICKNESS );
-  	this.separableBlurMaterial1.uniforms[ "texSize" ].value.set( resx, resy );
-  	this.separableBlurMaterial1.uniforms[ "kernelRadius" ].value = 1;
-  	this.separableBlurMaterial2 = this.getSeperableBlurMaterial( MAX_EDGE_GLOW );
-  	this.separableBlurMaterial2.uniforms[ "texSize" ].value.set( Math.round( resx / 2 ), Math.round( resy / 2 ) );
-  	this.separableBlurMaterial2.uniforms[ "kernelRadius" ].value = MAX_EDGE_GLOW;
-
-  	// Overlay material
-  	this.overlayMaterial = this.getOverlayMaterial();
-
-  	// copy material
-  	if ( CopyShader === undefined )
-  		{ console.error( "OutlinePass relies on CopyShader" ); }
-
-  	var copyShader = CopyShader;
-
-  	this.copyUniforms = UniformsUtils.clone( copyShader.uniforms );
-  	this.copyUniforms[ "opacity" ].value = 1.0;
-
-  	this.materialCopy = new ShaderMaterial( {
-  		uniforms: this.copyUniforms,
-  		vertexShader: copyShader.vertexShader,
-  		fragmentShader: copyShader.fragmentShader,
-  		blending: NoBlending,
-  		depthTest: false,
-  		depthWrite: false,
-  		transparent: true
-  	} );
-
-  	this.enabled = true;
-  	this.needsSwap = false;
-
-  	this.oldClearColor = new Color();
-  	this.oldClearAlpha = 1;
-
-  	this.fsQuad = new Pass$1.FullScreenQuad( null );
-
-  	this.tempPulseColor1 = new Color();
-  	this.tempPulseColor2 = new Color();
-  	this.textureMatrix = new Matrix4();
-
-  	function replaceDepthToViewZ( string, camera ) {
-
-  		var type = camera.isPerspectiveCamera ? 'perspective' : 'orthographic';
-
-  		return string.replace( /DEPTH_TO_VIEW_Z/g, type + 'DepthToViewZ' );
-
-  	}
-
-  };
-
-  OutlinePass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
-
-  	constructor: OutlinePass,
-
-  	dispose: function () {
-
-  		this.renderTargetMaskBuffer.dispose();
-  		this.renderTargetDepthBuffer.dispose();
-  		this.renderTargetMaskDownSampleBuffer.dispose();
-  		this.renderTargetBlurBuffer1.dispose();
-  		this.renderTargetBlurBuffer2.dispose();
-  		this.renderTargetEdgeBuffer1.dispose();
-  		this.renderTargetEdgeBuffer2.dispose();
-
-  	},
-
-  	setSize: function ( width, height ) {
-
-  		this.renderTargetMaskBuffer.setSize( width, height );
-
-  		var resx = Math.round( width / this.downSampleRatio );
-  		var resy = Math.round( height / this.downSampleRatio );
-  		this.renderTargetMaskDownSampleBuffer.setSize( resx, resy );
-  		this.renderTargetBlurBuffer1.setSize( resx, resy );
-  		this.renderTargetEdgeBuffer1.setSize( resx, resy );
-  		this.separableBlurMaterial1.uniforms[ "texSize" ].value.set( resx, resy );
-
-  		resx = Math.round( resx / 2 );
-  		resy = Math.round( resy / 2 );
-
-  		this.renderTargetBlurBuffer2.setSize( resx, resy );
-  		this.renderTargetEdgeBuffer2.setSize( resx, resy );
-
-  		this.separableBlurMaterial2.uniforms[ "texSize" ].value.set( resx, resy );
-
-  	},
-
-  	changeVisibilityOfSelectedObjects: function ( bVisible ) {
-
-  		function gatherSelectedMeshesCallBack( object ) {
-
-  			if ( object.isMesh ) {
-
-  				if ( bVisible ) {
-
-  					object.visible = object.userData.oldVisible;
-  					delete object.userData.oldVisible;
-
-  				} else {
-
-  					object.userData.oldVisible = object.visible;
-  					object.visible = bVisible;
-
-  				}
-
-  			}
-
-  		}
-
-  		for ( var i = 0; i < this.selectedObjects.length; i ++ ) {
-
-  			var selectedObject = this.selectedObjects[ i ];
-  			selectedObject.traverse( gatherSelectedMeshesCallBack );
-
-  		}
-
-  	},
-
-  	changeVisibilityOfNonSelectedObjects: function ( bVisible ) {
-
-  		var selectedMeshes = [];
-
-  		function gatherSelectedMeshesCallBack( object ) {
-
-  			if ( object.isMesh ) { selectedMeshes.push( object ); }
-
-  		}
-
-  		for ( var i = 0; i < this.selectedObjects.length; i ++ ) {
-
-  			var selectedObject = this.selectedObjects[ i ];
-  			selectedObject.traverse( gatherSelectedMeshesCallBack );
-
-  		}
-
-  		function VisibilityChangeCallBack( object ) {
-
-  			if ( object.isMesh || object.isLine || object.isSprite ) {
-
-  				var bFound = false;
-
-  				for ( var i = 0; i < selectedMeshes.length; i ++ ) {
-
-  					var selectedObjectId = selectedMeshes[ i ].id;
-
-  					if ( selectedObjectId === object.id ) {
-
-  						bFound = true;
-  						break;
-
-  					}
-
-  				}
-
-  				if ( ! bFound ) {
-
-  					var visibility = object.visible;
-
-  					if ( ! bVisible || object.bVisible ) { object.visible = bVisible; }
-
-  					object.bVisible = visibility;
-
-  				}
-
-  			}
-
-  		}
-
-  		this.renderScene.traverse( VisibilityChangeCallBack );
-
-  	},
-
-  	updateTextureMatrix: function () {
-
-  		this.textureMatrix.set( 0.5, 0.0, 0.0, 0.5,
-  			0.0, 0.5, 0.0, 0.5,
-  			0.0, 0.0, 0.5, 0.5,
-  			0.0, 0.0, 0.0, 1.0 );
-  		this.textureMatrix.multiply( this.renderCamera.projectionMatrix );
-  		this.textureMatrix.multiply( this.renderCamera.matrixWorldInverse );
-
-  	},
-
-  	render: function ( renderer, writeBuffer, readBuffer, deltaTime, maskActive ) {
-
-  		if ( this.selectedObjects.length > 0 ) {
-
-  			this.oldClearColor.copy( renderer.getClearColor() );
-  			this.oldClearAlpha = renderer.getClearAlpha();
-  			var oldAutoClear = renderer.autoClear;
-
-  			renderer.autoClear = false;
-
-  			if ( maskActive ) { renderer.state.buffers.stencil.setTest( false ); }
-
-  			renderer.setClearColor( 0xffffff, 1 );
-
-  			// Make selected objects invisible
-  			this.changeVisibilityOfSelectedObjects( false );
-
-  			var currentBackground = this.renderScene.background;
-  			this.renderScene.background = null;
-
-  			// 1. Draw Non Selected objects in the depth buffer
-  			this.renderScene.overrideMaterial = this.depthMaterial;
-  			renderer.setRenderTarget( this.renderTargetDepthBuffer );
-  			renderer.clear();
-  			renderer.render( this.renderScene, this.renderCamera );
-
-  			// Make selected objects visible
-  			this.changeVisibilityOfSelectedObjects( true );
-
-  			// Update Texture Matrix for Depth compare
-  			this.updateTextureMatrix();
-
-  			// Make non selected objects invisible, and draw only the selected objects, by comparing the depth buffer of non selected objects
-  			this.changeVisibilityOfNonSelectedObjects( false );
-  			this.renderScene.overrideMaterial = this.prepareMaskMaterial;
-  			this.prepareMaskMaterial.uniforms[ "cameraNearFar" ].value.set( this.renderCamera.near, this.renderCamera.far );
-  			this.prepareMaskMaterial.uniforms[ "depthTexture" ].value = this.renderTargetDepthBuffer.texture;
-  			this.prepareMaskMaterial.uniforms[ "textureMatrix" ].value = this.textureMatrix;
-  			renderer.setRenderTarget( this.renderTargetMaskBuffer );
-  			renderer.clear();
-  			renderer.render( this.renderScene, this.renderCamera );
-  			this.renderScene.overrideMaterial = null;
-  			this.changeVisibilityOfNonSelectedObjects( true );
-
-  			this.renderScene.background = currentBackground;
-
-  			// 2. Downsample to Half resolution
-  			this.fsQuad.material = this.materialCopy;
-  			this.copyUniforms[ "tDiffuse" ].value = this.renderTargetMaskBuffer.texture;
-  			renderer.setRenderTarget( this.renderTargetMaskDownSampleBuffer );
-  			renderer.clear();
-  			this.fsQuad.render( renderer );
-
-  			this.tempPulseColor1.copy( this.visibleEdgeColor );
-  			this.tempPulseColor2.copy( this.hiddenEdgeColor );
-
-  			if ( this.pulsePeriod > 0 ) {
-
-  				var scalar = ( 1 + 0.25 ) / 2 + Math.cos( performance.now() * 0.01 / this.pulsePeriod ) * ( 1.0 - 0.25 ) / 2;
-  				this.tempPulseColor1.multiplyScalar( scalar );
-  				this.tempPulseColor2.multiplyScalar( scalar );
-
-  			}
-
-  			// 3. Apply Edge Detection Pass
-  			this.fsQuad.material = this.edgeDetectionMaterial;
-  			this.edgeDetectionMaterial.uniforms[ "maskTexture" ].value = this.renderTargetMaskDownSampleBuffer.texture;
-  			this.edgeDetectionMaterial.uniforms[ "texSize" ].value.set( this.renderTargetMaskDownSampleBuffer.width, this.renderTargetMaskDownSampleBuffer.height );
-  			this.edgeDetectionMaterial.uniforms[ "visibleEdgeColor" ].value = this.tempPulseColor1;
-  			this.edgeDetectionMaterial.uniforms[ "hiddenEdgeColor" ].value = this.tempPulseColor2;
-  			renderer.setRenderTarget( this.renderTargetEdgeBuffer1 );
-  			renderer.clear();
-  			this.fsQuad.render( renderer );
-
-  			// 4. Apply Blur on Half res
-  			this.fsQuad.material = this.separableBlurMaterial1;
-  			this.separableBlurMaterial1.uniforms[ "colorTexture" ].value = this.renderTargetEdgeBuffer1.texture;
-  			this.separableBlurMaterial1.uniforms[ "direction" ].value = OutlinePass.BlurDirectionX;
-  			this.separableBlurMaterial1.uniforms[ "kernelRadius" ].value = this.edgeThickness;
-  			renderer.setRenderTarget( this.renderTargetBlurBuffer1 );
-  			renderer.clear();
-  			this.fsQuad.render( renderer );
-  			this.separableBlurMaterial1.uniforms[ "colorTexture" ].value = this.renderTargetBlurBuffer1.texture;
-  			this.separableBlurMaterial1.uniforms[ "direction" ].value = OutlinePass.BlurDirectionY;
-  			renderer.setRenderTarget( this.renderTargetEdgeBuffer1 );
-  			renderer.clear();
-  			this.fsQuad.render( renderer );
-
-  			// Apply Blur on quarter res
-  			this.fsQuad.material = this.separableBlurMaterial2;
-  			this.separableBlurMaterial2.uniforms[ "colorTexture" ].value = this.renderTargetEdgeBuffer1.texture;
-  			this.separableBlurMaterial2.uniforms[ "direction" ].value = OutlinePass.BlurDirectionX;
-  			renderer.setRenderTarget( this.renderTargetBlurBuffer2 );
-  			renderer.clear();
-  			this.fsQuad.render( renderer );
-  			this.separableBlurMaterial2.uniforms[ "colorTexture" ].value = this.renderTargetBlurBuffer2.texture;
-  			this.separableBlurMaterial2.uniforms[ "direction" ].value = OutlinePass.BlurDirectionY;
-  			renderer.setRenderTarget( this.renderTargetEdgeBuffer2 );
-  			renderer.clear();
-  			this.fsQuad.render( renderer );
-
-  			// Blend it additively over the input texture
-  			this.fsQuad.material = this.overlayMaterial;
-  			this.overlayMaterial.uniforms[ "maskTexture" ].value = this.renderTargetMaskBuffer.texture;
-  			this.overlayMaterial.uniforms[ "edgeTexture1" ].value = this.renderTargetEdgeBuffer1.texture;
-  			this.overlayMaterial.uniforms[ "edgeTexture2" ].value = this.renderTargetEdgeBuffer2.texture;
-  			this.overlayMaterial.uniforms[ "patternTexture" ].value = this.patternTexture;
-  			this.overlayMaterial.uniforms[ "edgeStrength" ].value = this.edgeStrength;
-  			this.overlayMaterial.uniforms[ "edgeGlow" ].value = this.edgeGlow;
-  			this.overlayMaterial.uniforms[ "usePatternTexture" ].value = this.usePatternTexture;
-
-
-  			if ( maskActive ) { renderer.state.buffers.stencil.setTest( true ); }
-
-  			renderer.setRenderTarget( readBuffer );
-  			this.fsQuad.render( renderer );
-
-  			renderer.setClearColor( this.oldClearColor, this.oldClearAlpha );
-  			renderer.autoClear = oldAutoClear;
-
-  		}
-
-  		if ( this.renderToScreen ) {
-
-  			this.fsQuad.material = this.materialCopy;
-  			this.copyUniforms[ "tDiffuse" ].value = readBuffer.texture;
-  			renderer.setRenderTarget( null );
-  			this.fsQuad.render( renderer );
-
-  		}
-
-  	},
-
-  	getPrepareMaskMaterial: function () {
-
-  		return new ShaderMaterial( {
-
-  			uniforms: {
-  				"depthTexture": { value: null },
-  				"cameraNearFar": { value: new Vector2( 0.5, 0.5 ) },
-  				"textureMatrix": { value: null }
-  			},
-
-  			vertexShader: [
-  				'#include <morphtarget_pars_vertex>',
-  				'#include <skinning_pars_vertex>',
-
-  				'varying vec4 projTexCoord;',
-  				'varying vec4 vPosition;',
-  				'uniform mat4 textureMatrix;',
-
-  				'void main() {',
-
-  				'	#include <skinbase_vertex>',
-  				'	#include <begin_vertex>',
-  				'	#include <morphtarget_vertex>',
-  				'	#include <skinning_vertex>',
-  				'	#include <project_vertex>',
-
-  				'	vPosition = mvPosition;',
-  				'	vec4 worldPosition = modelMatrix * vec4( position, 1.0 );',
-  				'	projTexCoord = textureMatrix * worldPosition;',
-
-  				'}'
-  			].join( '\n' ),
-
-  			fragmentShader: [
-  				'#include <packing>',
-  				'varying vec4 vPosition;',
-  				'varying vec4 projTexCoord;',
-  				'uniform sampler2D depthTexture;',
-  				'uniform vec2 cameraNearFar;',
-
-  				'void main() {',
-
-  				'	float depth = unpackRGBAToDepth(texture2DProj( depthTexture, projTexCoord ));',
-  				'	float viewZ = - DEPTH_TO_VIEW_Z( depth, cameraNearFar.x, cameraNearFar.y );',
-  				'	float depthTest = (-vPosition.z > viewZ) ? 1.0 : 0.0;',
-  				'	gl_FragColor = vec4(0.0, depthTest, 1.0, 1.0);',
-
-  				'}'
-  			].join( '\n' )
-
-  		} );
-
-  	},
-
-  	getEdgeDetectionMaterial: function () {
-
-  		return new ShaderMaterial( {
-
-  			uniforms: {
-  				"maskTexture": { value: null },
-  				"texSize": { value: new Vector2( 0.5, 0.5 ) },
-  				"visibleEdgeColor": { value: new Vector3( 1.0, 1.0, 1.0 ) },
-  				"hiddenEdgeColor": { value: new Vector3( 1.0, 1.0, 1.0 ) },
-  			},
-
-  			vertexShader:
-  				"varying vec2 vUv;\n\
-				void main() {\n\
-					vUv = uv;\n\
-					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
-				}",
-
-  			fragmentShader:
-  				"varying vec2 vUv;\
-				uniform sampler2D maskTexture;\
-				uniform vec2 texSize;\
-				uniform vec3 visibleEdgeColor;\
-				uniform vec3 hiddenEdgeColor;\
-				\
-				void main() {\n\
-					vec2 invSize = 1.0 / texSize;\
-					vec4 uvOffset = vec4(1.0, 0.0, 0.0, 1.0) * vec4(invSize, invSize);\
-					vec4 c1 = texture2D( maskTexture, vUv + uvOffset.xy);\
-					vec4 c2 = texture2D( maskTexture, vUv - uvOffset.xy);\
-					vec4 c3 = texture2D( maskTexture, vUv + uvOffset.yw);\
-					vec4 c4 = texture2D( maskTexture, vUv - uvOffset.yw);\
-					float diff1 = (c1.r - c2.r)*0.5;\
-					float diff2 = (c3.r - c4.r)*0.5;\
-					float d = length( vec2(diff1, diff2) );\
-					float a1 = min(c1.g, c2.g);\
-					float a2 = min(c3.g, c4.g);\
-					float visibilityFactor = min(a1, a2);\
-					vec3 edgeColor = 1.0 - visibilityFactor > 0.001 ? visibleEdgeColor : hiddenEdgeColor;\
-					gl_FragColor = vec4(edgeColor, 1.0) * vec4(d);\
-				}"
-  		} );
-
-  	},
-
-  	getSeperableBlurMaterial: function ( maxRadius ) {
-
-  		return new ShaderMaterial( {
-
-  			defines: {
-  				"MAX_RADIUS": maxRadius,
-  			},
-
-  			uniforms: {
-  				"colorTexture": { value: null },
-  				"texSize": { value: new Vector2( 0.5, 0.5 ) },
-  				"direction": { value: new Vector2( 0.5, 0.5 ) },
-  				"kernelRadius": { value: 1.0 }
-  			},
-
-  			vertexShader:
-  				"varying vec2 vUv;\n\
-				void main() {\n\
-					vUv = uv;\n\
-					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
-				}",
-
-  			fragmentShader:
-  				"#include <common>\
-				varying vec2 vUv;\
-				uniform sampler2D colorTexture;\
-				uniform vec2 texSize;\
-				uniform vec2 direction;\
-				uniform float kernelRadius;\
-				\
-				float gaussianPdf(in float x, in float sigma) {\
-					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;\
-				}\
-				void main() {\
-					vec2 invSize = 1.0 / texSize;\
-					float weightSum = gaussianPdf(0.0, kernelRadius);\
-					vec4 diffuseSum = texture2D( colorTexture, vUv) * weightSum;\
-					vec2 delta = direction * invSize * kernelRadius/float(MAX_RADIUS);\
-					vec2 uvOffset = delta;\
-					for( int i = 1; i <= MAX_RADIUS; i ++ ) {\
-						float w = gaussianPdf(uvOffset.x, kernelRadius);\
-						vec4 sample1 = texture2D( colorTexture, vUv + uvOffset);\
-						vec4 sample2 = texture2D( colorTexture, vUv - uvOffset);\
-						diffuseSum += ((sample1 + sample2) * w);\
-						weightSum += (2.0 * w);\
-						uvOffset += delta;\
-					}\
-					gl_FragColor = diffuseSum/weightSum;\
-				}"
-  		} );
-
-  	},
-
-  	getOverlayMaterial: function () {
-
-  		return new ShaderMaterial( {
-
-  			uniforms: {
-  				"maskTexture": { value: null },
-  				"edgeTexture1": { value: null },
-  				"edgeTexture2": { value: null },
-  				"patternTexture": { value: null },
-  				"edgeStrength": { value: 1.0 },
-  				"edgeGlow": { value: 1.0 },
-  				"usePatternTexture": { value: 0.0 }
-  			},
-
-  			vertexShader:
-  				"varying vec2 vUv;\n\
-				void main() {\n\
-					vUv = uv;\n\
-					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
-				}",
-
-  			fragmentShader:
-  				"varying vec2 vUv;\
-				uniform sampler2D maskTexture;\
-				uniform sampler2D edgeTexture1;\
-				uniform sampler2D edgeTexture2;\
-				uniform sampler2D patternTexture;\
-				uniform float edgeStrength;\
-				uniform float edgeGlow;\
-				uniform bool usePatternTexture;\
-				\
-				void main() {\
-					vec4 edgeValue1 = texture2D(edgeTexture1, vUv);\
-					vec4 edgeValue2 = texture2D(edgeTexture2, vUv);\
-					vec4 maskColor = texture2D(maskTexture, vUv);\
-					vec4 patternColor = texture2D(patternTexture, 6.0 * vUv);\
-					float visibilityFactor = 1.0 - maskColor.g > 0.0 ? 1.0 : 0.5;\
-					vec4 edgeValue = edgeValue1 + edgeValue2 * edgeGlow;\
-					vec4 finalColor = edgeStrength * maskColor.r * edgeValue;\
-					if(usePatternTexture)\
-						finalColor += + visibilityFactor * (1.0 - maskColor.r) * (1.0 - patternColor.r);\
-					gl_FragColor = finalColor;\
-				}",
-  			blending: AdditiveBlending,
-  			depthTest: false,
-  			depthWrite: false,
-  			transparent: true
-  		} );
-
-  	}
-
-  } );
-
-  OutlinePass.BlurDirectionX = new Vector2( 1.0, 0.0 );
-  OutlinePass.BlurDirectionY = new Vector2( 0.0, 1.0 );
-
-  /**
-   * @author alteredq / http://alteredqualia.com/
-   * @author davidedc / http://www.sketchpatch.net/
-   *
-   * NVIDIA FXAA by Timothy Lottes
-   * http://timothylottes.blogspot.com/2011/06/fxaa3-source-released.html
-   * - WebGL port by @supereggbert
-   * http://www.glge.org/demos/fxaa/
-   */
-
-  var FXAAShader = {
-
-  	uniforms: {
-
-  		"tDiffuse": { value: null },
-  		"resolution": { value: new Vector2( 1 / 1024, 1 / 512 ) }
-
-  	},
-
-  	vertexShader: [
-
-  		"varying vec2 vUv;",
-
-  		"void main() {",
-
-  		"	vUv = uv;",
-  		"	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
-
-  		"}"
-
-  	].join( "\n" ),
-
-  	fragmentShader: [
-  		"precision highp float;",
-  		"",
-  		"uniform sampler2D tDiffuse;",
-  		"",
-  		"uniform vec2 resolution;",
-  		"",
-  		"varying vec2 vUv;",
-  		"",
-  		"// FXAA 3.11 implementation by NVIDIA, ported to WebGL by Agost Biro (biro@archilogic.com)",
-  		"",
-  		"//----------------------------------------------------------------------------------",
-  		"// File:        es3-kepler\FXAA\assets\shaders/FXAA_DefaultES.frag",
-  		"// SDK Version: v3.00",
-  		"// Email:       gameworks@nvidia.com",
-  		"// Site:        http://developer.nvidia.com/",
-  		"//",
-  		"// Copyright (c) 2014-2015, NVIDIA CORPORATION. All rights reserved.",
-  		"//",
-  		"// Redistribution and use in source and binary forms, with or without",
-  		"// modification, are permitted provided that the following conditions",
-  		"// are met:",
-  		"//  * Redistributions of source code must retain the above copyright",
-  		"//    notice, this list of conditions and the following disclaimer.",
-  		"//  * Redistributions in binary form must reproduce the above copyright",
-  		"//    notice, this list of conditions and the following disclaimer in the",
-  		"//    documentation and/or other materials provided with the distribution.",
-  		"//  * Neither the name of NVIDIA CORPORATION nor the names of its",
-  		"//    contributors may be used to endorse or promote products derived",
-  		"//    from this software without specific prior written permission.",
-  		"//",
-  		"// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY",
-  		"// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE",
-  		"// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR",
-  		"// PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR",
-  		"// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,",
-  		"// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,",
-  		"// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR",
-  		"// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY",
-  		"// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT",
-  		"// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE",
-  		"// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
-  		"//",
-  		"//----------------------------------------------------------------------------------",
-  		"",
-  		"#define FXAA_PC 1",
-  		"#define FXAA_GLSL_100 1",
-  		"#define FXAA_QUALITY_PRESET 12",
-  		"",
-  		"#define FXAA_GREEN_AS_LUMA 1",
-  		"",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_PC_CONSOLE",
-  		"    //",
-  		"    // The console algorithm for PC is included",
-  		"    // for developers targeting really low spec machines.",
-  		"    // Likely better to just run FXAA_PC, and use a really low preset.",
-  		"    //",
-  		"    #define FXAA_PC_CONSOLE 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_GLSL_120",
-  		"    #define FXAA_GLSL_120 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_GLSL_130",
-  		"    #define FXAA_GLSL_130 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_HLSL_3",
-  		"    #define FXAA_HLSL_3 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_HLSL_4",
-  		"    #define FXAA_HLSL_4 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_HLSL_5",
-  		"    #define FXAA_HLSL_5 0",
-  		"#endif",
-  		"/*==========================================================================*/",
-  		"#ifndef FXAA_GREEN_AS_LUMA",
-  		"    //",
-  		"    // For those using non-linear color,",
-  		"    // and either not able to get luma in alpha, or not wanting to,",
-  		"    // this enables FXAA to run using green as a proxy for luma.",
-  		"    // So with this enabled, no need to pack luma in alpha.",
-  		"    //",
-  		"    // This will turn off AA on anything which lacks some amount of green.",
-  		"    // Pure red and blue or combination of only R and B, will get no AA.",
-  		"    //",
-  		"    // Might want to lower the settings for both,",
-  		"    //    fxaaConsoleEdgeThresholdMin",
-  		"    //    fxaaQualityEdgeThresholdMin",
-  		"    // In order to insure AA does not get turned off on colors",
-  		"    // which contain a minor amount of green.",
-  		"    //",
-  		"    // 1 = On.",
-  		"    // 0 = Off.",
-  		"    //",
-  		"    #define FXAA_GREEN_AS_LUMA 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_EARLY_EXIT",
-  		"    //",
-  		"    // Controls algorithm's early exit path.",
-  		"    // On PS3 turning this ON adds 2 cycles to the shader.",
-  		"    // On 360 turning this OFF adds 10ths of a millisecond to the shader.",
-  		"    // Turning this off on console will result in a more blurry image.",
-  		"    // So this defaults to on.",
-  		"    //",
-  		"    // 1 = On.",
-  		"    // 0 = Off.",
-  		"    //",
-  		"    #define FXAA_EARLY_EXIT 1",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_DISCARD",
-  		"    //",
-  		"    // Only valid for PC OpenGL currently.",
-  		"    // Probably will not work when FXAA_GREEN_AS_LUMA = 1.",
-  		"    //",
-  		"    // 1 = Use discard on pixels which don't need AA.",
-  		"    //     For APIs which enable concurrent TEX+ROP from same surface.",
-  		"    // 0 = Return unchanged color on pixels which don't need AA.",
-  		"    //",
-  		"    #define FXAA_DISCARD 0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_FAST_PIXEL_OFFSET",
-  		"    //",
-  		"    // Used for GLSL 120 only.",
-  		"    //",
-  		"    // 1 = GL API supports fast pixel offsets",
-  		"    // 0 = do not use fast pixel offsets",
-  		"    //",
-  		"    #ifdef GL_EXT_gpu_shader4",
-  		"        #define FXAA_FAST_PIXEL_OFFSET 1",
-  		"    #endif",
-  		"    #ifdef GL_NV_gpu_shader5",
-  		"        #define FXAA_FAST_PIXEL_OFFSET 1",
-  		"    #endif",
-  		"    #ifdef GL_ARB_gpu_shader5",
-  		"        #define FXAA_FAST_PIXEL_OFFSET 1",
-  		"    #endif",
-  		"    #ifndef FXAA_FAST_PIXEL_OFFSET",
-  		"        #define FXAA_FAST_PIXEL_OFFSET 0",
-  		"    #endif",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#ifndef FXAA_GATHER4_ALPHA",
-  		"    //",
-  		"    // 1 = API supports gather4 on alpha channel.",
-  		"    // 0 = API does not support gather4 on alpha channel.",
-  		"    //",
-  		"    #if (FXAA_HLSL_5 == 1)",
-  		"        #define FXAA_GATHER4_ALPHA 1",
-  		"    #endif",
-  		"    #ifdef GL_ARB_gpu_shader5",
-  		"        #define FXAA_GATHER4_ALPHA 1",
-  		"    #endif",
-  		"    #ifdef GL_NV_gpu_shader5",
-  		"        #define FXAA_GATHER4_ALPHA 1",
-  		"    #endif",
-  		"    #ifndef FXAA_GATHER4_ALPHA",
-  		"        #define FXAA_GATHER4_ALPHA 0",
-  		"    #endif",
-  		"#endif",
-  		"",
-  		"",
-  		"/*============================================================================",
-  		"                        FXAA QUALITY - TUNING KNOBS",
-  		"------------------------------------------------------------------------------",
-  		"NOTE the other tuning knobs are now in the shader function inputs!",
-  		"============================================================================*/",
-  		"#ifndef FXAA_QUALITY_PRESET",
-  		"    //",
-  		"    // Choose the quality preset.",
-  		"    // This needs to be compiled into the shader as it effects code.",
-  		"    // Best option to include multiple presets is to",
-  		"    // in each shader define the preset, then include this file.",
-  		"    //",
-  		"    // OPTIONS",
-  		"    // -----------------------------------------------------------------------",
-  		"    // 10 to 15 - default medium dither (10=fastest, 15=highest quality)",
-  		"    // 20 to 29 - less dither, more expensive (20=fastest, 29=highest quality)",
-  		"    // 39       - no dither, very expensive",
-  		"    //",
-  		"    // NOTES",
-  		"    // -----------------------------------------------------------------------",
-  		"    // 12 = slightly faster then FXAA 3.9 and higher edge quality (default)",
-  		"    // 13 = about same speed as FXAA 3.9 and better than 12",
-  		"    // 23 = closest to FXAA 3.9 visually and performance wise",
-  		"    //  _ = the lowest digit is directly related to performance",
-  		"    // _  = the highest digit is directly related to style",
-  		"    //",
-  		"    #define FXAA_QUALITY_PRESET 12",
-  		"#endif",
-  		"",
-  		"",
-  		"/*============================================================================",
-  		"",
-  		"                           FXAA QUALITY - PRESETS",
-  		"",
-  		"============================================================================*/",
-  		"",
-  		"/*============================================================================",
-  		"                     FXAA QUALITY - MEDIUM DITHER PRESETS",
-  		"============================================================================*/",
-  		"#if (FXAA_QUALITY_PRESET == 10)",
-  		"    #define FXAA_QUALITY_PS 3",
-  		"    #define FXAA_QUALITY_P0 1.5",
-  		"    #define FXAA_QUALITY_P1 3.0",
-  		"    #define FXAA_QUALITY_P2 12.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 11)",
-  		"    #define FXAA_QUALITY_PS 4",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 3.0",
-  		"    #define FXAA_QUALITY_P3 12.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 12)",
-  		"    #define FXAA_QUALITY_PS 5",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 4.0",
-  		"    #define FXAA_QUALITY_P4 12.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 13)",
-  		"    #define FXAA_QUALITY_PS 6",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 4.0",
-  		"    #define FXAA_QUALITY_P5 12.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 14)",
-  		"    #define FXAA_QUALITY_PS 7",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 4.0",
-  		"    #define FXAA_QUALITY_P6 12.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 15)",
-  		"    #define FXAA_QUALITY_PS 8",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 2.0",
-  		"    #define FXAA_QUALITY_P6 4.0",
-  		"    #define FXAA_QUALITY_P7 12.0",
-  		"#endif",
-  		"",
-  		"/*============================================================================",
-  		"                     FXAA QUALITY - LOW DITHER PRESETS",
-  		"============================================================================*/",
-  		"#if (FXAA_QUALITY_PRESET == 20)",
-  		"    #define FXAA_QUALITY_PS 3",
-  		"    #define FXAA_QUALITY_P0 1.5",
-  		"    #define FXAA_QUALITY_P1 2.0",
-  		"    #define FXAA_QUALITY_P2 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 21)",
-  		"    #define FXAA_QUALITY_PS 4",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 22)",
-  		"    #define FXAA_QUALITY_PS 5",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 23)",
-  		"    #define FXAA_QUALITY_PS 6",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 24)",
-  		"    #define FXAA_QUALITY_PS 7",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 3.0",
-  		"    #define FXAA_QUALITY_P6 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 25)",
-  		"    #define FXAA_QUALITY_PS 8",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 2.0",
-  		"    #define FXAA_QUALITY_P6 4.0",
-  		"    #define FXAA_QUALITY_P7 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 26)",
-  		"    #define FXAA_QUALITY_PS 9",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 2.0",
-  		"    #define FXAA_QUALITY_P6 2.0",
-  		"    #define FXAA_QUALITY_P7 4.0",
-  		"    #define FXAA_QUALITY_P8 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 27)",
-  		"    #define FXAA_QUALITY_PS 10",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 2.0",
-  		"    #define FXAA_QUALITY_P6 2.0",
-  		"    #define FXAA_QUALITY_P7 2.0",
-  		"    #define FXAA_QUALITY_P8 4.0",
-  		"    #define FXAA_QUALITY_P9 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 28)",
-  		"    #define FXAA_QUALITY_PS 11",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 2.0",
-  		"    #define FXAA_QUALITY_P6 2.0",
-  		"    #define FXAA_QUALITY_P7 2.0",
-  		"    #define FXAA_QUALITY_P8 2.0",
-  		"    #define FXAA_QUALITY_P9 4.0",
-  		"    #define FXAA_QUALITY_P10 8.0",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_QUALITY_PRESET == 29)",
-  		"    #define FXAA_QUALITY_PS 12",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.5",
-  		"    #define FXAA_QUALITY_P2 2.0",
-  		"    #define FXAA_QUALITY_P3 2.0",
-  		"    #define FXAA_QUALITY_P4 2.0",
-  		"    #define FXAA_QUALITY_P5 2.0",
-  		"    #define FXAA_QUALITY_P6 2.0",
-  		"    #define FXAA_QUALITY_P7 2.0",
-  		"    #define FXAA_QUALITY_P8 2.0",
-  		"    #define FXAA_QUALITY_P9 2.0",
-  		"    #define FXAA_QUALITY_P10 4.0",
-  		"    #define FXAA_QUALITY_P11 8.0",
-  		"#endif",
-  		"",
-  		"/*============================================================================",
-  		"                     FXAA QUALITY - EXTREME QUALITY",
-  		"============================================================================*/",
-  		"#if (FXAA_QUALITY_PRESET == 39)",
-  		"    #define FXAA_QUALITY_PS 12",
-  		"    #define FXAA_QUALITY_P0 1.0",
-  		"    #define FXAA_QUALITY_P1 1.0",
-  		"    #define FXAA_QUALITY_P2 1.0",
-  		"    #define FXAA_QUALITY_P3 1.0",
-  		"    #define FXAA_QUALITY_P4 1.0",
-  		"    #define FXAA_QUALITY_P5 1.5",
-  		"    #define FXAA_QUALITY_P6 2.0",
-  		"    #define FXAA_QUALITY_P7 2.0",
-  		"    #define FXAA_QUALITY_P8 2.0",
-  		"    #define FXAA_QUALITY_P9 2.0",
-  		"    #define FXAA_QUALITY_P10 4.0",
-  		"    #define FXAA_QUALITY_P11 8.0",
-  		"#endif",
-  		"",
-  		"",
-  		"",
-  		"/*============================================================================",
-  		"",
-  		"                                API PORTING",
-  		"",
-  		"============================================================================*/",
-  		"#if (FXAA_GLSL_100 == 1) || (FXAA_GLSL_120 == 1) || (FXAA_GLSL_130 == 1)",
-  		"    #define FxaaBool bool",
-  		"    #define FxaaDiscard discard",
-  		"    #define FxaaFloat float",
-  		"    #define FxaaFloat2 vec2",
-  		"    #define FxaaFloat3 vec3",
-  		"    #define FxaaFloat4 vec4",
-  		"    #define FxaaHalf float",
-  		"    #define FxaaHalf2 vec2",
-  		"    #define FxaaHalf3 vec3",
-  		"    #define FxaaHalf4 vec4",
-  		"    #define FxaaInt2 ivec2",
-  		"    #define FxaaSat(x) clamp(x, 0.0, 1.0)",
-  		"    #define FxaaTex sampler2D",
-  		"#else",
-  		"    #define FxaaBool bool",
-  		"    #define FxaaDiscard clip(-1)",
-  		"    #define FxaaFloat float",
-  		"    #define FxaaFloat2 float2",
-  		"    #define FxaaFloat3 float3",
-  		"    #define FxaaFloat4 float4",
-  		"    #define FxaaHalf half",
-  		"    #define FxaaHalf2 half2",
-  		"    #define FxaaHalf3 half3",
-  		"    #define FxaaHalf4 half4",
-  		"    #define FxaaSat(x) saturate(x)",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_GLSL_100 == 1)",
-  		"  #define FxaaTexTop(t, p) texture2D(t, p, 0.0)",
-  		"  #define FxaaTexOff(t, p, o, r) texture2D(t, p + (o * r), 0.0)",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_GLSL_120 == 1)",
-  		"    // Requires,",
-  		"    //  #version 120",
-  		"    // And at least,",
-  		"    //  #extension GL_EXT_gpu_shader4 : enable",
-  		"    //  (or set FXAA_FAST_PIXEL_OFFSET 1 to work like DX9)",
-  		"    #define FxaaTexTop(t, p) texture2DLod(t, p, 0.0)",
-  		"    #if (FXAA_FAST_PIXEL_OFFSET == 1)",
-  		"        #define FxaaTexOff(t, p, o, r) texture2DLodOffset(t, p, 0.0, o)",
-  		"    #else",
-  		"        #define FxaaTexOff(t, p, o, r) texture2DLod(t, p + (o * r), 0.0)",
-  		"    #endif",
-  		"    #if (FXAA_GATHER4_ALPHA == 1)",
-  		"        // use #extension GL_ARB_gpu_shader5 : enable",
-  		"        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)",
-  		"        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)",
-  		"        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)",
-  		"        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)",
-  		"    #endif",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_GLSL_130 == 1)",
-  		"    // Requires \"#version 130\" or better",
-  		"    #define FxaaTexTop(t, p) textureLod(t, p, 0.0)",
-  		"    #define FxaaTexOff(t, p, o, r) textureLodOffset(t, p, 0.0, o)",
-  		"    #if (FXAA_GATHER4_ALPHA == 1)",
-  		"        // use #extension GL_ARB_gpu_shader5 : enable",
-  		"        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)",
-  		"        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)",
-  		"        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)",
-  		"        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)",
-  		"    #endif",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_HLSL_3 == 1)",
-  		"    #define FxaaInt2 float2",
-  		"    #define FxaaTex sampler2D",
-  		"    #define FxaaTexTop(t, p) tex2Dlod(t, float4(p, 0.0, 0.0))",
-  		"    #define FxaaTexOff(t, p, o, r) tex2Dlod(t, float4(p + (o * r), 0, 0))",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_HLSL_4 == 1)",
-  		"    #define FxaaInt2 int2",
-  		"    struct FxaaTex { SamplerState smpl; Texture2D tex; };",
-  		"    #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)",
-  		"    #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)",
-  		"#endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"#if (FXAA_HLSL_5 == 1)",
-  		"    #define FxaaInt2 int2",
-  		"    struct FxaaTex { SamplerState smpl; Texture2D tex; };",
-  		"    #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)",
-  		"    #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)",
-  		"    #define FxaaTexAlpha4(t, p) t.tex.GatherAlpha(t.smpl, p)",
-  		"    #define FxaaTexOffAlpha4(t, p, o) t.tex.GatherAlpha(t.smpl, p, o)",
-  		"    #define FxaaTexGreen4(t, p) t.tex.GatherGreen(t.smpl, p)",
-  		"    #define FxaaTexOffGreen4(t, p, o) t.tex.GatherGreen(t.smpl, p, o)",
-  		"#endif",
-  		"",
-  		"",
-  		"/*============================================================================",
-  		"                   GREEN AS LUMA OPTION SUPPORT FUNCTION",
-  		"============================================================================*/",
-  		"#if (FXAA_GREEN_AS_LUMA == 0)",
-  		"    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.w; }",
-  		"#else",
-  		"    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.y; }",
-  		"#endif",
-  		"",
-  		"",
-  		"",
-  		"",
-  		"/*============================================================================",
-  		"",
-  		"                             FXAA3 QUALITY - PC",
-  		"",
-  		"============================================================================*/",
-  		"#if (FXAA_PC == 1)",
-  		"/*--------------------------------------------------------------------------*/",
-  		"FxaaFloat4 FxaaPixelShader(",
-  		"    //",
-  		"    // Use noperspective interpolation here (turn off perspective interpolation).",
-  		"    // {xy} = center of pixel",
-  		"    FxaaFloat2 pos,",
-  		"    //",
-  		"    // Used only for FXAA Console, and not used on the 360 version.",
-  		"    // Use noperspective interpolation here (turn off perspective interpolation).",
-  		"    // {xy_} = upper left of pixel",
-  		"    // {_zw} = lower right of pixel",
-  		"    FxaaFloat4 fxaaConsolePosPos,",
-  		"    //",
-  		"    // Input color texture.",
-  		"    // {rgb_} = color in linear or perceptual color space",
-  		"    // if (FXAA_GREEN_AS_LUMA == 0)",
-  		"    //     {__a} = luma in perceptual color space (not linear)",
-  		"    FxaaTex tex,",
-  		"    //",
-  		"    // Only used on the optimized 360 version of FXAA Console.",
-  		"    // For everything but 360, just use the same input here as for \"tex\".",
-  		"    // For 360, same texture, just alias with a 2nd sampler.",
-  		"    // This sampler needs to have an exponent bias of -1.",
-  		"    FxaaTex fxaaConsole360TexExpBiasNegOne,",
-  		"    //",
-  		"    // Only used on the optimized 360 version of FXAA Console.",
-  		"    // For everything but 360, just use the same input here as for \"tex\".",
-  		"    // For 360, same texture, just alias with a 3nd sampler.",
-  		"    // This sampler needs to have an exponent bias of -2.",
-  		"    FxaaTex fxaaConsole360TexExpBiasNegTwo,",
-  		"    //",
-  		"    // Only used on FXAA Quality.",
-  		"    // This must be from a constant/uniform.",
-  		"    // {x_} = 1.0/screenWidthInPixels",
-  		"    // {_y} = 1.0/screenHeightInPixels",
-  		"    FxaaFloat2 fxaaQualityRcpFrame,",
-  		"    //",
-  		"    // Only used on FXAA Console.",
-  		"    // This must be from a constant/uniform.",
-  		"    // This effects sub-pixel AA quality and inversely sharpness.",
-  		"    //   Where N ranges between,",
-  		"    //     N = 0.50 (default)",
-  		"    //     N = 0.33 (sharper)",
-  		"    // {x__} = -N/screenWidthInPixels",
-  		"    // {_y_} = -N/screenHeightInPixels",
-  		"    // {_z_} =  N/screenWidthInPixels",
-  		"    // {__w} =  N/screenHeightInPixels",
-  		"    FxaaFloat4 fxaaConsoleRcpFrameOpt,",
-  		"    //",
-  		"    // Only used on FXAA Console.",
-  		"    // Not used on 360, but used on PS3 and PC.",
-  		"    // This must be from a constant/uniform.",
-  		"    // {x__} = -2.0/screenWidthInPixels",
-  		"    // {_y_} = -2.0/screenHeightInPixels",
-  		"    // {_z_} =  2.0/screenWidthInPixels",
-  		"    // {__w} =  2.0/screenHeightInPixels",
-  		"    FxaaFloat4 fxaaConsoleRcpFrameOpt2,",
-  		"    //",
-  		"    // Only used on FXAA Console.",
-  		"    // Only used on 360 in place of fxaaConsoleRcpFrameOpt2.",
-  		"    // This must be from a constant/uniform.",
-  		"    // {x__} =  8.0/screenWidthInPixels",
-  		"    // {_y_} =  8.0/screenHeightInPixels",
-  		"    // {_z_} = -4.0/screenWidthInPixels",
-  		"    // {__w} = -4.0/screenHeightInPixels",
-  		"    FxaaFloat4 fxaaConsole360RcpFrameOpt2,",
-  		"    //",
-  		"    // Only used on FXAA Quality.",
-  		"    // This used to be the FXAA_QUALITY_SUBPIX define.",
-  		"    // It is here now to allow easier tuning.",
-  		"    // Choose the amount of sub-pixel aliasing removal.",
-  		"    // This can effect sharpness.",
-  		"    //   1.00 - upper limit (softer)",
-  		"    //   0.75 - default amount of filtering",
-  		"    //   0.50 - lower limit (sharper, less sub-pixel aliasing removal)",
-  		"    //   0.25 - almost off",
-  		"    //   0.00 - completely off",
-  		"    FxaaFloat fxaaQualitySubpix,",
-  		"    //",
-  		"    // Only used on FXAA Quality.",
-  		"    // This used to be the FXAA_QUALITY_EDGE_THRESHOLD define.",
-  		"    // It is here now to allow easier tuning.",
-  		"    // The minimum amount of local contrast required to apply algorithm.",
-  		"    //   0.333 - too little (faster)",
-  		"    //   0.250 - low quality",
-  		"    //   0.166 - default",
-  		"    //   0.125 - high quality",
-  		"    //   0.063 - overkill (slower)",
-  		"    FxaaFloat fxaaQualityEdgeThreshold,",
-  		"    //",
-  		"    // Only used on FXAA Quality.",
-  		"    // This used to be the FXAA_QUALITY_EDGE_THRESHOLD_MIN define.",
-  		"    // It is here now to allow easier tuning.",
-  		"    // Trims the algorithm from processing darks.",
-  		"    //   0.0833 - upper limit (default, the start of visible unfiltered edges)",
-  		"    //   0.0625 - high quality (faster)",
-  		"    //   0.0312 - visible limit (slower)",
-  		"    // Special notes when using FXAA_GREEN_AS_LUMA,",
-  		"    //   Likely want to set this to zero.",
-  		"    //   As colors that are mostly not-green",
-  		"    //   will appear very dark in the green channel!",
-  		"    //   Tune by looking at mostly non-green content,",
-  		"    //   then start at zero and increase until aliasing is a problem.",
-  		"    FxaaFloat fxaaQualityEdgeThresholdMin,",
-  		"    //",
-  		"    // Only used on FXAA Console.",
-  		"    // This used to be the FXAA_CONSOLE_EDGE_SHARPNESS define.",
-  		"    // It is here now to allow easier tuning.",
-  		"    // This does not effect PS3, as this needs to be compiled in.",
-  		"    //   Use FXAA_CONSOLE_PS3_EDGE_SHARPNESS for PS3.",
-  		"    //   Due to the PS3 being ALU bound,",
-  		"    //   there are only three safe values here: 2 and 4 and 8.",
-  		"    //   These options use the shaders ability to a free *|/ by 2|4|8.",
-  		"    // For all other platforms can be a non-power of two.",
-  		"    //   8.0 is sharper (default!!!)",
-  		"    //   4.0 is softer",
-  		"    //   2.0 is really soft (good only for vector graphics inputs)",
-  		"    FxaaFloat fxaaConsoleEdgeSharpness,",
-  		"    //",
-  		"    // Only used on FXAA Console.",
-  		"    // This used to be the FXAA_CONSOLE_EDGE_THRESHOLD define.",
-  		"    // It is here now to allow easier tuning.",
-  		"    // This does not effect PS3, as this needs to be compiled in.",
-  		"    //   Use FXAA_CONSOLE_PS3_EDGE_THRESHOLD for PS3.",
-  		"    //   Due to the PS3 being ALU bound,",
-  		"    //   there are only two safe values here: 1/4 and 1/8.",
-  		"    //   These options use the shaders ability to a free *|/ by 2|4|8.",
-  		"    // The console setting has a different mapping than the quality setting.",
-  		"    // Other platforms can use other values.",
-  		"    //   0.125 leaves less aliasing, but is softer (default!!!)",
-  		"    //   0.25 leaves more aliasing, and is sharper",
-  		"    FxaaFloat fxaaConsoleEdgeThreshold,",
-  		"    //",
-  		"    // Only used on FXAA Console.",
-  		"    // This used to be the FXAA_CONSOLE_EDGE_THRESHOLD_MIN define.",
-  		"    // It is here now to allow easier tuning.",
-  		"    // Trims the algorithm from processing darks.",
-  		"    // The console setting has a different mapping than the quality setting.",
-  		"    // This only applies when FXAA_EARLY_EXIT is 1.",
-  		"    // This does not apply to PS3,",
-  		"    // PS3 was simplified to avoid more shader instructions.",
-  		"    //   0.06 - faster but more aliasing in darks",
-  		"    //   0.05 - default",
-  		"    //   0.04 - slower and less aliasing in darks",
-  		"    // Special notes when using FXAA_GREEN_AS_LUMA,",
-  		"    //   Likely want to set this to zero.",
-  		"    //   As colors that are mostly not-green",
-  		"    //   will appear very dark in the green channel!",
-  		"    //   Tune by looking at mostly non-green content,",
-  		"    //   then start at zero and increase until aliasing is a problem.",
-  		"    FxaaFloat fxaaConsoleEdgeThresholdMin,",
-  		"    //",
-  		"    // Extra constants for 360 FXAA Console only.",
-  		"    // Use zeros or anything else for other platforms.",
-  		"    // These must be in physical constant registers and NOT immediates.",
-  		"    // Immediates will result in compiler un-optimizing.",
-  		"    // {xyzw} = float4(1.0, -1.0, 0.25, -0.25)",
-  		"    FxaaFloat4 fxaaConsole360ConstDir",
-  		") {",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat2 posM;",
-  		"    posM.x = pos.x;",
-  		"    posM.y = pos.y;",
-  		"    #if (FXAA_GATHER4_ALPHA == 1)",
-  		"        #if (FXAA_DISCARD == 0)",
-  		"            FxaaFloat4 rgbyM = FxaaTexTop(tex, posM);",
-  		"            #if (FXAA_GREEN_AS_LUMA == 0)",
-  		"                #define lumaM rgbyM.w",
-  		"            #else",
-  		"                #define lumaM rgbyM.y",
-  		"            #endif",
-  		"        #endif",
-  		"        #if (FXAA_GREEN_AS_LUMA == 0)",
-  		"            FxaaFloat4 luma4A = FxaaTexAlpha4(tex, posM);",
-  		"            FxaaFloat4 luma4B = FxaaTexOffAlpha4(tex, posM, FxaaInt2(-1, -1));",
-  		"        #else",
-  		"            FxaaFloat4 luma4A = FxaaTexGreen4(tex, posM);",
-  		"            FxaaFloat4 luma4B = FxaaTexOffGreen4(tex, posM, FxaaInt2(-1, -1));",
-  		"        #endif",
-  		"        #if (FXAA_DISCARD == 1)",
-  		"            #define lumaM luma4A.w",
-  		"        #endif",
-  		"        #define lumaE luma4A.z",
-  		"        #define lumaS luma4A.x",
-  		"        #define lumaSE luma4A.y",
-  		"        #define lumaNW luma4B.w",
-  		"        #define lumaN luma4B.z",
-  		"        #define lumaW luma4B.x",
-  		"    #else",
-  		"        FxaaFloat4 rgbyM = FxaaTexTop(tex, posM);",
-  		"        #if (FXAA_GREEN_AS_LUMA == 0)",
-  		"            #define lumaM rgbyM.w",
-  		"        #else",
-  		"            #define lumaM rgbyM.y",
-  		"        #endif",
-  		"        #if (FXAA_GLSL_100 == 1)",
-  		"          FxaaFloat lumaS = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 0.0, 1.0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaE = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 1.0, 0.0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaN = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 0.0,-1.0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaW = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2(-1.0, 0.0), fxaaQualityRcpFrame.xy));",
-  		"        #else",
-  		"          FxaaFloat lumaS = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0, 1), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaN = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0,-1), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 0), fxaaQualityRcpFrame.xy));",
-  		"        #endif",
-  		"    #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat maxSM = max(lumaS, lumaM);",
-  		"    FxaaFloat minSM = min(lumaS, lumaM);",
-  		"    FxaaFloat maxESM = max(lumaE, maxSM);",
-  		"    FxaaFloat minESM = min(lumaE, minSM);",
-  		"    FxaaFloat maxWN = max(lumaN, lumaW);",
-  		"    FxaaFloat minWN = min(lumaN, lumaW);",
-  		"    FxaaFloat rangeMax = max(maxWN, maxESM);",
-  		"    FxaaFloat rangeMin = min(minWN, minESM);",
-  		"    FxaaFloat rangeMaxScaled = rangeMax * fxaaQualityEdgeThreshold;",
-  		"    FxaaFloat range = rangeMax - rangeMin;",
-  		"    FxaaFloat rangeMaxClamped = max(fxaaQualityEdgeThresholdMin, rangeMaxScaled);",
-  		"    FxaaBool earlyExit = range < rangeMaxClamped;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    if(earlyExit)",
-  		"        #if (FXAA_DISCARD == 1)",
-  		"            FxaaDiscard;",
-  		"        #else",
-  		"            return rgbyM;",
-  		"        #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    #if (FXAA_GATHER4_ALPHA == 0)",
-  		"        #if (FXAA_GLSL_100 == 1)",
-  		"          FxaaFloat lumaNW = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2(-1.0,-1.0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaSE = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 1.0, 1.0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 1.0,-1.0), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2(-1.0, 1.0), fxaaQualityRcpFrame.xy));",
-  		"        #else",
-  		"          FxaaFloat lumaNW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1,-1), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaSE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 1), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1,-1), fxaaQualityRcpFrame.xy));",
-  		"          FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));",
-  		"        #endif",
-  		"    #else",
-  		"        FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(1, -1), fxaaQualityRcpFrame.xy));",
-  		"        FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));",
-  		"    #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat lumaNS = lumaN + lumaS;",
-  		"    FxaaFloat lumaWE = lumaW + lumaE;",
-  		"    FxaaFloat subpixRcpRange = 1.0/range;",
-  		"    FxaaFloat subpixNSWE = lumaNS + lumaWE;",
-  		"    FxaaFloat edgeHorz1 = (-2.0 * lumaM) + lumaNS;",
-  		"    FxaaFloat edgeVert1 = (-2.0 * lumaM) + lumaWE;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat lumaNESE = lumaNE + lumaSE;",
-  		"    FxaaFloat lumaNWNE = lumaNW + lumaNE;",
-  		"    FxaaFloat edgeHorz2 = (-2.0 * lumaE) + lumaNESE;",
-  		"    FxaaFloat edgeVert2 = (-2.0 * lumaN) + lumaNWNE;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat lumaNWSW = lumaNW + lumaSW;",
-  		"    FxaaFloat lumaSWSE = lumaSW + lumaSE;",
-  		"    FxaaFloat edgeHorz4 = (abs(edgeHorz1) * 2.0) + abs(edgeHorz2);",
-  		"    FxaaFloat edgeVert4 = (abs(edgeVert1) * 2.0) + abs(edgeVert2);",
-  		"    FxaaFloat edgeHorz3 = (-2.0 * lumaW) + lumaNWSW;",
-  		"    FxaaFloat edgeVert3 = (-2.0 * lumaS) + lumaSWSE;",
-  		"    FxaaFloat edgeHorz = abs(edgeHorz3) + edgeHorz4;",
-  		"    FxaaFloat edgeVert = abs(edgeVert3) + edgeVert4;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat subpixNWSWNESE = lumaNWSW + lumaNESE;",
-  		"    FxaaFloat lengthSign = fxaaQualityRcpFrame.x;",
-  		"    FxaaBool horzSpan = edgeHorz >= edgeVert;",
-  		"    FxaaFloat subpixA = subpixNSWE * 2.0 + subpixNWSWNESE;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    if(!horzSpan) lumaN = lumaW;",
-  		"    if(!horzSpan) lumaS = lumaE;",
-  		"    if(horzSpan) lengthSign = fxaaQualityRcpFrame.y;",
-  		"    FxaaFloat subpixB = (subpixA * (1.0/12.0)) - lumaM;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat gradientN = lumaN - lumaM;",
-  		"    FxaaFloat gradientS = lumaS - lumaM;",
-  		"    FxaaFloat lumaNN = lumaN + lumaM;",
-  		"    FxaaFloat lumaSS = lumaS + lumaM;",
-  		"    FxaaBool pairN = abs(gradientN) >= abs(gradientS);",
-  		"    FxaaFloat gradient = max(abs(gradientN), abs(gradientS));",
-  		"    if(pairN) lengthSign = -lengthSign;",
-  		"    FxaaFloat subpixC = FxaaSat(abs(subpixB) * subpixRcpRange);",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat2 posB;",
-  		"    posB.x = posM.x;",
-  		"    posB.y = posM.y;",
-  		"    FxaaFloat2 offNP;",
-  		"    offNP.x = (!horzSpan) ? 0.0 : fxaaQualityRcpFrame.x;",
-  		"    offNP.y = ( horzSpan) ? 0.0 : fxaaQualityRcpFrame.y;",
-  		"    if(!horzSpan) posB.x += lengthSign * 0.5;",
-  		"    if( horzSpan) posB.y += lengthSign * 0.5;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat2 posN;",
-  		"    posN.x = posB.x - offNP.x * FXAA_QUALITY_P0;",
-  		"    posN.y = posB.y - offNP.y * FXAA_QUALITY_P0;",
-  		"    FxaaFloat2 posP;",
-  		"    posP.x = posB.x + offNP.x * FXAA_QUALITY_P0;",
-  		"    posP.y = posB.y + offNP.y * FXAA_QUALITY_P0;",
-  		"    FxaaFloat subpixD = ((-2.0)*subpixC) + 3.0;",
-  		"    FxaaFloat lumaEndN = FxaaLuma(FxaaTexTop(tex, posN));",
-  		"    FxaaFloat subpixE = subpixC * subpixC;",
-  		"    FxaaFloat lumaEndP = FxaaLuma(FxaaTexTop(tex, posP));",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    if(!pairN) lumaNN = lumaSS;",
-  		"    FxaaFloat gradientScaled = gradient * 1.0/4.0;",
-  		"    FxaaFloat lumaMM = lumaM - lumaNN * 0.5;",
-  		"    FxaaFloat subpixF = subpixD * subpixE;",
-  		"    FxaaBool lumaMLTZero = lumaMM < 0.0;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    lumaEndN -= lumaNN * 0.5;",
-  		"    lumaEndP -= lumaNN * 0.5;",
-  		"    FxaaBool doneN = abs(lumaEndN) >= gradientScaled;",
-  		"    FxaaBool doneP = abs(lumaEndP) >= gradientScaled;",
-  		"    if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P1;",
-  		"    if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P1;",
-  		"    FxaaBool doneNP = (!doneN) || (!doneP);",
-  		"    if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P1;",
-  		"    if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P1;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    if(doneNP) {",
-  		"        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"        doneN = abs(lumaEndN) >= gradientScaled;",
-  		"        doneP = abs(lumaEndP) >= gradientScaled;",
-  		"        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P2;",
-  		"        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P2;",
-  		"        doneNP = (!doneN) || (!doneP);",
-  		"        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P2;",
-  		"        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P2;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"        #if (FXAA_QUALITY_PS > 3)",
-  		"        if(doneNP) {",
-  		"            if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"            if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"            if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"            if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"            doneN = abs(lumaEndN) >= gradientScaled;",
-  		"            doneP = abs(lumaEndP) >= gradientScaled;",
-  		"            if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P3;",
-  		"            if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P3;",
-  		"            doneNP = (!doneN) || (!doneP);",
-  		"            if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P3;",
-  		"            if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P3;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"            #if (FXAA_QUALITY_PS > 4)",
-  		"            if(doneNP) {",
-  		"                if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P4;",
-  		"                if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P4;",
-  		"                doneNP = (!doneN) || (!doneP);",
-  		"                if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P4;",
-  		"                if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P4;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                #if (FXAA_QUALITY_PS > 5)",
-  		"                if(doneNP) {",
-  		"                    if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                    if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                    if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                    if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                    doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                    doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                    if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P5;",
-  		"                    if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P5;",
-  		"                    doneNP = (!doneN) || (!doneP);",
-  		"                    if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P5;",
-  		"                    if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P5;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                    #if (FXAA_QUALITY_PS > 6)",
-  		"                    if(doneNP) {",
-  		"                        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                        doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                        doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P6;",
-  		"                        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P6;",
-  		"                        doneNP = (!doneN) || (!doneP);",
-  		"                        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P6;",
-  		"                        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P6;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                        #if (FXAA_QUALITY_PS > 7)",
-  		"                        if(doneNP) {",
-  		"                            if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                            if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                            if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                            if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                            doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                            doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                            if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P7;",
-  		"                            if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P7;",
-  		"                            doneNP = (!doneN) || (!doneP);",
-  		"                            if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P7;",
-  		"                            if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P7;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    #if (FXAA_QUALITY_PS > 8)",
-  		"    if(doneNP) {",
-  		"        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"        doneN = abs(lumaEndN) >= gradientScaled;",
-  		"        doneP = abs(lumaEndP) >= gradientScaled;",
-  		"        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P8;",
-  		"        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P8;",
-  		"        doneNP = (!doneN) || (!doneP);",
-  		"        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P8;",
-  		"        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P8;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"        #if (FXAA_QUALITY_PS > 9)",
-  		"        if(doneNP) {",
-  		"            if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"            if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"            if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"            if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"            doneN = abs(lumaEndN) >= gradientScaled;",
-  		"            doneP = abs(lumaEndP) >= gradientScaled;",
-  		"            if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P9;",
-  		"            if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P9;",
-  		"            doneNP = (!doneN) || (!doneP);",
-  		"            if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P9;",
-  		"            if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P9;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"            #if (FXAA_QUALITY_PS > 10)",
-  		"            if(doneNP) {",
-  		"                if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P10;",
-  		"                if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P10;",
-  		"                doneNP = (!doneN) || (!doneP);",
-  		"                if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P10;",
-  		"                if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P10;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                #if (FXAA_QUALITY_PS > 11)",
-  		"                if(doneNP) {",
-  		"                    if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                    if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                    if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                    if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                    doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                    doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                    if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P11;",
-  		"                    if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P11;",
-  		"                    doneNP = (!doneN) || (!doneP);",
-  		"                    if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P11;",
-  		"                    if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P11;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                    #if (FXAA_QUALITY_PS > 12)",
-  		"                    if(doneNP) {",
-  		"                        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
-  		"                        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
-  		"                        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
-  		"                        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
-  		"                        doneN = abs(lumaEndN) >= gradientScaled;",
-  		"                        doneP = abs(lumaEndP) >= gradientScaled;",
-  		"                        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P12;",
-  		"                        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P12;",
-  		"                        doneNP = (!doneN) || (!doneP);",
-  		"                        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P12;",
-  		"                        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P12;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                    }",
-  		"                    #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                }",
-  		"                #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"            }",
-  		"            #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"        }",
-  		"        #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    }",
-  		"    #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                        }",
-  		"                        #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                    }",
-  		"                    #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"                }",
-  		"                #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"            }",
-  		"            #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"        }",
-  		"        #endif",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    }",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat dstN = posM.x - posN.x;",
-  		"    FxaaFloat dstP = posP.x - posM.x;",
-  		"    if(!horzSpan) dstN = posM.y - posN.y;",
-  		"    if(!horzSpan) dstP = posP.y - posM.y;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaBool goodSpanN = (lumaEndN < 0.0) != lumaMLTZero;",
-  		"    FxaaFloat spanLength = (dstP + dstN);",
-  		"    FxaaBool goodSpanP = (lumaEndP < 0.0) != lumaMLTZero;",
-  		"    FxaaFloat spanLengthRcp = 1.0/spanLength;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaBool directionN = dstN < dstP;",
-  		"    FxaaFloat dst = min(dstN, dstP);",
-  		"    FxaaBool goodSpan = directionN ? goodSpanN : goodSpanP;",
-  		"    FxaaFloat subpixG = subpixF * subpixF;",
-  		"    FxaaFloat pixelOffset = (dst * (-spanLengthRcp)) + 0.5;",
-  		"    FxaaFloat subpixH = subpixG * fxaaQualitySubpix;",
-  		"/*--------------------------------------------------------------------------*/",
-  		"    FxaaFloat pixelOffsetGood = goodSpan ? pixelOffset : 0.0;",
-  		"    FxaaFloat pixelOffsetSubpix = max(pixelOffsetGood, subpixH);",
-  		"    if(!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;",
-  		"    if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;",
-  		"    #if (FXAA_DISCARD == 1)",
-  		"        return FxaaTexTop(tex, posM);",
-  		"    #else",
-  		"        return FxaaFloat4(FxaaTexTop(tex, posM).xyz, lumaM);",
-  		"    #endif",
-  		"}",
-  		"/*==========================================================================*/",
-  		"#endif",
-  		"",
-  		"void main() {",
-  		"  gl_FragColor = FxaaPixelShader(",
-  		"    vUv,",
-  		"    vec4(0.0),",
-  		"    tDiffuse,",
-  		"    tDiffuse,",
-  		"    tDiffuse,",
-  		"    resolution,",
-  		"    vec4(0.0),",
-  		"    vec4(0.0),",
-  		"    vec4(0.0),",
-  		"    0.75,",
-  		"    0.166,",
-  		"    0.0833,",
-  		"    0.0,",
-  		"    0.0,",
-  		"    0.0,",
-  		"    vec4(0.0)",
-  		"  );",
-  		"",
-  		"  // TODO avoid querying texture twice for same texel",
-  		"  gl_FragColor.a = texture2D(tDiffuse, vUv).a;",
-  		"}"
-  	].join( "\n" )
-
-  };
-
   ShaderRegistry.add('shader/BasicLine.vert', "void main(){\n#include begin_vertex\n#include project_vertex\n}");
 
   ShaderRegistry.add('shader/BasicLine.frag', "uniform vec3 uColor;\n#include common\n#include fog_pars_fragment\nvoid main(){\ngl_FragColor = vec4( uColor, 1.0 );\n#include premultiplied_alpha_fragment\n#include tonemapping_fragment\n#include encodings_fragment\n#include fog_fragment\n}");
@@ -61747,77 +59358,12 @@
           }
       }
   }
-  var Spark = function Spark() {
-        this.sparkArray = [];
-        this.textSprite = null;
-        this.size = 0;
-        this.counter = 0;
-        this.period = 0;
-        this.unit = [
-            new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
-            new Vector3(0, 1, 0), new Vector3(0, -1, 0)
-        ];
-    };
-    Spark.prototype.reset = function reset () {
-        this.sparkArray.forEach(function (m) {
-            m.geometry.dispose();
-        });
-        this.sparkArray = [];
-        this.material.opacity = 1.0;
-        this.counter = 0;
-        this.period = 0;
-        this.center = new Vector3(0, 0, 0);
-        this.size = 0;
-        this.unit = [
-            new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
-            new Vector3(0, 1, 0), new Vector3(0, -1, 0)
-        ];
-        this.textSprite = null;
-    };
-    Spark.prototype.setURL = function setURL (url1) {
-        var textureLoader = new TextureLoader();
-        var map1 = textureLoader.load(url1);
-        this.material = new SpriteMaterial({ map: map1, color: 0xffffff, fog: true });
-    };
-    Spark.prototype.makeTextSprite = function makeTextSprite (message) {
-        var fontface = "Arial";
-        var fontsize = 100;
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext('2d');
-        if (!context)
-            { return; }
-        context.font = "Bold " + fontsize + "px " + fontface;
-        context.fillStyle = "white";
-        context.fillText(message, 0, fontsize);
-        var texture = new Texture(canvas);
-        texture.needsUpdate = true;
-        var spriteMaterial = new SpriteMaterial({ map: texture, color: 0xFFFFFF, fog: true });
-        var sprite = new Sprite(spriteMaterial);
-        var scale = 1; //10/metrics.width;
-        sprite.scale.set(10, 2, 1 * scale);
-        this.textSprite = sprite;
-    };
-  //kkk
   /**
    * Viewer class
    * @class
    * @param {String|Element} [idOrElement] - dom id or element
    */
-  var Viewer = function Viewer(idOrElement, stage, pixiCallback) {
-        //kkk
-        this.left = 0;
-        this.top = 0;
-        this.flashCount = 0;
-        this.baseColor = 0xFFFF00;
-        this.ethernaMode = {
-            ethernaPickingMode: true,
-            ethernaNucleotideBase: 1,
-            highColor: 0xFFFFFF,
-            mediumColor: 0x8F9DB0,
-            weakColor: 0x546986,
-            zeroColor: 0xC0C0C0,
-        }; //kkk
-        this.spark = new Spark();
+  var Viewer = function Viewer(idOrElement) {
         this.boundingBox = new Box3();
         this.boundingBoxSize = new Vector3();
         this.boundingBoxLength = 0;
@@ -61835,28 +59381,18 @@
             }
         };
         this.distVector = new Vector3();
-        this.etherna_pairs = undefined;
-        this.etherna_sequence = '';
-        this.fromOuter = false;
-        this.stage = stage; //kkk
         this.signals = {
             ticked: new signals.Signal(),
             rendered: new signals.Signal(),
             nextFrame: new signals.Signal()
         };
         this.container = idOrElement;
-        this.pixiCallback = pixiCallback;
         var box = this.container.getBoundingClientRect();
         this.width = box.width;
         this.height = box.height;
-        //kkk
-        if (pixiCallback)
-            { this.wrapper = this.container; }
-        else {
-            this.wrapper = document.createElement('div');
-            this.wrapper.style.position = 'relative';
-            this.container.appendChild(this.wrapper);
-        }
+        this.wrapper = document.createElement('div');
+        this.wrapper.style.position = 'relative';
+        this.container.appendChild(this.wrapper);
         this._initParams();
         this._initStats();
         this._initCamera();
@@ -61871,174 +59407,9 @@
         this.setBackground();
         this.setFog();
         this.animate = this.animate.bind(this);
-        this.signals.nextFrame.add(this.updateSpark, this);
     };
 
   var prototypeAccessors$x = { cameraDistance: { configurable: true } };
-    //kkk //
-    Viewer.prototype.beginSpark = function beginSpark () {
-          var this$1$1 = this;
-
-        this.sparkSpriteGroup.children.forEach(function (mesh) {
-            this$1$1.sparkSpriteGroup.remove(mesh);
-        });
-        this.sparkGroup.children.forEach(function (mesh) {
-            if (mesh instanceof Group) ;
-            else
-                { this$1$1.sparkGroup.remove(mesh); }
-        });
-        this.spark.reset();
-        this.sparkGroup.visible = false;
-        clearInterval(this.spark.polling);
-        // this.spark.unit.forEach((u)=>{
-        // u
-        // .unproject(this.camera)
-        // .sub(this.translationGroup.position)
-        // .applyMatrix4(new Matrix4().getInverse(this.rotationGroup.matrix))
-        // });
-    };
-    Viewer.prototype.makeTextSprite = function makeTextSprite (msg) {
-        this.spark.makeTextSprite(msg);
-    };
-    //kkk //
-    Viewer.prototype.addSpark = function addSpark (resno) {
-          var this$1$1 = this;
-
-        this.modelGroup.children.forEach(function (group) {
-            if (group.name == 'meshGroup') {
-                var mesh = group.children[0];
-                var geometry = mesh.geometry;
-                if (geometry.name == 'ebase') {
-                    var posInfo = geometry.getAttribute('position');
-                    var posArray = posInfo.array;
-                    var idInfo = geometry.getAttribute('primitiveId');
-                    var idArray = idInfo.array;
-                    var x0 = 0, y0 = 0, z0 = 0;
-                    var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-                    var count = 0;
-                    for (var i = 0; i < idArray.length; i++) {
-                        if (idArray[i] == resno) {
-                            var x = posArray[i * 3], y = posArray[i * 3 + 1], z = posArray[i * 3 + 2];
-                            x0 += x;
-                            y0 += y;
-                            z0 += z;
-                            if (x > maxX)
-                                { maxX = x; }
-                            if (y > maxY)
-                                { maxY = y; }
-                            if (z > maxZ)
-                                { maxZ = z; }
-                            count++;
-                        }
-                    }
-                    x0 /= count;
-                    y0 /= count;
-                    z0 /= count;
-                    var R = Math.sqrt((maxX - x0) * (maxX - x0) + (maxY - y0) * (maxY - y0) + (maxZ - z0) * (maxZ - z0));
-                    for (var i = 0; i < 4; i++) {
-                        var sprite = new Sprite(this$1$1.spark.material);
-                        sprite.position.set(x0, y0, z0);
-                        sprite.name = i + '';
-                        sprite.scale.set(R, R, 1.0);
-                        this$1$1.spark.sparkArray.push(sprite);
-                    }
-                    // const sprite = new Sprite(this.spark.material);
-                    // sprite.position.set( x0, y0, z0);
-                    // var n = Math.floor(Math.random()*400);
-                    // sprite.name = (n%4)+'';
-                    // sprite.scale.set(R, R, 1.0 );
-                    // this.spark.sparkArray.push(sprite);
-                    this$1$1.spark.size = Math.max(this$1$1.spark.size, R);
-                }
-            }
-        });
-    };
-    //kkk //
-    Viewer.prototype.endSpark = function endSpark (period) {
-          var this$1$1 = this;
-
-        // console.log('end spark = ', period); 
-        this.spark.counter = 0;
-        this.spark.period = period;
-        var count = 0;
-        this.spark.sparkArray.forEach(function (m) {
-            this$1$1.spark.center.add(m.position);
-            this$1$1.sparkSpriteGroup.add(m);
-            count++;
-        });
-        this.spark.center.divideScalar(count);
-        // if(this.spark.textSprite) {
-        // this.sparkGroup.add(this.spark.textSprite);
-        // this.spark.textSprite.position.set(this.spark.center.x, this.spark.center.y, this.spark.center.z)
-        // console.log('xxxxxxxxxx', this.spark.center);
-        // }
-        this.sparkGroup.visible = true;
-        this.requestRender();
-        this.spark.polling = setInterval(function () {
-            this$1$1.requestRender();
-        }, 1);
-    };
-    Viewer.prototype.updateSpark = function updateSpark () {
-          var this$1$1 = this;
-
-        if (this.sparkGroup.visible) {
-            var opacity = 1.0;
-            if (this.spark.counter < this.spark.period)
-                { opacity = 1.0 - this.spark.counter / this.spark.period; }
-            this.sparkSpriteGroup.children.forEach(function (obj) {
-                if (obj.visible) {
-                    var delta = (this$1$1.spark.size / 4) * (this$1$1.spark.period - this$1$1.spark.counter) / this$1$1.spark.period;
-                    var i = parseInt(obj.name, 10);
-                    obj.translateOnAxis(this$1$1.spark.unit[i], delta);
-                    var p2 = this$1$1.stage.viewerControls.getPositionOnCanvas(obj.position);
-                    if (p2.x < 0 || p2.x > this$1$1.width || p2.y < 0 || p2.y > this$1$1.height) {
-                        obj.visible = false;
-                    }
-                    var sprite = obj;
-                    sprite.material.opacity = opacity;
-                    sprite.scale.set(this$1$1.spark.size, this$1$1.spark.size, 1.0);
-                }
-            });
-            // this.spark.textSprite?.scale.set(10,2,1);
-            this.spark.counter++;
-            if (this.spark.counter >= this.spark.period) {
-                this.sparkGroup.visible = false;
-                // console.log('updateSpark --- ', this.spark.counter, this.spark.period);
-                this.spark.reset();
-                clearInterval(this.spark.polling);
-            }
-            this.requestRender();
-        }
-    };
-    //kkk //setPosition
-    Viewer.prototype.setPosition = function setPosition (x, y) {
-        this.left = x;
-        this.top = y;
-    };
-    //kkk //setEthernaPairs
-    Viewer.prototype.setEthernaPairs = function setEthernaPairs (pairs) {
-        this.etherna_pairs = pairs;
-    };
-    //kkk //setEthernaPairs
-    Viewer.prototype.setEthernaSequence = function setEthernaSequence (sequence, num) {
-        this.etherna_sequence = sequence;
-        this.ethernaMode.ethernaNucleotideBase = num;
-    };
-    //kkk
-    Viewer.prototype.setEthernaToolTipMode = function setEthernaToolTipMode (mode) {
-        this.ethernaMode.ethernaPickingMode = mode;
-    };
-    //kkk
-    Viewer.prototype.setHBondColor = function setHBondColor (colors) {
-        this.ethernaMode.highColor = colors[0];
-        this.ethernaMode.mediumColor = colors[1];
-        this.ethernaMode.weakColor = colors[2];
-        this.ethernaMode.zeroColor = colors[3];
-    };
-    //kkk
-    Viewer.prototype.setPixiCallback = function setPixiCallback (callback) {
-        this.pixiCallback = callback;
-    };
     Viewer.prototype._initParams = function _initParams () {
         this.parameters = {
             fogColor: new Color(0x222222),
@@ -62097,34 +59468,15 @@
             this.scene = new Scene();
             this.scene.name = 'scene';
         }
-        this.translationGroup = new Group();
-        this.translationGroup.name = 'translationGroup';
-        this.scene.add(this.translationGroup);
         this.rotationGroup = new Group();
         this.rotationGroup.name = 'rotationGroup';
-        this.translationGroup.add(this.rotationGroup);
+        this.scene.add(this.rotationGroup);
+        this.translationGroup = new Group();
+        this.translationGroup.name = 'translationGroup';
+        this.rotationGroup.add(this.translationGroup);
         this.modelGroup = new Group();
         this.modelGroup.name = 'modelGroup';
-        this.rotationGroup.add(this.modelGroup);
-        //kkk
-        this.sparkGroup = new Group();
-        this.sparkGroup.name = 'spark';
-        this.sparkSpriteGroup = new Group();
-        this.sparkGroup.add(this.sparkSpriteGroup);
-        this.modelGroup.add(this.sparkGroup);
-        this.sparkGroup.visible = false;
-        //kkk
-        this.selectGroup = new Group();
-        this.selectGroup.name = 'selectGroup';
-        this.modelGroup.add(this.selectGroup);
-        //kkk
-        this.selectGroup2 = new Group();
-        this.selectGroup2.name = 'selectGroup2';
-        this.modelGroup.add(this.selectGroup2);
-        //kkk
-        this.markGroup = new Group();
-        this.markGroup.name = 'markGroup';
-        this.modelGroup.add(this.markGroup);
+        this.translationGroup.add(this.modelGroup);
         this.pickingGroup = new Group();
         this.pickingGroup.name = 'pickingGroup';
         this.rotationGroup.add(this.pickingGroup);
@@ -62145,8 +59497,6 @@
         // this.scene.add( axesHelper );
     };
     Viewer.prototype._initRenderer = function _initRenderer () {
-          var this$1$1 = this;
-
         var dpr = window.devicePixelRatio;
         var width = this.width;
         var height = this.height;
@@ -62192,9 +59542,7 @@
             setSupportsReadPixelsFloat(this.renderer.extensions.get('EXT_color_buffer_float'));
             this.supportsHalfFloat = true;
         }
-        //kkk
-        if (this.pixiCallback == undefined)
-            { this.wrapper.appendChild(this.renderer.domElement); }
+        this.wrapper.appendChild(this.renderer.domElement);
         if (exports.Debug) {
             console.log(JSON.stringify({
                 'Browser': Browser,
@@ -62256,34 +59604,7 @@
         this.compositeScene = new Scene();
         this.compositeScene.name = 'compositeScene';
         this.compositeScene.add(new Mesh(new PlaneGeometry(2, 2), this.compositeMaterial));
-        //kkk
-        //variables for outline highlight rendering
-        this.composer = new EffectComposer(this.renderer);
-        var renderPass = new RenderPass(this.scene, this.camera);
-        this.composer.addPass(renderPass);
-        this.selectOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
-        this.selectOutlinePass.edgeStrength = 5;
-        this.selectOutlinePass.edgeGlow = 0.5;
-        this.selectOutlinePass.edgeThickness = 2;
-        this.composer.addPass(this.selectOutlinePass);
-        // this.markOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
-        // this.markOutlinePass.edgeStrength = 5;
-        // this.markOutlinePass.edgeGlow = 0.5;
-        // this.markOutlinePass.edgeThickness = 2;
-        // this.composer.addPass(this.markOutlinePass);
-        this.effectFXAA = new ShaderPass(FXAAShader);
-        this.effectFXAA.uniforms['resolution'].value.set(1 / this.width, 1 / this.height);
-        this.composer.addPass(this.effectFXAA);
-        setInterval(function () {
-            if (this$1$1.markGroup.children.length > 0) {
-                this$1$1.flashCount++;
-                this$1$1.markGroup.children.forEach(function (mesh) {
-                    var mat = mesh.material;
-                    mat.opacity = (this$1$1.flashCount % 2) * 0.6;
-                });
-                this$1$1.requestRender();
-            }
-        }, 500);
+        return true;
     };
     Viewer.prototype._initHelper = function _initHelper () {
         var indices = new Uint16Array([
@@ -62372,199 +59693,6 @@
             { this.updateHelper(); }
         // console.log(this.pickingGroup);
         // Log.timeEnd( "Viewer.add" );
-    };
-    //kkk
-    //set base to highlight outline
-    Viewer.prototype.selectEBaseObject = function selectEBaseObject (resno, fromViewer, color1) {
-          var this$1$1 = this;
-
-        var fromSelf = true;
-        if (fromViewer !== undefined)
-            { fromSelf = fromViewer; }
-        if (!fromSelf) {
-            if (resno >= 0) {
-                this.fromOuter = true;
-            }
-            else {
-                this.fromOuter = false;
-            }
-        }
-        if (resno < 0) {
-            if (this.fromOuter)
-                { return; }
-        }
-        var selGeometry = null;
-        this.selectGroup.children.forEach(function (obj) {
-            this$1$1.selectGroup.remove(obj);
-        });
-        this.modelGroup.children.forEach(function (group) {
-            if (group.name == 'meshGroup') {
-                var mesh = group.children[0];
-                var geometry = mesh.geometry;
-                if (geometry.name == 'ebase') {
-                    var newPos = new Array(0);
-                    var posInfo = geometry.getAttribute('position');
-                    var posArray = posInfo.array;
-                    // posInfo.count
-                    var idInfo = geometry.getAttribute('primitiveId');
-                    var idArray = idInfo.array;
-                    var x0 = 0, y0 = 0, z0 = 0;
-                    for (var i = 0; i < idArray.length; i++) {
-                        if (idArray[i] == resno) {
-                            newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                            x0 += posArray[i * 3];
-                            y0 += posArray[i * 3 + 1];
-                            z0 += posArray[i * 3 + 2];
-                        }
-                    }
-                    x0 /= newPos.length;
-                    y0 /= newPos.length;
-                    z0 /= newPos.length;
-                    selGeometry = new BufferGeometry();
-                    selGeometry.setFromPoints(newPos);
-                    selGeometry.translate(-x0, -y0, -z0);
-                    selGeometry.scale(1.3, 1.3, 1.3);
-                    selGeometry.translate(x0, y0, z0);
-                }
-            }
-        });
-        var color = color1 ? color1 : 0xFFFF00;
-        if (selGeometry) {
-            var mat = new MeshBasicMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0.6,
-                depthWrite: false
-            });
-            var newMesh = new Mesh(selGeometry, mat);
-            this.selectGroup.add(newMesh);
-        }
-        this.requestRender();
-    };
-    Viewer.prototype.setBaseColor = function setBaseColor (color) {
-        this.baseColor = color;
-    };
-    Viewer.prototype.selectEBaseObject2 = function selectEBaseObject2 (resno, bChange, color1, color2) {
-          var this$1$1 = this;
-
-        if (bChange == null)
-            { bChange = true; }
-        var selGeometry = null;
-        var selectedObjects = [];
-        this.selectGroup2.children.forEach(function (obj) {
-            this$1$1.selectGroup2.remove(obj);
-        });
-        if (resno >= 0) {
-            this.modelGroup.children.forEach(function (group) {
-                if (group.name == 'meshGroup') {
-                    var mesh = group.children[0];
-                    var geometry = mesh.geometry;
-                    if (geometry.name == 'ebase') {
-                        var newPos = new Array(0);
-                        // let newNormal = new Array(0);
-                        // let colorInfo = geometry.getAttribute('color');
-                        var posInfo = geometry.getAttribute('position');
-                        var posArray = posInfo.array;
-                        // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
-                        // posInfo.count
-                        var idInfo = geometry.getAttribute('primitiveId');
-                        var idArray = idInfo.array;
-                        // var x0 = 0, y0 = 0, z0 = 0;
-                        for (var i = 0; i < idArray.length; i++) {
-                            if (idArray[i] == resno) {
-                                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                                // x0 += posArray[i * 3];
-                                // y0 += posArray[i * 3 + 1];
-                                // z0 += posArray[i * 3 + 2];
-                            }
-                        }
-                        if (newPos.length > 0) {
-                            selGeometry = new BufferGeometry();
-                            selGeometry.setFromPoints(newPos);
-                            // x0 /= newPos.length;
-                            // y0 /= newPos.length;
-                            // z0 /= newPos.length;
-                            // this.stage.animationControls.move(new Vector3(x0, y0, z0)) //kkk
-                        }
-                    }
-                }
-            });
-            if (selGeometry) {
-                var mat = new MeshBasicMaterial({
-                    color: 0xFFFFFF,
-                    transparent: true,
-                    opacity: 0.0,
-                    depthWrite: false,
-                });
-                var newMesh = new Mesh(selGeometry, mat);
-                this.selectGroup2.add(newMesh);
-                selectedObjects.push(newMesh);
-            }
-            if (color1)
-                { this.selectOutlinePass.visibleEdgeColor.set(color1); }
-            if (color2)
-                { this.selectOutlinePass.hiddenEdgeColor.set(color2); }
-            if (bChange)
-                { this.selectOutlinePass.selectedObjects = selectedObjects; }
-        }
-        this.requestRender();
-    };
-    //kkk mark&unmark base
-    Viewer.prototype.markEBaseObject = function markEBaseObject (resno, color1, color2) {
-          var this$1$1 = this;
-        var bNew = true;
-        this.markGroup.children.forEach(function (obj) {
-            if (parseInt(obj.name) == resno) {
-                this$1$1.markGroup.remove(obj);
-                bNew = false;
-            }
-        });
-        if (bNew) {
-            var selGeometry = null;
-            this.modelGroup.children.forEach(function (group) {
-                if (group.name == 'meshGroup') {
-                    var mesh = group.children[0];
-                    var geometry = mesh.geometry;
-                    if (geometry.name == 'ebase') {
-                        var newPos = new Array(0);
-                        var posInfo = geometry.getAttribute('position');
-                        var posArray = posInfo.array;
-                        var idInfo = geometry.getAttribute('primitiveId');
-                        var idArray = idInfo.array;
-                        // var x0 = 0, y0 = 0, z0 = 0;
-                        for (var i = 0; i < idArray.length; i++) {
-                            if (idArray[i] == resno) {
-                                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                                // x0 += posArray[i * 3];
-                                // y0 += posArray[i * 3 + 1];
-                                // z0 += posArray[i * 3 + 2];
-                            }
-                        }
-                        // x0 /= newPos.length;
-                        // y0 /= newPos.length;
-                        // z0 /= newPos.length;
-                        selGeometry = new BufferGeometry();
-                        selGeometry.setFromPoints(newPos);
-                        // this.stage.animationControls.move(new Vector3(x0, y0, z0))
-                    }
-                }
-            });
-            if (selGeometry) {
-                var mat = new MeshBasicMaterial({
-                    color: 0x000000,
-                    transparent: true,
-                    opacity: 0.8,
-                    depthWrite: false,
-                });
-                var newMesh = new Mesh(selGeometry, mat);
-                newMesh.name = resno.toString();
-                this.markGroup.add(newMesh);
-            }
-        }
-        // if (color1) this.markOutlinePass.visibleEdgeColor.set(color1);
-        // if (color2) this.markOutlinePass.hiddenEdgeColor.set(color2);
-        // this.markOutlinePass.selectedObjects = selectedObjects;
-        this.requestRender();
     };
     Viewer.prototype.addBuffer = function addBuffer (buffer, instance) {
         // Log.time( "Viewer.addBuffer" );
@@ -62847,14 +59975,9 @@
         this.pickingTarget.setSize(dprWidth, dprHeight);
         this.sampleTarget.setSize(dprWidth, dprHeight);
         this.holdTarget.setSize(dprWidth, dprHeight);
-        //kkk
-        // resize composer
-        this.composer.setSize(width, height);
-        this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
         this.requestRender();
     };
     Viewer.prototype.handleResize = function handleResize (width, height) {
-        //kkk
         if (width == 0 || height == 0) {
             var box = this.container.getBoundingClientRect();
             this.setSize(box.width, box.height);
@@ -63109,10 +60232,7 @@
         this.renderer.clear(false, true, true);
         this.updateInfo();
         this.__setVisibility(true, false, false, true);
-        //kkk
-        //use composer rendering for outline highlighting effects
-        this.composer.render();
-        // this.renderer.render(this.scene, camera)
+        this.renderer.render(this.scene, camera);
         this.renderer.setRenderTarget(null); // set back to default canvas
         this.updateInfo();
     };
@@ -63193,21 +60313,9 @@
             // TODO super sample broken for stereo camera
             this.__renderSuperSample(camera, renderTarget);
             this.__renderModelGroup(camera, renderTarget);
-            //kkk
-            if (this.pixiCallback) {
-                this.signals.rendered.dispatch();
-                this.signals.nextFrame.dispatch();
-                this.pixiCallback(this.renderer.domElement, this.width, this.height);
-            }
         }
         else {
             this.__renderModelGroup(camera, renderTarget);
-            //kkk
-            if (this.pixiCallback) {
-                this.signals.rendered.dispatch();
-                this.signals.nextFrame.dispatch();
-                this.pixiCallback(this.renderer.domElement, this.width, this.height);
-            }
         }
     };
     Viewer.prototype.render = function render (picking, renderTarget) {
@@ -63249,85 +60357,6 @@
     };
     Viewer.prototype.dispose = function dispose () {
         this.renderer.dispose();
-    };
-    //kkk
-    Viewer.prototype.getCanvasBoundPoints = function getCanvasBoundPoints () {
-        if (this.stage.loadedComponent == undefined)
-            { return []; }
-        var min = this.boundingBox.min;
-        var max = this.boundingBox.max;
-        var posArray = [
-            new Vector2(),
-            new Vector2(),
-            new Vector2(),
-            new Vector2(),
-            new Vector2(),
-            new Vector2(),
-            new Vector2(),
-            new Vector2()
-        ];
-        var points = [
-            new Vector3(),
-            new Vector3(),
-            new Vector3(),
-            new Vector3(),
-            new Vector3(),
-            new Vector3(),
-            new Vector3(),
-            new Vector3()
-        ];
-        points[0].set(min.x, min.y, min.z); // 000
-        points[1].set(min.x, min.y, max.z); // 001
-        points[2].set(min.x, max.y, min.z); // 010
-        points[3].set(min.x, max.y, max.z); // 011
-        points[4].set(max.x, min.y, min.z); // 100
-        points[5].set(max.x, min.y, max.z); // 101
-        points[6].set(max.x, max.y, min.z); // 110
-        points[7].set(max.x, max.y, max.z); // 111
-        for (var i = 0; i < 8; i++) {
-            var p3 = points[i];
-            p3 = p3.applyMatrix4(this.stage.loadedComponent.matrix);
-            var p2 = this.stage.viewerControls.getPositionOnCanvas(p3);
-            posArray[i].set(p2.x, p2.y);
-        }
-        return posArray;
-    };
-    Viewer.prototype.isPointInBoundBox = function isPointInBoundBox (x, y, bEulerSys) {
-
-        return true;
-        // function polyContainsPt(pt:Vector2, poly:Vector2[]) {
-        // var sign:number[] = [];
-        // for(var i=0;i<poly.length;i++) {
-        //   var p1 = poly[i];
-        //   var p2 = poly[(i+1)%poly.length];
-        //   var v1 = p2.clone().sub(p1);
-        //   var v2 = pt.clone().sub(p1);
-        //   sign.push(Math.sign(v1.cross(v2)));
-        // }
-        // var prevSign = 0;
-        // for(var i=0;i<sign.length;i++) {
-        //   if(sign[i] != 0) {
-        //     if(prevSign == 0) prevSign = sign[i];
-        //     else if(prevSign == -sign[i]) return false;
-        //   }
-        // }
-        // return true;
-        // }
-        // var pt = new Vector2(x, y);
-        // if(!bEulerSys) pt.y = this.height - pt.y;
-        // var ptArray = this.getCanvasBoundPoints();
-        // if(ptArray.length == 8) {
-        // if(polyContainsPt(pt, [ptArray[0], ptArray[1], ptArray[3], ptArray[2]])) return true;
-        // if(polyContainsPt(pt, [ptArray[4], ptArray[5], ptArray[7], ptArray[6]])) return true;
-        // if(polyContainsPt(pt, [ptArray[1], ptArray[3], ptArray[7], ptArray[5]])) return true;
-        // if(polyContainsPt(pt, [ptArray[0], ptArray[2], ptArray[6], ptArray[4]])) return true;
-        // if(polyContainsPt(pt, [ptArray[2], ptArray[6], ptArray[7], ptArray[3]])) return true;
-        // if(polyContainsPt(pt, [ptArray[0], ptArray[4], ptArray[5], ptArray[1]])) return true;
-        // }
-        // return false;
-    };
-    Viewer.prototype.getWebGLCanvas = function getWebGLCanvas () {
-        return this.renderer.domElement;
     };
 
   Object.defineProperties( Viewer.prototype, prototypeAccessors$x );
@@ -63476,7 +60505,6 @@
       // document.addEventListener('touchstart', this._onTouchstart, opt)
       // document.addEventListener('touchend', this._onTouchend, opt)
       // document.addEventListener('touchmove', this._onTouchmove, opt)
-      //kkk
       this.domElement.addEventListener('mousewheel', this._onMousewheel);
       this.domElement.addEventListener('wheel', this._onMousewheel);
       this.domElement.addEventListener('MozMousePixelScroll', this._onMousewheel);
@@ -63543,8 +60571,6 @@
       if (event.target !== this.domElement || !this.handleScroll) {
           return;
       }
-      if (!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
-          { return; } //kkk
       event.preventDefault();
       this._setKeys(event);
       var delta = 0;
@@ -63587,8 +60613,6 @@
    */
   MouseObserver.prototype._onMousemove = function _onMousemove (event) {
       this._setCanvasPosition(event);
-      if (!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
-          { return; } //kkk
       if (event.target === this.domElement) {
           event.preventDefault();
           this.overElement = true;
@@ -63614,8 +60638,6 @@
           return;
       }
       this._setCanvasPosition(event);
-      if (!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
-          { return; } //kkk
       event.preventDefault();
       this._setKeys(event);
       this.moving = false;
@@ -63625,13 +60647,6 @@
       this.which = event.which;
       this.buttons = getMouseButtons(event);
       this.pressed = true;
-      //kkk //broadcast mouse down event in forms of custom event.
-      // window.dispatchEvent(new CustomEvent('kkk', {
-      //   detail: {
-      // 'clientX': event.clientX,
-      // 'clientY': event.clientY,
-      //   }
-      // }));
   };
   /**
    * handle mouse up
@@ -63675,10 +60690,6 @@
       if (event.touches.length == 1) {
           this._setCanvasPosition(event.touches[0]);
       }
-      if (!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) {
-          this.pressed = false;
-          return; //kkk
-      }
       event.preventDefault();
       this.pressed = true;
       switch (event.touches.length) {
@@ -63709,8 +60720,6 @@
       if (event.touches.length > 0) {
           this._setCanvasPosition(event.touches[0]);
       }
-      if (!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y))
-          { return; } //kkk
       if (event.target === this.domElement) {
           event.preventDefault();
           this.overElement = true;
@@ -63803,7 +60812,6 @@
       // document.removeEventListener('touchstart', this._onTouchstart)
       // document.removeEventListener('touchend', this._onTouchend)
       // document.removeEventListener('touchmove', this._onTouchmove)
-      //kkk
       this.domElement.removeEventListener('mousewheel', this._onMousewheel);
       this.domElement.removeEventListener('wheel', this._onMousewheel);
       this.domElement.removeEventListener('MozMousePixelScroll', this._onMousewheel);
@@ -63826,13 +60834,13 @@
   var tmpRotateXMatrix = new Matrix4();
   var tmpRotateYMatrix = new Matrix4();
   var tmpRotateZMatrix = new Matrix4();
-  var tmpRotateMatrix$2 = new Matrix4();
+  var tmpRotateMatrix$3 = new Matrix4();
   var tmpRotateCameraMatrix = new Matrix4();
-  var tmpRotateVector$2 = new Vector3();
-  var tmpRotateQuaternion$1 = new Quaternion();
-  var tmpRotateQuaternion2 = new Quaternion();
+  var tmpRotateVector$3 = new Vector3();
+  var tmpRotateQuaternion$2 = new Quaternion();
+  var tmpRotateQuaternion2$1 = new Quaternion();
   var tmpPanMatrix = new Matrix4();
-  var tmpPanVector = new Vector3();
+  var tmpPanVector$1 = new Vector3();
   var tmpAtomVector = new Vector3();
   /**
    * Trackball controls
@@ -63860,8 +60868,8 @@
           if ( z === void 0 ) z = 0;
 
       var scaleFactor = this.controls.getCanvasScaleFactor(z);
-      tmpPanVector.set(x, y, 0);
-      tmpPanVector.multiplyScalar(this.panSpeed * scaleFactor);
+      tmpPanVector$1.set(x, y, 0);
+      tmpPanVector$1.multiplyScalar(this.panSpeed * scaleFactor);
   };
   TrackballControls.prototype._getRotateXY = function _getRotateXY (x, y) {
       return [
@@ -63882,28 +60890,27 @@
       tmpPanMatrix.premultiply(this.viewer.rotationGroup.matrix);
       tmpPanMatrix.getInverse(tmpPanMatrix);
       // Adjust for camera rotation
-      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$2));
-      tmpPanVector.applyMatrix4(tmpPanMatrix);
+      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$3));
+      tmpPanVector$1.applyMatrix4(tmpPanMatrix);
   };
   TrackballControls.prototype.zoom = function zoom (delta) {
       this.controls.zoom(this.zoomSpeed * delta * 0.02);
   };
   TrackballControls.prototype.pan = function pan (x, y) {
       this._setPanVector(x, y);
-      //kkk
-      // // Adjust for scene rotation
-      // tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix)
-      // // Adjust for camera rotation
-      // tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix))
-      // tmpPanVector.applyMatrix4(tmpPanMatrix)
-      this.controls.translate(tmpPanVector);
+      // Adjust for scene rotation
+      tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix);
+      // Adjust for camera rotation
+      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$3));
+      tmpPanVector$1.applyMatrix4(tmpPanMatrix);
+      this.controls.translate(tmpPanVector$1);
   };
   TrackballControls.prototype.panComponent = function panComponent (x, y) {
       if (!this.component)
           { return; }
       this._setPanVector(x, y);
       this._transformPanVector();
-      this.component.position.add(tmpPanVector);
+      this.component.position.add(tmpPanVector$1);
       this.component.updateMatrix();
   };
   TrackballControls.prototype.panAtom = function panAtom (x, y) {
@@ -63914,7 +60921,7 @@
       tmpAtomVector.applyMatrix4(this.viewer.rotationGroup.matrix);
       this._setPanVector(x, y, tmpAtomVector.z);
       this._transformPanVector();
-      this.atom.positionAdd(tmpPanVector);
+      this.atom.positionAdd(tmpPanVector$1);
       this.component.updateRepresentations({ 'position': true });
   };
   TrackballControls.prototype.rotate = function rotate (x, y) {
@@ -63922,16 +60929,16 @@
           var dx = ref[0];
           var dy = ref[1];
       // rotate around screen X then screen Y
-      this._getCameraRotation(tmpRotateMatrix$2);
-      tmpRotateVector$2.set(1, 0, 0); // X axis
-      // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X //kkk
-      tmpRotateQuaternion$1.setFromAxisAngle(tmpRotateVector$2, dy);
-      tmpRotateVector$2.set(0, 1, 0); // Y axis
-      // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y //kkk
-      tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector$2, dx);
-      tmpRotateQuaternion$1.multiply(tmpRotateQuaternion2);
-      tmpRotateMatrix$2.makeRotationFromQuaternion(tmpRotateQuaternion$1);
-      this.controls.applyRotateMatrix(tmpRotateMatrix$2);
+      this._getCameraRotation(tmpRotateMatrix$3);
+      tmpRotateVector$3.set(1, 0, 0); // X axis
+      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
+      tmpRotateQuaternion$2.setFromAxisAngle(tmpRotateVector$3, dy);
+      tmpRotateVector$3.set(0, 1, 0); // Y axis
+      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
+      tmpRotateQuaternion2$1.setFromAxisAngle(tmpRotateVector$3, dx);
+      tmpRotateQuaternion$2.multiply(tmpRotateQuaternion2$1);
+      tmpRotateMatrix$3.makeRotationFromQuaternion(tmpRotateQuaternion$2);
+      this.controls.applyRotateMatrix(tmpRotateMatrix$3);
   };
   TrackballControls.prototype.zRotate = function zRotate (x, y) {
       var dz = this.rotateSpeed * ((-x + y) / -2) * 0.01;
@@ -63945,19 +60952,19 @@
           var dx = ref[0];
           var dy = ref[1];
       this._getCameraRotation(tmpRotateCameraMatrix);
-      tmpRotateMatrix$2.extractRotation(this.component.transform);
-      tmpRotateMatrix$2.premultiply(this.viewer.rotationGroup.matrix);
-      tmpRotateMatrix$2.getInverse(tmpRotateMatrix$2);
-      tmpRotateMatrix$2.premultiply(tmpRotateCameraMatrix);
-      tmpRotateVector$2.set(1, 0, 0);
-      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2);
-      tmpRotateXMatrix.makeRotationAxis(tmpRotateVector$2, dy);
-      tmpRotateVector$2.set(0, 1, 0);
-      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2);
-      tmpRotateYMatrix.makeRotationAxis(tmpRotateVector$2, dx);
+      tmpRotateMatrix$3.extractRotation(this.component.transform);
+      tmpRotateMatrix$3.premultiply(this.viewer.rotationGroup.matrix);
+      tmpRotateMatrix$3.getInverse(tmpRotateMatrix$3);
+      tmpRotateMatrix$3.premultiply(tmpRotateCameraMatrix);
+      tmpRotateVector$3.set(1, 0, 0);
+      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
+      tmpRotateXMatrix.makeRotationAxis(tmpRotateVector$3, dy);
+      tmpRotateVector$3.set(0, 1, 0);
+      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
+      tmpRotateYMatrix.makeRotationAxis(tmpRotateVector$3, dx);
       tmpRotateXMatrix.multiply(tmpRotateYMatrix);
-      tmpRotateQuaternion$1.setFromRotationMatrix(tmpRotateXMatrix);
-      this.component.quaternion.premultiply(tmpRotateQuaternion$1);
+      tmpRotateQuaternion$2.setFromRotationMatrix(tmpRotateXMatrix);
+      this.component.quaternion.premultiply(tmpRotateQuaternion$2);
       this.component.quaternion.normalize();
       this.component.updateMatrix();
   };
@@ -64194,20 +61201,6 @@
   };
   PickingProxy.prototype.getLabel = function getLabel () {
       var atom = this.atom || this.closeAtom;
-      //kkk
-      var checkResult = this.checkBase();
-      if (this.stage.viewer.ethernaMode.ethernaPickingMode) {
-          if (!checkResult.isBase)
-              { return ''; }
-          else {
-              var name = '';
-              if (this.bond.atom1.resno !== undefined)
-                  { name += (this.bond.atom1.resno + this.stage.viewer.ethernaMode.ethernaNucleotideBase - 1); }
-              if (this.bond.atom1.resname)
-                  { name += ': ' + this.bond.atom1.resname; }
-              return name;
-          }
-      }
       var msg = 'nothing';
       if (this.arrow) {
           msg = this.arrow.name;
@@ -64280,15 +61273,6 @@
       }
       return msg;
   };
-  //kkk
-  PickingProxy.prototype.checkBase = function checkBase () {
-      if (this.bond) {
-          if ((this.bond.atom1.resno == this.bond.atom2.resno) && this.bond.atom1.atomname.includes("C4'") && (this.bond.atom2.atomname.includes("N1") || this.bond.atom2.atomname.includes("N3"))) {
-              return { isBase: true, resno: this.bond.atom1.resno, resname: this.bond.atom1.resname };
-          }
-      }
-      return { isBase: false, resno: -1, resname: '' };
-  };
 
   Object.defineProperties( PickingProxy.prototype, prototypeAccessors$u );
 
@@ -64341,8 +61325,8 @@
   var tmpS = new Vector3();
   var tmpCanvasVector = new Vector3();
   var tmpScaleVector = new Vector3();
-  var tmpRotateMatrix$1 = new Matrix4();
-  var tmpRotateVector$1 = new Vector3();
+  var tmpRotateMatrix$2 = new Matrix4();
+  var tmpRotateVector$2 = new Vector3();
   var tmpAlignMatrix = new Matrix4();
   /**
    * Viewer controls
@@ -64363,7 +61347,6 @@
   prototypeAccessors$t.position.get = function () {
       return this.viewer.translationGroup.position;
   };
-  //kkk
   prototypeAccessors$t.rotationPosition.get = function () {
       return this.viewer.rotationGroup.position;
   };
@@ -64491,10 +61474,10 @@
    * @return {undefined}
    */
   ViewerControls.prototype.spin = function spin (axis, angle) {
-      tmpRotateMatrix$1.getInverse(this.viewer.rotationGroup.matrix);
-      tmpRotateVector$1
-          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix$1);
-      this.viewer.rotationGroup.rotateOnAxis(tmpRotateVector$1, angle);
+      tmpRotateMatrix$2.getInverse(this.viewer.rotationGroup.matrix);
+      tmpRotateVector$2
+          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix$2);
+      this.viewer.rotationGroup.rotateOnAxis(tmpRotateVector$2, angle);
       this.changed();
   };
   /**
@@ -64729,33 +61712,11 @@
           this.moveTo = ensureVector3(defaults(moveTo, new Vector3()));
       };
       MoveAnimation.prototype._tick = function _tick ( /* stats */) {
-          this.controls.rotationPosition.lerpVectors(//kkk
-          this.moveFrom, this.moveTo, this.alpha).negate();
+          this.controls.rotationPosition.lerpVectors(this.moveFrom, this.moveTo, this.alpha).negate();
           this.controls.changed();
       };
 
       return MoveAnimation;
-  }(Animation));
-  var MoveAnimation2 = /*@__PURE__*/(function (Animation) {
-      function MoveAnimation2 () {
-          Animation.apply(this, arguments);
-      }
-
-      if ( Animation ) MoveAnimation2.__proto__ = Animation;
-      MoveAnimation2.prototype = Object.create( Animation && Animation.prototype );
-      MoveAnimation2.prototype.constructor = MoveAnimation2;
-
-      MoveAnimation2.prototype._init = function _init (moveFrom, moveTo) {
-          this.moveFrom = ensureVector3(defaults(moveFrom, new Vector3()));
-          this.moveTo = ensureVector3(defaults(moveTo, new Vector3()));
-      };
-      MoveAnimation2.prototype._tick = function _tick ( /* stats */) {
-          this.controls.position.lerpVectors(//kkk
-          this.moveFrom, this.moveTo, this.alpha).negate();
-          this.controls.changed();
-      };
-
-      return MoveAnimation2;
   }(Animation));
   /**
    * Zoom animation. Gradually change the zoom level.
@@ -65006,11 +61967,6 @@
       var moveFrom = this.controls.rotationPosition.clone().negate();
       return this.add(new MoveAnimation(duration, this.controls, moveFrom, moveTo));
   };
-  AnimationControls.prototype.move2 = function move2 (deltaTo, duration) {
-      var moveFrom = this.controls.position.clone().negate();
-      var moveTo = this.controls.position.clone().add(deltaTo);
-      return this.add(new MoveAnimation2(duration, this.controls, moveFrom, moveTo));
-  };
   /**
    * Add a zoom animation
    * @param  {Number} zoomTo - target distance
@@ -65032,12 +61988,6 @@
       return new AnimationList([
           this.move(moveTo, duration),
           this.zoom(zoomTo, duration)
-      ]);
-  };
-  //kkk
-  AnimationControls.prototype.zoom2 = function zoom2 (deltaTo, duration) {
-      return new AnimationList([
-          this.move2(deltaTo, duration)
       ]);
   };
   /**
@@ -65206,6 +62156,40 @@
    * @private
    */
   /**
+   * Representation parameter object.
+   * @typedef {Object} RepresentationParameters - representation parameters
+   * @property {Boolean} [lazy] - only build & update the representation when visible
+   *                            otherwise defer changes until set visible again
+   * @property {Integer} [clipNear] - position of camera near/front clipping plane
+   *                                in percent of scene bounding box
+   * @property {Integer} [clipRadius] - radius of clipping sphere
+   * @property {Vector3} [clipCenter] - position of for spherical clipping
+   * @property {Boolean} [flatShaded] - render flat shaded
+   * @property {Float} [opacity] - translucency: 1 is fully opaque, 0 is fully transparent
+   * @property {Boolean} [depthWrite] - depth write
+   * @property {String} [side] - which triangle sides to render, "front" front-side,
+   *                            "back" back-side, "double" front- and back-side
+   * @property {Boolean} [wireframe] - render as wireframe
+   * @property {String} [colorScheme] - color scheme
+   * @property {String} [colorScale] - color scale, either a string for a
+   *                                 predefined scale or an array of
+   *                                 colors to be used as the scale
+   * @property {Boolean} [colorReverse] - reverse color scale
+   * @property {Color} [colorValue] - color value
+   * @property {Integer[]} [colorDomain] - scale value range
+   * @property {Integer} colorDomain.0 - min value
+   * @property {Integer} colorDomain.1 - max value
+   * @property {String} [colorMode] - color mode, one of rgb, hsv, hsl, hsi, lab, hcl
+   * @property {Float} [roughness] - how rough the material is, between 0 and 1
+   * @property {Float} [metalness] - how metallic the material is, between 0 and 1
+   * @property {Color} [diffuse] - diffuse color for lighting
+   * @property {Boolean} [diffuseInterior] - diffuse interior, i.e. ignore normal
+   * @property {Boolean} [useInteriorColor] - use interior color
+   * @property {Color} [interiorColor] - interior color
+   * @property {Float} [interiorDarkening] - interior darkening: 0 no darking, 1 fully darkened
+   * @property {Boolean} [disablePicking] - disable picking
+   */
+  /**
    * Representation object
    * @interface
    * @param {Object} object - the object to be represented
@@ -65216,7 +62200,6 @@
       // eslint-disable-next-line no-unused-vars
       // const p = params || {}
       this.type = '';
-      this.divAnnotations = [];
       this.parameters = {
           lazy: {
               type: 'boolean'
@@ -65323,13 +62306,6 @@
           this.parameters.colorScheme.options = ColormakerRegistry.getSchemes();
       }
       this.toBePrepared = false;
-  };
-  //kkk
-  Representation.prototype.getAnnotations = function getAnnotations () {
-      return this.divAnnotations;
-  };
-  Representation.prototype.resetAnnotations = function resetAnnotations () {
-      this.divAnnotations = [];
   };
   Representation.prototype.init = function init (params) {
       var p = params || {};
@@ -74154,18 +71130,7 @@
    */
   MouseActions.movePick = function movePick (stage, pickingProxy) {
       if (pickingProxy) {
-          // stage.animationControls.move(pickingProxy.position.clone())
-          //kkk transfer clicked picking result to etherna
-          var result = pickingProxy.checkBase();
-          if (result.isBase) {
-              window.dispatchEvent(new CustomEvent('picking', {
-                  detail: {
-                      'resno': result.resno,
-                      'resname': result.resname,
-                      'action': 'clicked',
-                  }
-              }));
-          }
+          stage.animationControls.move(pickingProxy.position.clone());
       }
   };
   /**
@@ -74178,80 +71143,18 @@
       var tt = stage.tooltip;
       var sp = stage.getParameters();
       if (sp.tooltip && pickingProxy) {
-          //kkk
-          function getTextWidth(text, font) {
-                  if ( font === void 0 ) font = getCanvasFontSize();
-
-              var canvas = document.createElement("canvas");
-              var context = canvas.getContext("2d");
-              if (context != null) {
-                  context.font = font;
-                  var metrics = context.measureText(text);
-                  return metrics.width;
-              }
-              else
-                  { return 0; }
-          }
-          function getCssStyle(element, prop) {
-              return window.getComputedStyle(element, null).getPropertyValue(prop);
-          }
-          function getCanvasFontSize(el) {
-                  if ( el === void 0 ) el = document.body;
-
-              var fontWeight = getCssStyle(el, 'font-weight') || 'normal';
-              var fontSize = getCssStyle(el, 'font-size') || '16px';
-              var fontFamily = getCssStyle(el, 'font-family') || 'Times New Roman';
-              return (fontWeight + " " + fontSize + " " + fontFamily);
-          }
           var mp = pickingProxy.mouse.position;
           tt.innerText = pickingProxy.getLabel();
-          //kkk
-          // tt.style.bottom = (window.innerHeight - mp.y + 3) + 'px'
-          // tt.style.left = (mp.x + 3) + 'px'
-          var rect = stage.viewer.container.getBoundingClientRect();
-          tt.style.bottom = (rect.top + window.scrollY + rect.height - (mp.y + stage.viewer.top) + 3) + 'px';
-          tt.style.left = (mp.x + stage.viewer.left - (rect.left + window.scrollX) + 3) + 'px';
+          tt.style.bottom = (window.innerHeight - mp.y + 3) + 'px';
+          tt.style.left = (mp.x + 3) + 'px';
           if (tt.innerText.length == 0)
               { tt.style.display = 'none'; }
           else {
-              tt.style.display = 'none'; //'block'
-              tt.style.width = getTextWidth(tt.innerText, getCanvasFontSize(tt)) + 'px'; //rect.width - (mp.x - (rect.left + window.scrollX) + 13) + 'px';
+              tt.style.display = 'block';
           }
-          //kkk send tooltip to eterna
-          window.dispatchEvent(new CustomEvent('tooltip', {
-              detail: {
-                  'x': mp.x,
-                  'y': mp.y,
-                  'label': pickingProxy.getLabel(),
-              }
-          }));
-          //kkk
-          // check picking and send message that contain picking result
-          var result = pickingProxy.checkBase();
-          if (result.isBase) {
-              stage.viewer.selectEBaseObject(result.resno - 1, true, stage.viewer.baseColor);
-              window.dispatchEvent(new CustomEvent('picking', {
-                  detail: {
-                      'resno': result.resno,
-                      'resname': result.resname,
-                      'action': 'hover',
-                  }
-              }));
-          }
-          else
-              { stage.viewer.selectEBaseObject(-1); }
       }
       else {
           tt.style.display = 'none';
-          //kkk
-          stage.viewer.selectEBaseObject(-1);
-          window.dispatchEvent(new CustomEvent('tooltip', {
-              detail: {
-                  'x': 0,
-                  'y': 0,
-                  'label': '',
-              }
-          }));
       }
   };
   MouseActions.measurePick = function measurePick (stage, pickingProxy) {
@@ -74281,16 +71184,6 @@
           ['clickPick-right', MouseActions.measurePick],
           ['clickPick-ctrl-left', MouseActions.measurePick],
           ['clickPick-middle', MouseActions.movePick],
-          ['clickPick-left', MouseActions.movePick],
-          ['hoverPick', MouseActions.tooltipPick]
-      ],
-      //kkk add eterna preset
-      eterna: [
-          ['scroll', MouseActions.zoomScroll],
-          ['drag-left', MouseActions.panDrag],
-          ['drag-ctrl-left', MouseActions.rotateDrag],
-          ['drag-shift-left', MouseActions.zoomDrag],
-          ['drag-right', MouseActions.rotateDrag],
           ['clickPick-left', MouseActions.movePick],
           ['hoverPick', MouseActions.tooltipPick]
       ],
@@ -74809,7 +71702,7 @@
    * @private
    */
   /**
-   * Annotation
+   * Annotation HTML element floating on top of a position rendered in 3d
    */
   var Annotation = function Annotation(component, position, content, params) {
       if ( params === void 0 ) params = {};
@@ -74825,7 +71718,17 @@
       this._updateViewerPosition();
       this._canvasPosition = new Vector2();
       this._cameraPosition = new Vector3();
-      this.text = content; //kkk
+      this.element = document.createElement('div');
+      Object.assign(this.element.style, {
+          display: 'block',
+          position: 'absolute',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+          left: '-10000px'
+      });
+      this.viewer.wrapper.appendChild(this.element);
+      this.setContent(content);
+      this.updateVisibility();
       this.viewer.signals.rendered.add(this._update, this);
       this.component.signals.matrixChanged.add(this._updateViewerPosition, this);
   };
@@ -74834,12 +71737,32 @@
    * @param {String|Element} value - HTML content
    * @return {undefined}
    */
-  //kkk
-  Annotation.prototype.getCanvasPosition = function getCanvasPosition () {
-      return this._canvasPosition;
-  };
-  Annotation.prototype.getContent = function getContent () {
-      return this.text;
+  Annotation.prototype.setContent = function setContent (value) {
+      var displayValue = this.element.style.display;
+      if (displayValue === 'none') {
+          this.element.style.left = '-10000px';
+          this.element.style.display = 'block';
+      }
+      if (value instanceof HTMLElement) {
+          this.element.appendChild(value);
+      }
+      else {
+          var content = document.createElement('div');
+          content.innerText = value;
+          Object.assign(content.style, {
+              backgroundColor: 'rgba( 0, 0, 0, 0.8 )',
+              color: 'white',
+              padding: '8px',
+              fontFamily: 'sans-serif',
+              textAlign: 'center',
+              borderRadius: '4px',
+          });
+          this.element.appendChild(content);
+      }
+      this._clientRect = this.element.getBoundingClientRect();
+      if (displayValue === 'none') {
+          this.element.style.display = displayValue;
+      }
   };
   /**
    * Set visibility of the annotation
@@ -74848,9 +71771,13 @@
    */
   Annotation.prototype.setVisibility = function setVisibility (value) {
       this.visible = value;
+      this.updateVisibility();
   };
   Annotation.prototype.getVisibility = function getVisibility () {
       return this.visible && this.component.parameters.visible;
+  };
+  Annotation.prototype.updateVisibility = function updateVisibility () {
+      this.element.style.display = this.getVisibility() ? 'block' : 'none';
   };
   Annotation.prototype._updateViewerPosition = function _updateViewerPosition () {
       this._viewerPosition
@@ -74858,38 +71785,97 @@
           .applyMatrix4(this.component.matrix);
   };
   Annotation.prototype._update = function _update () {
+      if (!this.getVisibility())
+          { return; }
+      var s = this.element.style;
       var cp = this._canvasPosition;
       var vp = this._viewerPosition;
-      if (!this.getVisibility()) {
-          cp.x = -10000;
-          return;
-      }
+      var cr = this._clientRect;
       this._cameraPosition.copy(vp)
           .add(this.viewer.translationGroup.position)
           .applyMatrix4(this.viewer.rotationGroup.matrix)
           .sub(this.viewer.camera.position);
-      this.stage.viewerControls.getPositionOnCanvas(vp, cp);
       if (this._cameraPosition.z < 0) {
-          cp.x = -10000;
+          s.display = 'none';
+          return;
       }
+      else {
+          s.display = 'block';
+      }
+      var depth = this._cameraPosition.length();
+      var fog = this.viewer.scene.fog; // TODO
+      s.opacity = (1 - smoothstep(fog.near, fog.far, depth)).toString();
+      s.zIndex = (Math.round((fog.far - depth) * 100)).toString();
+      this.stage.viewerControls.getPositionOnCanvas(vp, cp);
+      s.bottom = (this.offsetX + cp.y + cr.height / 2) + 'px';
+      s.left = (this.offsetY + cp.x - cr.width / 2) + 'px';
   };
   /**
    * Safely remove the annotation
    * @return {undefined}
    */
   Annotation.prototype.dispose = function dispose () {
+      this.viewer.wrapper.removeChild(this.element);
       this.viewer.signals.ticked.remove(this._update, this);
       this.component.signals.matrixChanged.remove(this._updateViewerPosition, this);
   };
+
+  var AnnotationEx = /*@__PURE__*/(function (Annotation) {
+      function AnnotationEx(component, position, content, params) {
+          if ( params === void 0 ) params = {};
+
+          Annotation.call(this, component, position, content, params);
+          this.component = component;
+          this.position = position;
+          this.text = content;
+      }
+
+      if ( Annotation ) AnnotationEx.__proto__ = Annotation;
+      AnnotationEx.prototype = Object.create( Annotation && Annotation.prototype );
+      AnnotationEx.prototype.constructor = AnnotationEx;
+      AnnotationEx.prototype.getCanvasPosition = function getCanvasPosition () {
+          return this._canvasPosition;
+      };
+      AnnotationEx.prototype.getContent = function getContent () {
+          return this.text;
+      };
+      AnnotationEx.prototype._updateViewerPosition = function _updateViewerPosition () {
+          this._viewerPosition
+              .copy(this.position)
+              .applyMatrix4(this.component.matrix);
+      };
+      AnnotationEx.prototype._update = function _update () {
+          var cp = this._canvasPosition;
+          var vp = this._viewerPosition;
+          if (!this.getVisibility()) {
+              cp.x = -10000;
+              return;
+          }
+          this._cameraPosition.copy(vp)
+              .add(this.viewer.translationGroup.position)
+              .applyMatrix4(this.viewer.rotationGroup.matrix)
+              .sub(this.viewer.camera.position);
+          this.stage.viewerControls.getPositionOnCanvas(vp, cp);
+          if (this._cameraPosition.z < 0) {
+              cp.x = -10000;
+          }
+      };
+      AnnotationEx.prototype.dispose = function dispose () {
+          this.viewer.signals.ticked.remove(this._update, this);
+          this.component.signals.matrixChanged.remove(this._updateViewerPosition, this);
+      };
+
+      return AnnotationEx;
+  }(Annotation));
 
   /**
    * @file Component Controls
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
    */
-  var tmpRotateMatrix = new Matrix4();
-  var tmpRotateVector = new Vector3();
-  var tmpRotateQuaternion = new Quaternion();
+  var tmpRotateMatrix$1 = new Matrix4();
+  var tmpRotateVector$1 = new Vector3();
+  var tmpRotateQuaternion$1 = new Quaternion();
   /**
    * Component controls
    */
@@ -74934,17 +71920,17 @@
    * @return {undefined}
    */
   ComponentControls.prototype.spin = function spin (axis, angle) {
-      tmpRotateMatrix.getInverse(this.viewer.rotationGroup.matrix);
-      tmpRotateVector
-          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix);
-      tmpRotateMatrix.extractRotation(this.component.transform);
-      tmpRotateMatrix.premultiply(this.viewer.rotationGroup.matrix);
-      tmpRotateMatrix.getInverse(tmpRotateMatrix);
-      tmpRotateVector.copy(ensureVector3(axis));
-      tmpRotateVector.applyMatrix4(tmpRotateMatrix);
-      tmpRotateMatrix.makeRotationAxis(tmpRotateVector, angle);
-      tmpRotateQuaternion.setFromRotationMatrix(tmpRotateMatrix);
-      this.component.quaternion.premultiply(tmpRotateQuaternion);
+      tmpRotateMatrix$1.getInverse(this.viewer.rotationGroup.matrix);
+      tmpRotateVector$1
+          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix$1);
+      tmpRotateMatrix$1.extractRotation(this.component.transform);
+      tmpRotateMatrix$1.premultiply(this.viewer.rotationGroup.matrix);
+      tmpRotateMatrix$1.getInverse(tmpRotateMatrix$1);
+      tmpRotateVector$1.copy(ensureVector3(axis));
+      tmpRotateVector$1.applyMatrix4(tmpRotateMatrix$1);
+      tmpRotateMatrix$1.makeRotationAxis(tmpRotateVector$1, angle);
+      tmpRotateQuaternion$1.setFromRotationMatrix(tmpRotateMatrix$1);
+      this.component.quaternion.premultiply(tmpRotateQuaternion$1);
       this.changed();
   };
 
@@ -76378,7 +73364,6 @@
   prototypeAccessors$j.resname.get = function () {
       return this.residueType.resname;
   };
-  //kkk //set resname 
   prototypeAccessors$j.resname.set = function (name) {
       this.residueType.resname = name;
   };
@@ -76610,30 +73595,6 @@
       else {
           return false;
       }
-  };
-  //kkk
-  //decide whether the atom is in sugar section.
-  AtomProxy.prototype.isSugarAtom = function isSugarAtom () {
-      return this.atomname.includes("'") || this.atomname.includes("*");
-  };
-  //kkk
-  //decide whether the atom is in sugar back bone.
-  AtomProxy.prototype.isSugarBondAtom = function isSugarBondAtom () {
-      return this.atomname.includes("C5'") || this.atomname.includes("C5*") || this.atomname.includes("O5'") || this.atomname.includes("O5*") ||
-          this.atomname.includes("C4'") || this.atomname.includes("C4*") || this.atomname.includes("O4'") || this.atomname.includes("O4*") ||
-          this.atomname.includes("C3'") || this.atomname.includes("C3*") || this.atomname.includes("O3'") || this.atomname.includes("O3*");
-  };
-  //kkk
-  //decide whether the atom is in sugar back bone.
-  AtomProxy.prototype.isExtCandidate = function isExtCandidate (bExtSugar) {
-      var bExt = defaults(bExtSugar, true);
-      if (this.isBackbone()) {
-          if (bExt && this.isSugarAtom() && !this.isSugarBondAtom())
-              { return false; }
-          else
-              { return true; }
-      }
-      return false;
   };
   /**
    * If atom is part of a polymer
@@ -76950,7 +73911,6 @@
       }
       return connectedAtomIndices;
   };
-  //kkk
   AtomProxy.prototype.qualifiedName = function qualifiedName (noResname) {
           if ( noResname === void 0 ) noResname = false;
 
@@ -81341,99 +78301,6 @@
       });
       return bondData;
   };
-  //kkk
-  Structure.prototype.getBackBondData = function getBackBondData (params, bExtSugar) {
-      var p = Object.assign({}, params);
-      if (p.colorParams)
-          { p.colorParams.structure = this.getStructure(); }
-      bExtSugar = defaults(bExtSugar, true);
-      var what = p.what;
-      var bondSet = defaults(p.bondSet, this.bondSet);
-      defaults(p.multipleBond, 'off');
-      var isMulti = false;
-      defaults(p.bondScale, 0.4);
-      defaults(p.bondSpacing, 1.0);
-      var radiusFactory; // TODO
-      var colormaker; // TODO
-      var bondData = {};
-      var bp = this.getBondProxy();
-      if (p.bondStore)
-          { bp.bondStore = p.bondStore; }
-      var ap1 = this.getAtomProxy();
-      var ap2 = this.getAtomProxy();
-      var bondCount = 0;
-      bondSet.forEach(function (index) {
-          bp.index = index;
-          ap1.index = bp.atomIndex1;
-          ap2.index = bp.atomIndex2;
-          if (ap1.isExtCandidate(bExtSugar) && ap2.isExtCandidate(bExtSugar)) {
-              bondCount++;
-          }
-      });
-      // console.log(bondCount);
-      if (!what || what.position) {
-          bondData.position1 = new Float32Array(bondCount * 3);
-          bondData.position2 = new Float32Array(bondCount * 3);
-      }
-      if ((!what || what.color) && p.colorParams) {
-          bondData.color = new Float32Array(bondCount * 3);
-          bondData.color2 = new Float32Array(bondCount * 3);
-          colormaker = ColormakerRegistry.getScheme(p.colorParams);
-      }
-      if (!what || what.picking) {
-          bondData.picking = new BondPicker(new Float32Array(bondCount), this.getStructure(), p.bondStore);
-      }
-      if (!what || what.radius || (isMulti )) {
-          radiusFactory = new RadiusFactory(p.radiusParams);
-      }
-      if (!what || what.radius) {
-          bondData.radius = new Float32Array(bondCount);
-          if (p.radius2) {
-              bondData.radius2 = new Float32Array(bondCount);
-          }
-      }
-      var position1 = bondData.position1;
-          var position2 = bondData.position2;
-          var color = bondData.color;
-          var color2 = bondData.color2;
-          var picking = bondData.picking;
-          var radius = bondData.radius;
-          var radius2 = bondData.radius2;
-      var i = 0;
-      var i3;
-      new Vector3();
-      new Vector3();
-      new Vector3();
-      bondSet.forEach(function (index) {
-          bp.index = index;
-          ap1.index = bp.atomIndex1;
-          ap2.index = bp.atomIndex2;
-          if (ap1.isExtCandidate(bExtSugar) && ap2.isExtCandidate(bExtSugar)) {
-              i3 = i * 3;
-              if (position1) {
-                  {
-                      ap1.positionToArray(position1, i3);
-                      ap2.positionToArray(position2, i3);
-                  }
-              }
-              if (color && color2) {
-                  colormaker.bondColorToArray(bp, 1, color, i3);
-                  colormaker.bondColorToArray(bp, 0, color2, i3);
-              }
-              if (picking && picking.array) {
-                  picking.array[i] = index;
-              }
-              if (radius) {
-                  radius[i] = radiusFactory.atomRadius(ap1);
-              }
-              if (radius2) {
-                  radius2[i] = radiusFactory.atomRadius(ap2);
-              }
-              i += 1;
-          }
-      });
-      return bondData;
-  };
   Structure.prototype.getBackboneAtomData = function getBackboneAtomData (params) {
       params = Object.assign({
           atomSet: this.atomSetCache.__backbone
@@ -82207,7 +79074,7 @@
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
    */
-  var scale$7 = new Vector3();
+  var scale$8 = new Vector3();
   var SphereGeometryBufferDefaultParameters = Object.assign({
       sphereDetail: 1
   }, BufferDefaultParameters);
@@ -82237,8 +79104,8 @@
       prototypeAccessors.defaultParameters.get = function () { return SphereGeometryBufferDefaultParameters; };
       SphereGeometryBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i) {
           var r = this._radius[i];
-          scale$7.set(r, r, r);
-          matrix.scale(scale$7);
+          scale$8.set(r, r, r);
+          matrix.scale(scale$8);
       };
       SphereGeometryBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
           if ( data === void 0 ) data = {};
@@ -83762,6 +80629,15 @@
   Component.prototype.eachAnnotation = function eachAnnotation (callback) {
       this.annotationList.slice().forEach(callback);
   };
+  // added for eterna-extension
+  Component.prototype.addAnnotationEx = function addAnnotationEx (position, content, params) {
+      var annotation = new AnnotationEx(this, position, content, params);
+      this.annotationList.push(annotation);
+      return annotation;
+  };
+  Component.prototype.eachAnnotationEx = function eachAnnotationEx (callback) {
+      this.annotationList.slice().forEach(callback);
+  };
   /**
    * Remove the give annotation from the component
    * @param {Annotation} annotation - the annotation to remove
@@ -83927,15 +80803,6 @@
    */
   Component.prototype.autoView = function autoView (duration) {
       this.stage.animationControls.zoomMove(this.getCenter(), this.getZoom(), defaults(duration, 0));
-      //kkk add pan auto
-      // var tmpPanVector = new Vector3();
-      // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
-      // tmpPanVector.set(this.viewer.width/4, 0, 0)
-      // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
-      // this.stage.animationControls.zoom2(
-      //   tmpPanVector,
-      //   defaults(duration, 0)
-      // )
   };
 
   Object.defineProperties( Component.prototype, prototypeAccessors$9 );
@@ -86178,23 +83045,6 @@
               sele = '';
           }
           this.stage.animationControls.zoomMove(this.getCenter(sele), this.getZoom(sele), defaults(duration, 0));
-          //kkk add pan auto
-          // var tmpPanVector = new Vector3();
-          // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
-          // tmpPanVector.set(this.viewer.width/4, 0, 0)
-          // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
-          // this.stage.animationControls.zoom2(
-          //   tmpPanVector,
-          //   defaults(duration, 0)
-          // )
-      };
-      StructureComponent.prototype.resetPos = function resetPos () {
-          // console.log(this.position);
-          // this.stage.viewerControls.translate(this.getCenter().negate());
-          // this.viewer.translationGroup.position.set(0,0,0)
-          // this.viewer.rotationGroup.position.add(this.getCenter().negate())
-          // this.viewer.requestRender();
-          // console.log(this.getCenter());
       };
       StructureComponent.prototype.getBoxUntransformed = function getBoxUntransformed (sele) {
           var bb;
@@ -86537,9 +83387,8 @@
    * @example
    * var stage = new Stage( "elementId", { backgroundColor: "white" } );
    */
-  var Stage = function Stage(idOrElement, params, pixiCallback) {
+  var Stage = function Stage(idOrElement, params) {
       if ( params === void 0 ) params = {};
-      if ( pixiCallback === void 0 ) pixiCallback = undefined;
 
       this.signals = {
           parametersChanged: new signals.Signal(),
@@ -86557,14 +83406,13 @@
       this.compList = [];
       this.defaultFileParams = {};
       this.logList = [];
-      this.viewer = new Viewer(idOrElement, this, pixiCallback); //kkk
+      this.viewer = new Viewer(idOrElement);
       if (!this.viewer.renderer)
           { return; }
       this.tooltip = document.createElement('div');
       Object.assign(this.tooltip.style, {
           display: 'none',
-          // position: 'fixed',
-          position: 'relative',
+          position: 'fixed',
           zIndex: '1000000',
           pointerEvents: 'none',
           backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
@@ -86574,7 +83422,7 @@
       });
       this.viewer.container.appendChild(this.tooltip);
       this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement);
-      this.mouseObserver.viewer = this.viewer; //kkk
+      this.mouseObserver.viewer = this.viewer;
       this.viewerControls = new ViewerControls(this);
       this.trackballControls = new TrackballControls(this);
       this.pickingControls = new PickingControls(this);
@@ -86629,7 +83477,7 @@
       return this;
   };
   Stage.prototype.log = function log (msg) {
-      console.log('STAGE LOG', msg);
+      // console.log('STAGE LOG', msg)
       this.logList.push(msg);
   };
   /**
@@ -86797,7 +83645,6 @@
 
       var p = Object.assign({}, this.defaultFileParams, params);
       var name = getFileInfo(path).name;
-      this.viewer.setEthernaPairs(p.etherna_pairs); //kkk set etherna_pairs
       this.tasks.increment();
       this.log(("loading file '" + name + "'"));
       var onLoadFn = function (object) {
@@ -86807,7 +83654,6 @@
               this$1$1.defaultFileRepresentation(component);
           }
           this$1$1.tasks.decrement();
-          this$1$1.loadedComponent = component; //kkk
           return component;
       };
       var onErrorFn = function (e) {
@@ -86815,30 +83661,6 @@
           var errorMsg = "error loading file: '" + e + "'";
           this$1$1.log(errorMsg);
           throw errorMsg; // throw so it can be catched
-      };
-      var ext = defaults(p.ext, getFileInfo(path).ext);
-      var promise;
-      if (ParserRegistry.isTrajectory(ext)) {
-          promise = Promise.reject(new Error(("loadFile: ext '" + ext + "' is a trajectory and must be loaded into a structure component")));
-      }
-      else {
-          promise = autoLoad(path, p);
-      }
-      return promise.then(onLoadFn, onErrorFn);
-  };
-  //kkk
-  Stage.checkModelFile = function checkModelFile (path, callback) {
-      var params = {};
-      var p = Object.assign({}, {}, params);
-      // const name = getFileInfo(path).name
-      var onLoadFn = function (object) {
-          if (object instanceof Structure)
-              { callback(object); }
-          else
-              { callback(null); }
-      };
-      var onErrorFn = function (e) {
-          callback(null);
       };
       var ext = defaults(p.ext, getFileInfo(path).ext);
       var promise;
@@ -86922,7 +83744,6 @@
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  //kkk
   Stage.prototype.handleResize = function handleResize (width, height) {
           if ( width === void 0 ) width = 0;
           if ( height === void 0 ) height = 0;
@@ -87118,8 +83939,7 @@
       var height = this.viewer.height;
       var aspect = width / height;
       var aspectFactor = (height < width ? 1 : aspect);
-      distance = Math.abs(((distance * 0.5) / aspectFactor) / Math.sin(fov / 2) //kkk
-      );
+      distance = Math.abs(((distance * 0.5) / aspectFactor) / Math.sin(fov / 2));
       distance += this.parameters.clipDist;
       return -distance;
   };
@@ -87265,6 +84085,3319 @@
       this.tasks.dispose();
       this.viewer.dispose();
   };
+
+  /**
+   * @author alteredq / http://alteredqualia.com/
+   *
+   * Full-screen textured quad shader
+   */
+
+
+
+  var CopyShader = {
+
+  	uniforms: {
+
+  		"tDiffuse": { value: null },
+  		"opacity": { value: 1.0 }
+
+  	},
+
+  	vertexShader: [
+
+  		"varying vec2 vUv;",
+
+  		"void main() {",
+
+  		"	vUv = uv;",
+  		"	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+
+  		"}"
+
+  	].join( "\n" ),
+
+  	fragmentShader: [
+
+  		"uniform float opacity;",
+
+  		"uniform sampler2D tDiffuse;",
+
+  		"varying vec2 vUv;",
+
+  		"void main() {",
+
+  		"	vec4 texel = texture2D( tDiffuse, vUv );",
+  		"	gl_FragColor = opacity * texel;",
+
+  		"}"
+
+  	].join( "\n" )
+
+  };
+
+  function Pass$1() {
+
+  	// if set to true, the pass is processed by the composer
+  	this.enabled = true;
+
+  	// if set to true, the pass indicates to swap read and write buffer after rendering
+  	this.needsSwap = true;
+
+  	// if set to true, the pass clears its buffer before rendering
+  	this.clear = false;
+
+  	// if set to true, the result of the pass is rendered to screen. This is set automatically by EffectComposer.
+  	this.renderToScreen = false;
+
+  }
+
+  Object.assign( Pass$1.prototype, {
+
+  	setSize: function ( /* width, height */ ) {},
+
+  	render: function ( /* renderer, writeBuffer, readBuffer, deltaTime, maskActive */ ) {
+
+  		console.error( 'THREE.Pass: .render() must be implemented in derived pass.' );
+
+  	}
+
+  } );
+
+  // Helper for passes that need to fill the viewport with a single quad.
+
+  Pass$1.FullScreenQuad = ( function () {
+
+  	var camera = new OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+  	var geometry = new PlaneBufferGeometry( 2, 2 );
+
+  	var FullScreenQuad = function ( material ) {
+
+  		this._mesh = new Mesh( geometry, material );
+
+  	};
+
+  	Object.defineProperty( FullScreenQuad.prototype, 'material', {
+
+  		get: function () {
+
+  			return this._mesh.material;
+
+  		},
+
+  		set: function ( value ) {
+
+  			this._mesh.material = value;
+
+  		}
+
+  	} );
+
+  	Object.assign( FullScreenQuad.prototype, {
+
+  		dispose: function () {
+
+  			this._mesh.geometry.dispose();
+
+  		},
+
+  		render: function ( renderer ) {
+
+  			renderer.render( this._mesh, camera );
+
+  		}
+
+  	} );
+
+  	return FullScreenQuad;
+
+  } )();
+
+  /**
+   * @author alteredq / http://alteredqualia.com/
+   */
+
+  var ShaderPass = function ( shader, textureID ) {
+
+  	Pass$1.call( this );
+
+  	this.textureID = ( textureID !== undefined ) ? textureID : "tDiffuse";
+
+  	if ( shader instanceof ShaderMaterial ) {
+
+  		this.uniforms = shader.uniforms;
+
+  		this.material = shader;
+
+  	} else if ( shader ) {
+
+  		this.uniforms = UniformsUtils.clone( shader.uniforms );
+
+  		this.material = new ShaderMaterial( {
+
+  			defines: Object.assign( {}, shader.defines ),
+  			uniforms: this.uniforms,
+  			vertexShader: shader.vertexShader,
+  			fragmentShader: shader.fragmentShader
+
+  		} );
+
+  	}
+
+  	this.fsQuad = new Pass$1.FullScreenQuad( this.material );
+
+  };
+
+  ShaderPass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
+
+  	constructor: ShaderPass,
+
+  	render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
+
+  		if ( this.uniforms[ this.textureID ] ) {
+
+  			this.uniforms[ this.textureID ].value = readBuffer.texture;
+
+  		}
+
+  		this.fsQuad.material = this.material;
+
+  		if ( this.renderToScreen ) {
+
+  			renderer.setRenderTarget( null );
+  			this.fsQuad.render( renderer );
+
+  		} else {
+
+  			renderer.setRenderTarget( writeBuffer );
+  			// TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+  			if ( this.clear ) { renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil ); }
+  			this.fsQuad.render( renderer );
+
+  		}
+
+  	}
+
+  } );
+
+  /**
+   * @author alteredq / http://alteredqualia.com/
+   */
+
+  var MaskPass = function ( scene, camera ) {
+
+  	Pass$1.call( this );
+
+  	this.scene = scene;
+  	this.camera = camera;
+
+  	this.clear = true;
+  	this.needsSwap = false;
+
+  	this.inverse = false;
+
+  };
+
+  MaskPass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
+
+  	constructor: MaskPass,
+
+  	render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
+
+  		var context = renderer.getContext();
+  		var state = renderer.state;
+
+  		// don't update color or depth
+
+  		state.buffers.color.setMask( false );
+  		state.buffers.depth.setMask( false );
+
+  		// lock buffers
+
+  		state.buffers.color.setLocked( true );
+  		state.buffers.depth.setLocked( true );
+
+  		// set up stencil
+
+  		var writeValue, clearValue;
+
+  		if ( this.inverse ) {
+
+  			writeValue = 0;
+  			clearValue = 1;
+
+  		} else {
+
+  			writeValue = 1;
+  			clearValue = 0;
+
+  		}
+
+  		state.buffers.stencil.setTest( true );
+  		state.buffers.stencil.setOp( context.REPLACE, context.REPLACE, context.REPLACE );
+  		state.buffers.stencil.setFunc( context.ALWAYS, writeValue, 0xffffffff );
+  		state.buffers.stencil.setClear( clearValue );
+  		state.buffers.stencil.setLocked( true );
+
+  		// draw into the stencil buffer
+
+  		renderer.setRenderTarget( readBuffer );
+  		if ( this.clear ) { renderer.clear(); }
+  		renderer.render( this.scene, this.camera );
+
+  		renderer.setRenderTarget( writeBuffer );
+  		if ( this.clear ) { renderer.clear(); }
+  		renderer.render( this.scene, this.camera );
+
+  		// unlock color and depth buffer for subsequent rendering
+
+  		state.buffers.color.setLocked( false );
+  		state.buffers.depth.setLocked( false );
+
+  		// only render where stencil is set to 1
+
+  		state.buffers.stencil.setLocked( false );
+  		state.buffers.stencil.setFunc( context.EQUAL, 1, 0xffffffff ); // draw if == 1
+  		state.buffers.stencil.setOp( context.KEEP, context.KEEP, context.KEEP );
+  		state.buffers.stencil.setLocked( true );
+
+  	}
+
+  } );
+
+
+  var ClearMaskPass = function () {
+
+  	Pass$1.call( this );
+
+  	this.needsSwap = false;
+
+  };
+
+  ClearMaskPass.prototype = Object.create( Pass$1.prototype );
+
+  Object.assign( ClearMaskPass.prototype, {
+
+  	render: function ( renderer /*, writeBuffer, readBuffer, deltaTime, maskActive */ ) {
+
+  		renderer.state.buffers.stencil.setLocked( false );
+  		renderer.state.buffers.stencil.setTest( false );
+
+  	}
+
+  } );
+
+  /**
+   * @author alteredq / http://alteredqualia.com/
+   */
+
+  var EffectComposer = function ( renderer, renderTarget ) {
+
+  	this.renderer = renderer;
+
+  	if ( renderTarget === undefined ) {
+
+  		var parameters = {
+  			minFilter: LinearFilter,
+  			magFilter: LinearFilter,
+  			format: RGBAFormat,
+  			stencilBuffer: false
+  		};
+
+  		var size = renderer.getSize( new Vector2() );
+  		this._pixelRatio = renderer.getPixelRatio();
+  		this._width = size.width;
+  		this._height = size.height;
+
+  		renderTarget = new WebGLRenderTarget( this._width * this._pixelRatio, this._height * this._pixelRatio, parameters );
+  		renderTarget.texture.name = 'EffectComposer.rt1';
+
+  	} else {
+
+  		this._pixelRatio = 1;
+  		this._width = renderTarget.width;
+  		this._height = renderTarget.height;
+
+  	}
+
+  	this.renderTarget1 = renderTarget;
+  	this.renderTarget2 = renderTarget.clone();
+  	this.renderTarget2.texture.name = 'EffectComposer.rt2';
+
+  	this.writeBuffer = this.renderTarget1;
+  	this.readBuffer = this.renderTarget2;
+
+  	this.renderToScreen = true;
+
+  	this.passes = [];
+
+  	// dependencies
+
+  	if ( CopyShader === undefined ) {
+
+  		console.error( 'THREE.EffectComposer relies on CopyShader' );
+
+  	}
+
+  	if ( ShaderPass === undefined ) {
+
+  		console.error( 'THREE.EffectComposer relies on ShaderPass' );
+
+  	}
+
+  	this.copyPass = new ShaderPass( CopyShader );
+
+  	this.clock = new Clock();
+
+  };
+
+  Object.assign( EffectComposer.prototype, {
+
+  	swapBuffers: function () {
+
+  		var tmp = this.readBuffer;
+  		this.readBuffer = this.writeBuffer;
+  		this.writeBuffer = tmp;
+
+  	},
+
+  	addPass: function ( pass ) {
+
+  		this.passes.push( pass );
+  		pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+  	},
+
+  	insertPass: function ( pass, index ) {
+
+  		this.passes.splice( index, 0, pass );
+  		pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+  	},
+
+  	isLastEnabledPass: function ( passIndex ) {
+
+  		for ( var i = passIndex + 1; i < this.passes.length; i ++ ) {
+
+  			if ( this.passes[ i ].enabled ) {
+
+  				return false;
+
+  			}
+
+  		}
+
+  		return true;
+
+  	},
+
+  	render: function ( deltaTime ) {
+
+  		// deltaTime value is in seconds
+
+  		if ( deltaTime === undefined ) {
+
+  			deltaTime = this.clock.getDelta();
+
+  		}
+
+  		var currentRenderTarget = this.renderer.getRenderTarget();
+
+  		var maskActive = false;
+
+  		var pass, i, il = this.passes.length;
+
+  		for ( i = 0; i < il; i ++ ) {
+
+  			pass = this.passes[ i ];
+
+  			if ( pass.enabled === false ) { continue; }
+
+  			pass.renderToScreen = ( this.renderToScreen && this.isLastEnabledPass( i ) );
+  			pass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime, maskActive );
+
+  			if ( pass.needsSwap ) {
+
+  				if ( maskActive ) {
+
+  					var context = this.renderer.getContext();
+  					var stencil = this.renderer.state.buffers.stencil;
+
+  					//context.stencilFunc( context.NOTEQUAL, 1, 0xffffffff );
+  					stencil.setFunc( context.NOTEQUAL, 1, 0xffffffff );
+
+  					this.copyPass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime );
+
+  					//context.stencilFunc( context.EQUAL, 1, 0xffffffff );
+  					stencil.setFunc( context.EQUAL, 1, 0xffffffff );
+
+  				}
+
+  				this.swapBuffers();
+
+  			}
+
+  			if ( MaskPass !== undefined ) {
+
+  				if ( pass instanceof MaskPass ) {
+
+  					maskActive = true;
+
+  				} else if ( pass instanceof ClearMaskPass ) {
+
+  					maskActive = false;
+
+  				}
+
+  			}
+
+  		}
+
+  		this.renderer.setRenderTarget( currentRenderTarget );
+
+  	},
+
+  	reset: function ( renderTarget ) {
+
+  		if ( renderTarget === undefined ) {
+
+  			var size = this.renderer.getSize( new Vector2() );
+  			this._pixelRatio = this.renderer.getPixelRatio();
+  			this._width = size.width;
+  			this._height = size.height;
+
+  			renderTarget = this.renderTarget1.clone();
+  			renderTarget.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+  		}
+
+  		this.renderTarget1.dispose();
+  		this.renderTarget2.dispose();
+  		this.renderTarget1 = renderTarget;
+  		this.renderTarget2 = renderTarget.clone();
+
+  		this.writeBuffer = this.renderTarget1;
+  		this.readBuffer = this.renderTarget2;
+
+  	},
+
+  	setSize: function ( width, height ) {
+
+  		this._width = width;
+  		this._height = height;
+
+  		var effectiveWidth = this._width * this._pixelRatio;
+  		var effectiveHeight = this._height * this._pixelRatio;
+
+  		this.renderTarget1.setSize( effectiveWidth, effectiveHeight );
+  		this.renderTarget2.setSize( effectiveWidth, effectiveHeight );
+
+  		for ( var i = 0; i < this.passes.length; i ++ ) {
+
+  			this.passes[ i ].setSize( effectiveWidth, effectiveHeight );
+
+  		}
+
+  	},
+
+  	setPixelRatio: function ( pixelRatio ) {
+
+  		this._pixelRatio = pixelRatio;
+
+  		this.setSize( this._width, this._height );
+
+  	}
+
+  } );
+
+
+  var Pass = function () {
+
+  	// if set to true, the pass is processed by the composer
+  	this.enabled = true;
+
+  	// if set to true, the pass indicates to swap read and write buffer after rendering
+  	this.needsSwap = true;
+
+  	// if set to true, the pass clears its buffer before rendering
+  	this.clear = false;
+
+  	// if set to true, the result of the pass is rendered to screen. This is set automatically by EffectComposer.
+  	this.renderToScreen = false;
+
+  };
+
+  Object.assign( Pass.prototype, {
+
+  	setSize: function ( /* width, height */ ) {},
+
+  	render: function ( /* renderer, writeBuffer, readBuffer, deltaTime, maskActive */ ) {
+
+  		console.error( 'THREE.Pass: .render() must be implemented in derived pass.' );
+
+  	}
+
+  } );
+
+  // Helper for passes that need to fill the viewport with a single quad.
+  Pass.FullScreenQuad = ( function () {
+
+  	var camera = new OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+  	var geometry = new PlaneBufferGeometry( 2, 2 );
+
+  	var FullScreenQuad = function ( material ) {
+
+  		this._mesh = new Mesh( geometry, material );
+
+  	};
+
+  	Object.defineProperty( FullScreenQuad.prototype, 'material', {
+
+  		get: function () {
+
+  			return this._mesh.material;
+
+  		},
+
+  		set: function ( value ) {
+
+  			this._mesh.material = value;
+
+  		}
+
+  	} );
+
+  	Object.assign( FullScreenQuad.prototype, {
+
+  		dispose: function () {
+
+  			this._mesh.geometry.dispose();
+
+  		},
+
+  		render: function ( renderer ) {
+
+  			renderer.render( this._mesh, camera );
+
+  		}
+
+  	} );
+
+  	return FullScreenQuad;
+
+  } )();
+
+  /**
+   * @author alteredq / http://alteredqualia.com/
+   */
+
+  var RenderPass = function ( scene, camera, overrideMaterial, clearColor, clearAlpha ) {
+
+  	Pass$1.call( this );
+
+  	this.scene = scene;
+  	this.camera = camera;
+
+  	this.overrideMaterial = overrideMaterial;
+
+  	this.clearColor = clearColor;
+  	this.clearAlpha = ( clearAlpha !== undefined ) ? clearAlpha : 0;
+
+  	this.clear = true;
+  	this.clearDepth = false;
+  	this.needsSwap = false;
+
+  };
+
+  RenderPass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
+
+  	constructor: RenderPass,
+
+  	render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
+
+  		var oldAutoClear = renderer.autoClear;
+  		renderer.autoClear = false;
+
+  		var oldClearColor, oldClearAlpha, oldOverrideMaterial;
+
+  		if ( this.overrideMaterial !== undefined ) {
+
+  			oldOverrideMaterial = this.scene.overrideMaterial;
+
+  			this.scene.overrideMaterial = this.overrideMaterial;
+
+  		}
+
+  		if ( this.clearColor ) {
+
+  			oldClearColor = renderer.getClearColor().getHex();
+  			oldClearAlpha = renderer.getClearAlpha();
+
+  			renderer.setClearColor( this.clearColor, this.clearAlpha );
+
+  		}
+
+  		if ( this.clearDepth ) {
+
+  			renderer.clearDepth();
+
+  		}
+
+  		renderer.setRenderTarget( this.renderToScreen ? null : readBuffer );
+
+  		// TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+  		if ( this.clear ) { renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil ); }
+  		renderer.render( this.scene, this.camera );
+
+  		if ( this.clearColor ) {
+
+  			renderer.setClearColor( oldClearColor, oldClearAlpha );
+
+  		}
+
+  		if ( this.overrideMaterial !== undefined ) {
+
+  			this.scene.overrideMaterial = oldOverrideMaterial;
+
+  		}
+
+  		renderer.autoClear = oldAutoClear;
+
+  	}
+
+  } );
+
+  /**
+   * @author spidersharma / http://eduperiment.com/
+   */
+
+  var OutlinePass = function ( resolution, scene, camera, selectedObjects ) {
+
+  	this.renderScene = scene;
+  	this.renderCamera = camera;
+  	this.selectedObjects = selectedObjects !== undefined ? selectedObjects : [];
+  	this.visibleEdgeColor = new Color( 1, 1, 1 );
+  	this.hiddenEdgeColor = new Color( 0.1, 0.04, 0.02 );
+  	this.edgeGlow = 0.0;
+  	this.usePatternTexture = false;
+  	this.edgeThickness = 1.0;
+  	this.edgeStrength = 3.0;
+  	this.downSampleRatio = 2;
+  	this.pulsePeriod = 0;
+
+  	Pass$1.call( this );
+
+  	this.resolution = ( resolution !== undefined ) ? new Vector2( resolution.x, resolution.y ) : new Vector2( 256, 256 );
+
+  	var pars = { minFilter: LinearFilter, magFilter: LinearFilter, format: RGBAFormat };
+
+  	var resx = Math.round( this.resolution.x / this.downSampleRatio );
+  	var resy = Math.round( this.resolution.y / this.downSampleRatio );
+
+  	this.maskBufferMaterial = new MeshBasicMaterial( { color: 0xffffff } );
+  	this.maskBufferMaterial.side = DoubleSide;
+  	this.renderTargetMaskBuffer = new WebGLRenderTarget( this.resolution.x, this.resolution.y, pars );
+  	this.renderTargetMaskBuffer.texture.name = "OutlinePass.mask";
+  	this.renderTargetMaskBuffer.texture.generateMipmaps = false;
+
+  	this.depthMaterial = new MeshDepthMaterial();
+  	this.depthMaterial.side = DoubleSide;
+  	this.depthMaterial.depthPacking = RGBADepthPacking;
+  	this.depthMaterial.blending = NoBlending;
+
+  	this.prepareMaskMaterial = this.getPrepareMaskMaterial();
+  	this.prepareMaskMaterial.side = DoubleSide;
+  	this.prepareMaskMaterial.fragmentShader = replaceDepthToViewZ( this.prepareMaskMaterial.fragmentShader, this.renderCamera );
+
+  	this.renderTargetDepthBuffer = new WebGLRenderTarget( this.resolution.x, this.resolution.y, pars );
+  	this.renderTargetDepthBuffer.texture.name = "OutlinePass.depth";
+  	this.renderTargetDepthBuffer.texture.generateMipmaps = false;
+
+  	this.renderTargetMaskDownSampleBuffer = new WebGLRenderTarget( resx, resy, pars );
+  	this.renderTargetMaskDownSampleBuffer.texture.name = "OutlinePass.depthDownSample";
+  	this.renderTargetMaskDownSampleBuffer.texture.generateMipmaps = false;
+
+  	this.renderTargetBlurBuffer1 = new WebGLRenderTarget( resx, resy, pars );
+  	this.renderTargetBlurBuffer1.texture.name = "OutlinePass.blur1";
+  	this.renderTargetBlurBuffer1.texture.generateMipmaps = false;
+  	this.renderTargetBlurBuffer2 = new WebGLRenderTarget( Math.round( resx / 2 ), Math.round( resy / 2 ), pars );
+  	this.renderTargetBlurBuffer2.texture.name = "OutlinePass.blur2";
+  	this.renderTargetBlurBuffer2.texture.generateMipmaps = false;
+
+  	this.edgeDetectionMaterial = this.getEdgeDetectionMaterial();
+  	this.renderTargetEdgeBuffer1 = new WebGLRenderTarget( resx, resy, pars );
+  	this.renderTargetEdgeBuffer1.texture.name = "OutlinePass.edge1";
+  	this.renderTargetEdgeBuffer1.texture.generateMipmaps = false;
+  	this.renderTargetEdgeBuffer2 = new WebGLRenderTarget( Math.round( resx / 2 ), Math.round( resy / 2 ), pars );
+  	this.renderTargetEdgeBuffer2.texture.name = "OutlinePass.edge2";
+  	this.renderTargetEdgeBuffer2.texture.generateMipmaps = false;
+
+  	var MAX_EDGE_THICKNESS = 4;
+  	var MAX_EDGE_GLOW = 4;
+
+  	this.separableBlurMaterial1 = this.getSeperableBlurMaterial( MAX_EDGE_THICKNESS );
+  	this.separableBlurMaterial1.uniforms[ "texSize" ].value.set( resx, resy );
+  	this.separableBlurMaterial1.uniforms[ "kernelRadius" ].value = 1;
+  	this.separableBlurMaterial2 = this.getSeperableBlurMaterial( MAX_EDGE_GLOW );
+  	this.separableBlurMaterial2.uniforms[ "texSize" ].value.set( Math.round( resx / 2 ), Math.round( resy / 2 ) );
+  	this.separableBlurMaterial2.uniforms[ "kernelRadius" ].value = MAX_EDGE_GLOW;
+
+  	// Overlay material
+  	this.overlayMaterial = this.getOverlayMaterial();
+
+  	// copy material
+  	if ( CopyShader === undefined )
+  		{ console.error( "OutlinePass relies on CopyShader" ); }
+
+  	var copyShader = CopyShader;
+
+  	this.copyUniforms = UniformsUtils.clone( copyShader.uniforms );
+  	this.copyUniforms[ "opacity" ].value = 1.0;
+
+  	this.materialCopy = new ShaderMaterial( {
+  		uniforms: this.copyUniforms,
+  		vertexShader: copyShader.vertexShader,
+  		fragmentShader: copyShader.fragmentShader,
+  		blending: NoBlending,
+  		depthTest: false,
+  		depthWrite: false,
+  		transparent: true
+  	} );
+
+  	this.enabled = true;
+  	this.needsSwap = false;
+
+  	this.oldClearColor = new Color();
+  	this.oldClearAlpha = 1;
+
+  	this.fsQuad = new Pass$1.FullScreenQuad( null );
+
+  	this.tempPulseColor1 = new Color();
+  	this.tempPulseColor2 = new Color();
+  	this.textureMatrix = new Matrix4();
+
+  	function replaceDepthToViewZ( string, camera ) {
+
+  		var type = camera.isPerspectiveCamera ? 'perspective' : 'orthographic';
+
+  		return string.replace( /DEPTH_TO_VIEW_Z/g, type + 'DepthToViewZ' );
+
+  	}
+
+  };
+
+  OutlinePass.prototype = Object.assign( Object.create( Pass$1.prototype ), {
+
+  	constructor: OutlinePass,
+
+  	dispose: function () {
+
+  		this.renderTargetMaskBuffer.dispose();
+  		this.renderTargetDepthBuffer.dispose();
+  		this.renderTargetMaskDownSampleBuffer.dispose();
+  		this.renderTargetBlurBuffer1.dispose();
+  		this.renderTargetBlurBuffer2.dispose();
+  		this.renderTargetEdgeBuffer1.dispose();
+  		this.renderTargetEdgeBuffer2.dispose();
+
+  	},
+
+  	setSize: function ( width, height ) {
+
+  		this.renderTargetMaskBuffer.setSize( width, height );
+
+  		var resx = Math.round( width / this.downSampleRatio );
+  		var resy = Math.round( height / this.downSampleRatio );
+  		this.renderTargetMaskDownSampleBuffer.setSize( resx, resy );
+  		this.renderTargetBlurBuffer1.setSize( resx, resy );
+  		this.renderTargetEdgeBuffer1.setSize( resx, resy );
+  		this.separableBlurMaterial1.uniforms[ "texSize" ].value.set( resx, resy );
+
+  		resx = Math.round( resx / 2 );
+  		resy = Math.round( resy / 2 );
+
+  		this.renderTargetBlurBuffer2.setSize( resx, resy );
+  		this.renderTargetEdgeBuffer2.setSize( resx, resy );
+
+  		this.separableBlurMaterial2.uniforms[ "texSize" ].value.set( resx, resy );
+
+  	},
+
+  	changeVisibilityOfSelectedObjects: function ( bVisible ) {
+
+  		function gatherSelectedMeshesCallBack( object ) {
+
+  			if ( object.isMesh ) {
+
+  				if ( bVisible ) {
+
+  					object.visible = object.userData.oldVisible;
+  					delete object.userData.oldVisible;
+
+  				} else {
+
+  					object.userData.oldVisible = object.visible;
+  					object.visible = bVisible;
+
+  				}
+
+  			}
+
+  		}
+
+  		for ( var i = 0; i < this.selectedObjects.length; i ++ ) {
+
+  			var selectedObject = this.selectedObjects[ i ];
+  			selectedObject.traverse( gatherSelectedMeshesCallBack );
+
+  		}
+
+  	},
+
+  	changeVisibilityOfNonSelectedObjects: function ( bVisible ) {
+
+  		var selectedMeshes = [];
+
+  		function gatherSelectedMeshesCallBack( object ) {
+
+  			if ( object.isMesh ) { selectedMeshes.push( object ); }
+
+  		}
+
+  		for ( var i = 0; i < this.selectedObjects.length; i ++ ) {
+
+  			var selectedObject = this.selectedObjects[ i ];
+  			selectedObject.traverse( gatherSelectedMeshesCallBack );
+
+  		}
+
+  		function VisibilityChangeCallBack( object ) {
+
+  			if ( object.isMesh || object.isLine || object.isSprite ) {
+
+  				var bFound = false;
+
+  				for ( var i = 0; i < selectedMeshes.length; i ++ ) {
+
+  					var selectedObjectId = selectedMeshes[ i ].id;
+
+  					if ( selectedObjectId === object.id ) {
+
+  						bFound = true;
+  						break;
+
+  					}
+
+  				}
+
+  				if ( ! bFound ) {
+
+  					var visibility = object.visible;
+
+  					if ( ! bVisible || object.bVisible ) { object.visible = bVisible; }
+
+  					object.bVisible = visibility;
+
+  				}
+
+  			}
+
+  		}
+
+  		this.renderScene.traverse( VisibilityChangeCallBack );
+
+  	},
+
+  	updateTextureMatrix: function () {
+
+  		this.textureMatrix.set( 0.5, 0.0, 0.0, 0.5,
+  			0.0, 0.5, 0.0, 0.5,
+  			0.0, 0.0, 0.5, 0.5,
+  			0.0, 0.0, 0.0, 1.0 );
+  		this.textureMatrix.multiply( this.renderCamera.projectionMatrix );
+  		this.textureMatrix.multiply( this.renderCamera.matrixWorldInverse );
+
+  	},
+
+  	render: function ( renderer, writeBuffer, readBuffer, deltaTime, maskActive ) {
+
+  		if ( this.selectedObjects.length > 0 ) {
+
+  			this.oldClearColor.copy( renderer.getClearColor() );
+  			this.oldClearAlpha = renderer.getClearAlpha();
+  			var oldAutoClear = renderer.autoClear;
+
+  			renderer.autoClear = false;
+
+  			if ( maskActive ) { renderer.state.buffers.stencil.setTest( false ); }
+
+  			renderer.setClearColor( 0xffffff, 1 );
+
+  			// Make selected objects invisible
+  			this.changeVisibilityOfSelectedObjects( false );
+
+  			var currentBackground = this.renderScene.background;
+  			this.renderScene.background = null;
+
+  			// 1. Draw Non Selected objects in the depth buffer
+  			this.renderScene.overrideMaterial = this.depthMaterial;
+  			renderer.setRenderTarget( this.renderTargetDepthBuffer );
+  			renderer.clear();
+  			renderer.render( this.renderScene, this.renderCamera );
+
+  			// Make selected objects visible
+  			this.changeVisibilityOfSelectedObjects( true );
+
+  			// Update Texture Matrix for Depth compare
+  			this.updateTextureMatrix();
+
+  			// Make non selected objects invisible, and draw only the selected objects, by comparing the depth buffer of non selected objects
+  			this.changeVisibilityOfNonSelectedObjects( false );
+  			this.renderScene.overrideMaterial = this.prepareMaskMaterial;
+  			this.prepareMaskMaterial.uniforms[ "cameraNearFar" ].value.set( this.renderCamera.near, this.renderCamera.far );
+  			this.prepareMaskMaterial.uniforms[ "depthTexture" ].value = this.renderTargetDepthBuffer.texture;
+  			this.prepareMaskMaterial.uniforms[ "textureMatrix" ].value = this.textureMatrix;
+  			renderer.setRenderTarget( this.renderTargetMaskBuffer );
+  			renderer.clear();
+  			renderer.render( this.renderScene, this.renderCamera );
+  			this.renderScene.overrideMaterial = null;
+  			this.changeVisibilityOfNonSelectedObjects( true );
+
+  			this.renderScene.background = currentBackground;
+
+  			// 2. Downsample to Half resolution
+  			this.fsQuad.material = this.materialCopy;
+  			this.copyUniforms[ "tDiffuse" ].value = this.renderTargetMaskBuffer.texture;
+  			renderer.setRenderTarget( this.renderTargetMaskDownSampleBuffer );
+  			renderer.clear();
+  			this.fsQuad.render( renderer );
+
+  			this.tempPulseColor1.copy( this.visibleEdgeColor );
+  			this.tempPulseColor2.copy( this.hiddenEdgeColor );
+
+  			if ( this.pulsePeriod > 0 ) {
+
+  				var scalar = ( 1 + 0.25 ) / 2 + Math.cos( performance.now() * 0.01 / this.pulsePeriod ) * ( 1.0 - 0.25 ) / 2;
+  				this.tempPulseColor1.multiplyScalar( scalar );
+  				this.tempPulseColor2.multiplyScalar( scalar );
+
+  			}
+
+  			// 3. Apply Edge Detection Pass
+  			this.fsQuad.material = this.edgeDetectionMaterial;
+  			this.edgeDetectionMaterial.uniforms[ "maskTexture" ].value = this.renderTargetMaskDownSampleBuffer.texture;
+  			this.edgeDetectionMaterial.uniforms[ "texSize" ].value.set( this.renderTargetMaskDownSampleBuffer.width, this.renderTargetMaskDownSampleBuffer.height );
+  			this.edgeDetectionMaterial.uniforms[ "visibleEdgeColor" ].value = this.tempPulseColor1;
+  			this.edgeDetectionMaterial.uniforms[ "hiddenEdgeColor" ].value = this.tempPulseColor2;
+  			renderer.setRenderTarget( this.renderTargetEdgeBuffer1 );
+  			renderer.clear();
+  			this.fsQuad.render( renderer );
+
+  			// 4. Apply Blur on Half res
+  			this.fsQuad.material = this.separableBlurMaterial1;
+  			this.separableBlurMaterial1.uniforms[ "colorTexture" ].value = this.renderTargetEdgeBuffer1.texture;
+  			this.separableBlurMaterial1.uniforms[ "direction" ].value = OutlinePass.BlurDirectionX;
+  			this.separableBlurMaterial1.uniforms[ "kernelRadius" ].value = this.edgeThickness;
+  			renderer.setRenderTarget( this.renderTargetBlurBuffer1 );
+  			renderer.clear();
+  			this.fsQuad.render( renderer );
+  			this.separableBlurMaterial1.uniforms[ "colorTexture" ].value = this.renderTargetBlurBuffer1.texture;
+  			this.separableBlurMaterial1.uniforms[ "direction" ].value = OutlinePass.BlurDirectionY;
+  			renderer.setRenderTarget( this.renderTargetEdgeBuffer1 );
+  			renderer.clear();
+  			this.fsQuad.render( renderer );
+
+  			// Apply Blur on quarter res
+  			this.fsQuad.material = this.separableBlurMaterial2;
+  			this.separableBlurMaterial2.uniforms[ "colorTexture" ].value = this.renderTargetEdgeBuffer1.texture;
+  			this.separableBlurMaterial2.uniforms[ "direction" ].value = OutlinePass.BlurDirectionX;
+  			renderer.setRenderTarget( this.renderTargetBlurBuffer2 );
+  			renderer.clear();
+  			this.fsQuad.render( renderer );
+  			this.separableBlurMaterial2.uniforms[ "colorTexture" ].value = this.renderTargetBlurBuffer2.texture;
+  			this.separableBlurMaterial2.uniforms[ "direction" ].value = OutlinePass.BlurDirectionY;
+  			renderer.setRenderTarget( this.renderTargetEdgeBuffer2 );
+  			renderer.clear();
+  			this.fsQuad.render( renderer );
+
+  			// Blend it additively over the input texture
+  			this.fsQuad.material = this.overlayMaterial;
+  			this.overlayMaterial.uniforms[ "maskTexture" ].value = this.renderTargetMaskBuffer.texture;
+  			this.overlayMaterial.uniforms[ "edgeTexture1" ].value = this.renderTargetEdgeBuffer1.texture;
+  			this.overlayMaterial.uniforms[ "edgeTexture2" ].value = this.renderTargetEdgeBuffer2.texture;
+  			this.overlayMaterial.uniforms[ "patternTexture" ].value = this.patternTexture;
+  			this.overlayMaterial.uniforms[ "edgeStrength" ].value = this.edgeStrength;
+  			this.overlayMaterial.uniforms[ "edgeGlow" ].value = this.edgeGlow;
+  			this.overlayMaterial.uniforms[ "usePatternTexture" ].value = this.usePatternTexture;
+
+
+  			if ( maskActive ) { renderer.state.buffers.stencil.setTest( true ); }
+
+  			renderer.setRenderTarget( readBuffer );
+  			this.fsQuad.render( renderer );
+
+  			renderer.setClearColor( this.oldClearColor, this.oldClearAlpha );
+  			renderer.autoClear = oldAutoClear;
+
+  		}
+
+  		if ( this.renderToScreen ) {
+
+  			this.fsQuad.material = this.materialCopy;
+  			this.copyUniforms[ "tDiffuse" ].value = readBuffer.texture;
+  			renderer.setRenderTarget( null );
+  			this.fsQuad.render( renderer );
+
+  		}
+
+  	},
+
+  	getPrepareMaskMaterial: function () {
+
+  		return new ShaderMaterial( {
+
+  			uniforms: {
+  				"depthTexture": { value: null },
+  				"cameraNearFar": { value: new Vector2( 0.5, 0.5 ) },
+  				"textureMatrix": { value: null }
+  			},
+
+  			vertexShader: [
+  				'#include <morphtarget_pars_vertex>',
+  				'#include <skinning_pars_vertex>',
+
+  				'varying vec4 projTexCoord;',
+  				'varying vec4 vPosition;',
+  				'uniform mat4 textureMatrix;',
+
+  				'void main() {',
+
+  				'	#include <skinbase_vertex>',
+  				'	#include <begin_vertex>',
+  				'	#include <morphtarget_vertex>',
+  				'	#include <skinning_vertex>',
+  				'	#include <project_vertex>',
+
+  				'	vPosition = mvPosition;',
+  				'	vec4 worldPosition = modelMatrix * vec4( position, 1.0 );',
+  				'	projTexCoord = textureMatrix * worldPosition;',
+
+  				'}'
+  			].join( '\n' ),
+
+  			fragmentShader: [
+  				'#include <packing>',
+  				'varying vec4 vPosition;',
+  				'varying vec4 projTexCoord;',
+  				'uniform sampler2D depthTexture;',
+  				'uniform vec2 cameraNearFar;',
+
+  				'void main() {',
+
+  				'	float depth = unpackRGBAToDepth(texture2DProj( depthTexture, projTexCoord ));',
+  				'	float viewZ = - DEPTH_TO_VIEW_Z( depth, cameraNearFar.x, cameraNearFar.y );',
+  				'	float depthTest = (-vPosition.z > viewZ) ? 1.0 : 0.0;',
+  				'	gl_FragColor = vec4(0.0, depthTest, 1.0, 1.0);',
+
+  				'}'
+  			].join( '\n' )
+
+  		} );
+
+  	},
+
+  	getEdgeDetectionMaterial: function () {
+
+  		return new ShaderMaterial( {
+
+  			uniforms: {
+  				"maskTexture": { value: null },
+  				"texSize": { value: new Vector2( 0.5, 0.5 ) },
+  				"visibleEdgeColor": { value: new Vector3( 1.0, 1.0, 1.0 ) },
+  				"hiddenEdgeColor": { value: new Vector3( 1.0, 1.0, 1.0 ) },
+  			},
+
+  			vertexShader:
+  				"varying vec2 vUv;\n\
+				void main() {\n\
+					vUv = uv;\n\
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
+				}",
+
+  			fragmentShader:
+  				"varying vec2 vUv;\
+				uniform sampler2D maskTexture;\
+				uniform vec2 texSize;\
+				uniform vec3 visibleEdgeColor;\
+				uniform vec3 hiddenEdgeColor;\
+				\
+				void main() {\n\
+					vec2 invSize = 1.0 / texSize;\
+					vec4 uvOffset = vec4(1.0, 0.0, 0.0, 1.0) * vec4(invSize, invSize);\
+					vec4 c1 = texture2D( maskTexture, vUv + uvOffset.xy);\
+					vec4 c2 = texture2D( maskTexture, vUv - uvOffset.xy);\
+					vec4 c3 = texture2D( maskTexture, vUv + uvOffset.yw);\
+					vec4 c4 = texture2D( maskTexture, vUv - uvOffset.yw);\
+					float diff1 = (c1.r - c2.r)*0.5;\
+					float diff2 = (c3.r - c4.r)*0.5;\
+					float d = length( vec2(diff1, diff2) );\
+					float a1 = min(c1.g, c2.g);\
+					float a2 = min(c3.g, c4.g);\
+					float visibilityFactor = min(a1, a2);\
+					vec3 edgeColor = 1.0 - visibilityFactor > 0.001 ? visibleEdgeColor : hiddenEdgeColor;\
+					gl_FragColor = vec4(edgeColor, 1.0) * vec4(d);\
+				}"
+  		} );
+
+  	},
+
+  	getSeperableBlurMaterial: function ( maxRadius ) {
+
+  		return new ShaderMaterial( {
+
+  			defines: {
+  				"MAX_RADIUS": maxRadius,
+  			},
+
+  			uniforms: {
+  				"colorTexture": { value: null },
+  				"texSize": { value: new Vector2( 0.5, 0.5 ) },
+  				"direction": { value: new Vector2( 0.5, 0.5 ) },
+  				"kernelRadius": { value: 1.0 }
+  			},
+
+  			vertexShader:
+  				"varying vec2 vUv;\n\
+				void main() {\n\
+					vUv = uv;\n\
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
+				}",
+
+  			fragmentShader:
+  				"#include <common>\
+				varying vec2 vUv;\
+				uniform sampler2D colorTexture;\
+				uniform vec2 texSize;\
+				uniform vec2 direction;\
+				uniform float kernelRadius;\
+				\
+				float gaussianPdf(in float x, in float sigma) {\
+					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;\
+				}\
+				void main() {\
+					vec2 invSize = 1.0 / texSize;\
+					float weightSum = gaussianPdf(0.0, kernelRadius);\
+					vec4 diffuseSum = texture2D( colorTexture, vUv) * weightSum;\
+					vec2 delta = direction * invSize * kernelRadius/float(MAX_RADIUS);\
+					vec2 uvOffset = delta;\
+					for( int i = 1; i <= MAX_RADIUS; i ++ ) {\
+						float w = gaussianPdf(uvOffset.x, kernelRadius);\
+						vec4 sample1 = texture2D( colorTexture, vUv + uvOffset);\
+						vec4 sample2 = texture2D( colorTexture, vUv - uvOffset);\
+						diffuseSum += ((sample1 + sample2) * w);\
+						weightSum += (2.0 * w);\
+						uvOffset += delta;\
+					}\
+					gl_FragColor = diffuseSum/weightSum;\
+				}"
+  		} );
+
+  	},
+
+  	getOverlayMaterial: function () {
+
+  		return new ShaderMaterial( {
+
+  			uniforms: {
+  				"maskTexture": { value: null },
+  				"edgeTexture1": { value: null },
+  				"edgeTexture2": { value: null },
+  				"patternTexture": { value: null },
+  				"edgeStrength": { value: 1.0 },
+  				"edgeGlow": { value: 1.0 },
+  				"usePatternTexture": { value: 0.0 }
+  			},
+
+  			vertexShader:
+  				"varying vec2 vUv;\n\
+				void main() {\n\
+					vUv = uv;\n\
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
+				}",
+
+  			fragmentShader:
+  				"varying vec2 vUv;\
+				uniform sampler2D maskTexture;\
+				uniform sampler2D edgeTexture1;\
+				uniform sampler2D edgeTexture2;\
+				uniform sampler2D patternTexture;\
+				uniform float edgeStrength;\
+				uniform float edgeGlow;\
+				uniform bool usePatternTexture;\
+				\
+				void main() {\
+					vec4 edgeValue1 = texture2D(edgeTexture1, vUv);\
+					vec4 edgeValue2 = texture2D(edgeTexture2, vUv);\
+					vec4 maskColor = texture2D(maskTexture, vUv);\
+					vec4 patternColor = texture2D(patternTexture, 6.0 * vUv);\
+					float visibilityFactor = 1.0 - maskColor.g > 0.0 ? 1.0 : 0.5;\
+					vec4 edgeValue = edgeValue1 + edgeValue2 * edgeGlow;\
+					vec4 finalColor = edgeStrength * maskColor.r * edgeValue;\
+					if(usePatternTexture)\
+						finalColor += + visibilityFactor * (1.0 - maskColor.r) * (1.0 - patternColor.r);\
+					gl_FragColor = finalColor;\
+				}",
+  			blending: AdditiveBlending,
+  			depthTest: false,
+  			depthWrite: false,
+  			transparent: true
+  		} );
+
+  	}
+
+  } );
+
+  OutlinePass.BlurDirectionX = new Vector2( 1.0, 0.0 );
+  OutlinePass.BlurDirectionY = new Vector2( 0.0, 1.0 );
+
+  /**
+   * @author alteredq / http://alteredqualia.com/
+   * @author davidedc / http://www.sketchpatch.net/
+   *
+   * NVIDIA FXAA by Timothy Lottes
+   * http://timothylottes.blogspot.com/2011/06/fxaa3-source-released.html
+   * - WebGL port by @supereggbert
+   * http://www.glge.org/demos/fxaa/
+   */
+
+  var FXAAShader = {
+
+  	uniforms: {
+
+  		"tDiffuse": { value: null },
+  		"resolution": { value: new Vector2( 1 / 1024, 1 / 512 ) }
+
+  	},
+
+  	vertexShader: [
+
+  		"varying vec2 vUv;",
+
+  		"void main() {",
+
+  		"	vUv = uv;",
+  		"	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+
+  		"}"
+
+  	].join( "\n" ),
+
+  	fragmentShader: [
+  		"precision highp float;",
+  		"",
+  		"uniform sampler2D tDiffuse;",
+  		"",
+  		"uniform vec2 resolution;",
+  		"",
+  		"varying vec2 vUv;",
+  		"",
+  		"// FXAA 3.11 implementation by NVIDIA, ported to WebGL by Agost Biro (biro@archilogic.com)",
+  		"",
+  		"//----------------------------------------------------------------------------------",
+  		"// File:        es3-kepler\FXAA\assets\shaders/FXAA_DefaultES.frag",
+  		"// SDK Version: v3.00",
+  		"// Email:       gameworks@nvidia.com",
+  		"// Site:        http://developer.nvidia.com/",
+  		"//",
+  		"// Copyright (c) 2014-2015, NVIDIA CORPORATION. All rights reserved.",
+  		"//",
+  		"// Redistribution and use in source and binary forms, with or without",
+  		"// modification, are permitted provided that the following conditions",
+  		"// are met:",
+  		"//  * Redistributions of source code must retain the above copyright",
+  		"//    notice, this list of conditions and the following disclaimer.",
+  		"//  * Redistributions in binary form must reproduce the above copyright",
+  		"//    notice, this list of conditions and the following disclaimer in the",
+  		"//    documentation and/or other materials provided with the distribution.",
+  		"//  * Neither the name of NVIDIA CORPORATION nor the names of its",
+  		"//    contributors may be used to endorse or promote products derived",
+  		"//    from this software without specific prior written permission.",
+  		"//",
+  		"// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY",
+  		"// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE",
+  		"// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR",
+  		"// PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR",
+  		"// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,",
+  		"// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,",
+  		"// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR",
+  		"// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY",
+  		"// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT",
+  		"// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE",
+  		"// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+  		"//",
+  		"//----------------------------------------------------------------------------------",
+  		"",
+  		"#define FXAA_PC 1",
+  		"#define FXAA_GLSL_100 1",
+  		"#define FXAA_QUALITY_PRESET 12",
+  		"",
+  		"#define FXAA_GREEN_AS_LUMA 1",
+  		"",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_PC_CONSOLE",
+  		"    //",
+  		"    // The console algorithm for PC is included",
+  		"    // for developers targeting really low spec machines.",
+  		"    // Likely better to just run FXAA_PC, and use a really low preset.",
+  		"    //",
+  		"    #define FXAA_PC_CONSOLE 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_GLSL_120",
+  		"    #define FXAA_GLSL_120 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_GLSL_130",
+  		"    #define FXAA_GLSL_130 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_HLSL_3",
+  		"    #define FXAA_HLSL_3 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_HLSL_4",
+  		"    #define FXAA_HLSL_4 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_HLSL_5",
+  		"    #define FXAA_HLSL_5 0",
+  		"#endif",
+  		"/*==========================================================================*/",
+  		"#ifndef FXAA_GREEN_AS_LUMA",
+  		"    //",
+  		"    // For those using non-linear color,",
+  		"    // and either not able to get luma in alpha, or not wanting to,",
+  		"    // this enables FXAA to run using green as a proxy for luma.",
+  		"    // So with this enabled, no need to pack luma in alpha.",
+  		"    //",
+  		"    // This will turn off AA on anything which lacks some amount of green.",
+  		"    // Pure red and blue or combination of only R and B, will get no AA.",
+  		"    //",
+  		"    // Might want to lower the settings for both,",
+  		"    //    fxaaConsoleEdgeThresholdMin",
+  		"    //    fxaaQualityEdgeThresholdMin",
+  		"    // In order to insure AA does not get turned off on colors",
+  		"    // which contain a minor amount of green.",
+  		"    //",
+  		"    // 1 = On.",
+  		"    // 0 = Off.",
+  		"    //",
+  		"    #define FXAA_GREEN_AS_LUMA 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_EARLY_EXIT",
+  		"    //",
+  		"    // Controls algorithm's early exit path.",
+  		"    // On PS3 turning this ON adds 2 cycles to the shader.",
+  		"    // On 360 turning this OFF adds 10ths of a millisecond to the shader.",
+  		"    // Turning this off on console will result in a more blurry image.",
+  		"    // So this defaults to on.",
+  		"    //",
+  		"    // 1 = On.",
+  		"    // 0 = Off.",
+  		"    //",
+  		"    #define FXAA_EARLY_EXIT 1",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_DISCARD",
+  		"    //",
+  		"    // Only valid for PC OpenGL currently.",
+  		"    // Probably will not work when FXAA_GREEN_AS_LUMA = 1.",
+  		"    //",
+  		"    // 1 = Use discard on pixels which don't need AA.",
+  		"    //     For APIs which enable concurrent TEX+ROP from same surface.",
+  		"    // 0 = Return unchanged color on pixels which don't need AA.",
+  		"    //",
+  		"    #define FXAA_DISCARD 0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_FAST_PIXEL_OFFSET",
+  		"    //",
+  		"    // Used for GLSL 120 only.",
+  		"    //",
+  		"    // 1 = GL API supports fast pixel offsets",
+  		"    // 0 = do not use fast pixel offsets",
+  		"    //",
+  		"    #ifdef GL_EXT_gpu_shader4",
+  		"        #define FXAA_FAST_PIXEL_OFFSET 1",
+  		"    #endif",
+  		"    #ifdef GL_NV_gpu_shader5",
+  		"        #define FXAA_FAST_PIXEL_OFFSET 1",
+  		"    #endif",
+  		"    #ifdef GL_ARB_gpu_shader5",
+  		"        #define FXAA_FAST_PIXEL_OFFSET 1",
+  		"    #endif",
+  		"    #ifndef FXAA_FAST_PIXEL_OFFSET",
+  		"        #define FXAA_FAST_PIXEL_OFFSET 0",
+  		"    #endif",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#ifndef FXAA_GATHER4_ALPHA",
+  		"    //",
+  		"    // 1 = API supports gather4 on alpha channel.",
+  		"    // 0 = API does not support gather4 on alpha channel.",
+  		"    //",
+  		"    #if (FXAA_HLSL_5 == 1)",
+  		"        #define FXAA_GATHER4_ALPHA 1",
+  		"    #endif",
+  		"    #ifdef GL_ARB_gpu_shader5",
+  		"        #define FXAA_GATHER4_ALPHA 1",
+  		"    #endif",
+  		"    #ifdef GL_NV_gpu_shader5",
+  		"        #define FXAA_GATHER4_ALPHA 1",
+  		"    #endif",
+  		"    #ifndef FXAA_GATHER4_ALPHA",
+  		"        #define FXAA_GATHER4_ALPHA 0",
+  		"    #endif",
+  		"#endif",
+  		"",
+  		"",
+  		"/*============================================================================",
+  		"                        FXAA QUALITY - TUNING KNOBS",
+  		"------------------------------------------------------------------------------",
+  		"NOTE the other tuning knobs are now in the shader function inputs!",
+  		"============================================================================*/",
+  		"#ifndef FXAA_QUALITY_PRESET",
+  		"    //",
+  		"    // Choose the quality preset.",
+  		"    // This needs to be compiled into the shader as it effects code.",
+  		"    // Best option to include multiple presets is to",
+  		"    // in each shader define the preset, then include this file.",
+  		"    //",
+  		"    // OPTIONS",
+  		"    // -----------------------------------------------------------------------",
+  		"    // 10 to 15 - default medium dither (10=fastest, 15=highest quality)",
+  		"    // 20 to 29 - less dither, more expensive (20=fastest, 29=highest quality)",
+  		"    // 39       - no dither, very expensive",
+  		"    //",
+  		"    // NOTES",
+  		"    // -----------------------------------------------------------------------",
+  		"    // 12 = slightly faster then FXAA 3.9 and higher edge quality (default)",
+  		"    // 13 = about same speed as FXAA 3.9 and better than 12",
+  		"    // 23 = closest to FXAA 3.9 visually and performance wise",
+  		"    //  _ = the lowest digit is directly related to performance",
+  		"    // _  = the highest digit is directly related to style",
+  		"    //",
+  		"    #define FXAA_QUALITY_PRESET 12",
+  		"#endif",
+  		"",
+  		"",
+  		"/*============================================================================",
+  		"",
+  		"                           FXAA QUALITY - PRESETS",
+  		"",
+  		"============================================================================*/",
+  		"",
+  		"/*============================================================================",
+  		"                     FXAA QUALITY - MEDIUM DITHER PRESETS",
+  		"============================================================================*/",
+  		"#if (FXAA_QUALITY_PRESET == 10)",
+  		"    #define FXAA_QUALITY_PS 3",
+  		"    #define FXAA_QUALITY_P0 1.5",
+  		"    #define FXAA_QUALITY_P1 3.0",
+  		"    #define FXAA_QUALITY_P2 12.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 11)",
+  		"    #define FXAA_QUALITY_PS 4",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 3.0",
+  		"    #define FXAA_QUALITY_P3 12.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 12)",
+  		"    #define FXAA_QUALITY_PS 5",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 4.0",
+  		"    #define FXAA_QUALITY_P4 12.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 13)",
+  		"    #define FXAA_QUALITY_PS 6",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 4.0",
+  		"    #define FXAA_QUALITY_P5 12.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 14)",
+  		"    #define FXAA_QUALITY_PS 7",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 4.0",
+  		"    #define FXAA_QUALITY_P6 12.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 15)",
+  		"    #define FXAA_QUALITY_PS 8",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 2.0",
+  		"    #define FXAA_QUALITY_P6 4.0",
+  		"    #define FXAA_QUALITY_P7 12.0",
+  		"#endif",
+  		"",
+  		"/*============================================================================",
+  		"                     FXAA QUALITY - LOW DITHER PRESETS",
+  		"============================================================================*/",
+  		"#if (FXAA_QUALITY_PRESET == 20)",
+  		"    #define FXAA_QUALITY_PS 3",
+  		"    #define FXAA_QUALITY_P0 1.5",
+  		"    #define FXAA_QUALITY_P1 2.0",
+  		"    #define FXAA_QUALITY_P2 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 21)",
+  		"    #define FXAA_QUALITY_PS 4",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 22)",
+  		"    #define FXAA_QUALITY_PS 5",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 23)",
+  		"    #define FXAA_QUALITY_PS 6",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 24)",
+  		"    #define FXAA_QUALITY_PS 7",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 3.0",
+  		"    #define FXAA_QUALITY_P6 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 25)",
+  		"    #define FXAA_QUALITY_PS 8",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 2.0",
+  		"    #define FXAA_QUALITY_P6 4.0",
+  		"    #define FXAA_QUALITY_P7 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 26)",
+  		"    #define FXAA_QUALITY_PS 9",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 2.0",
+  		"    #define FXAA_QUALITY_P6 2.0",
+  		"    #define FXAA_QUALITY_P7 4.0",
+  		"    #define FXAA_QUALITY_P8 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 27)",
+  		"    #define FXAA_QUALITY_PS 10",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 2.0",
+  		"    #define FXAA_QUALITY_P6 2.0",
+  		"    #define FXAA_QUALITY_P7 2.0",
+  		"    #define FXAA_QUALITY_P8 4.0",
+  		"    #define FXAA_QUALITY_P9 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 28)",
+  		"    #define FXAA_QUALITY_PS 11",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 2.0",
+  		"    #define FXAA_QUALITY_P6 2.0",
+  		"    #define FXAA_QUALITY_P7 2.0",
+  		"    #define FXAA_QUALITY_P8 2.0",
+  		"    #define FXAA_QUALITY_P9 4.0",
+  		"    #define FXAA_QUALITY_P10 8.0",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_QUALITY_PRESET == 29)",
+  		"    #define FXAA_QUALITY_PS 12",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.5",
+  		"    #define FXAA_QUALITY_P2 2.0",
+  		"    #define FXAA_QUALITY_P3 2.0",
+  		"    #define FXAA_QUALITY_P4 2.0",
+  		"    #define FXAA_QUALITY_P5 2.0",
+  		"    #define FXAA_QUALITY_P6 2.0",
+  		"    #define FXAA_QUALITY_P7 2.0",
+  		"    #define FXAA_QUALITY_P8 2.0",
+  		"    #define FXAA_QUALITY_P9 2.0",
+  		"    #define FXAA_QUALITY_P10 4.0",
+  		"    #define FXAA_QUALITY_P11 8.0",
+  		"#endif",
+  		"",
+  		"/*============================================================================",
+  		"                     FXAA QUALITY - EXTREME QUALITY",
+  		"============================================================================*/",
+  		"#if (FXAA_QUALITY_PRESET == 39)",
+  		"    #define FXAA_QUALITY_PS 12",
+  		"    #define FXAA_QUALITY_P0 1.0",
+  		"    #define FXAA_QUALITY_P1 1.0",
+  		"    #define FXAA_QUALITY_P2 1.0",
+  		"    #define FXAA_QUALITY_P3 1.0",
+  		"    #define FXAA_QUALITY_P4 1.0",
+  		"    #define FXAA_QUALITY_P5 1.5",
+  		"    #define FXAA_QUALITY_P6 2.0",
+  		"    #define FXAA_QUALITY_P7 2.0",
+  		"    #define FXAA_QUALITY_P8 2.0",
+  		"    #define FXAA_QUALITY_P9 2.0",
+  		"    #define FXAA_QUALITY_P10 4.0",
+  		"    #define FXAA_QUALITY_P11 8.0",
+  		"#endif",
+  		"",
+  		"",
+  		"",
+  		"/*============================================================================",
+  		"",
+  		"                                API PORTING",
+  		"",
+  		"============================================================================*/",
+  		"#if (FXAA_GLSL_100 == 1) || (FXAA_GLSL_120 == 1) || (FXAA_GLSL_130 == 1)",
+  		"    #define FxaaBool bool",
+  		"    #define FxaaDiscard discard",
+  		"    #define FxaaFloat float",
+  		"    #define FxaaFloat2 vec2",
+  		"    #define FxaaFloat3 vec3",
+  		"    #define FxaaFloat4 vec4",
+  		"    #define FxaaHalf float",
+  		"    #define FxaaHalf2 vec2",
+  		"    #define FxaaHalf3 vec3",
+  		"    #define FxaaHalf4 vec4",
+  		"    #define FxaaInt2 ivec2",
+  		"    #define FxaaSat(x) clamp(x, 0.0, 1.0)",
+  		"    #define FxaaTex sampler2D",
+  		"#else",
+  		"    #define FxaaBool bool",
+  		"    #define FxaaDiscard clip(-1)",
+  		"    #define FxaaFloat float",
+  		"    #define FxaaFloat2 float2",
+  		"    #define FxaaFloat3 float3",
+  		"    #define FxaaFloat4 float4",
+  		"    #define FxaaHalf half",
+  		"    #define FxaaHalf2 half2",
+  		"    #define FxaaHalf3 half3",
+  		"    #define FxaaHalf4 half4",
+  		"    #define FxaaSat(x) saturate(x)",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_GLSL_100 == 1)",
+  		"  #define FxaaTexTop(t, p) texture2D(t, p, 0.0)",
+  		"  #define FxaaTexOff(t, p, o, r) texture2D(t, p + (o * r), 0.0)",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_GLSL_120 == 1)",
+  		"    // Requires,",
+  		"    //  #version 120",
+  		"    // And at least,",
+  		"    //  #extension GL_EXT_gpu_shader4 : enable",
+  		"    //  (or set FXAA_FAST_PIXEL_OFFSET 1 to work like DX9)",
+  		"    #define FxaaTexTop(t, p) texture2DLod(t, p, 0.0)",
+  		"    #if (FXAA_FAST_PIXEL_OFFSET == 1)",
+  		"        #define FxaaTexOff(t, p, o, r) texture2DLodOffset(t, p, 0.0, o)",
+  		"    #else",
+  		"        #define FxaaTexOff(t, p, o, r) texture2DLod(t, p + (o * r), 0.0)",
+  		"    #endif",
+  		"    #if (FXAA_GATHER4_ALPHA == 1)",
+  		"        // use #extension GL_ARB_gpu_shader5 : enable",
+  		"        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)",
+  		"        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)",
+  		"        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)",
+  		"        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)",
+  		"    #endif",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_GLSL_130 == 1)",
+  		"    // Requires \"#version 130\" or better",
+  		"    #define FxaaTexTop(t, p) textureLod(t, p, 0.0)",
+  		"    #define FxaaTexOff(t, p, o, r) textureLodOffset(t, p, 0.0, o)",
+  		"    #if (FXAA_GATHER4_ALPHA == 1)",
+  		"        // use #extension GL_ARB_gpu_shader5 : enable",
+  		"        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)",
+  		"        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)",
+  		"        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)",
+  		"        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)",
+  		"    #endif",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_HLSL_3 == 1)",
+  		"    #define FxaaInt2 float2",
+  		"    #define FxaaTex sampler2D",
+  		"    #define FxaaTexTop(t, p) tex2Dlod(t, float4(p, 0.0, 0.0))",
+  		"    #define FxaaTexOff(t, p, o, r) tex2Dlod(t, float4(p + (o * r), 0, 0))",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_HLSL_4 == 1)",
+  		"    #define FxaaInt2 int2",
+  		"    struct FxaaTex { SamplerState smpl; Texture2D tex; };",
+  		"    #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)",
+  		"    #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)",
+  		"#endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"#if (FXAA_HLSL_5 == 1)",
+  		"    #define FxaaInt2 int2",
+  		"    struct FxaaTex { SamplerState smpl; Texture2D tex; };",
+  		"    #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)",
+  		"    #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)",
+  		"    #define FxaaTexAlpha4(t, p) t.tex.GatherAlpha(t.smpl, p)",
+  		"    #define FxaaTexOffAlpha4(t, p, o) t.tex.GatherAlpha(t.smpl, p, o)",
+  		"    #define FxaaTexGreen4(t, p) t.tex.GatherGreen(t.smpl, p)",
+  		"    #define FxaaTexOffGreen4(t, p, o) t.tex.GatherGreen(t.smpl, p, o)",
+  		"#endif",
+  		"",
+  		"",
+  		"/*============================================================================",
+  		"                   GREEN AS LUMA OPTION SUPPORT FUNCTION",
+  		"============================================================================*/",
+  		"#if (FXAA_GREEN_AS_LUMA == 0)",
+  		"    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.w; }",
+  		"#else",
+  		"    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.y; }",
+  		"#endif",
+  		"",
+  		"",
+  		"",
+  		"",
+  		"/*============================================================================",
+  		"",
+  		"                             FXAA3 QUALITY - PC",
+  		"",
+  		"============================================================================*/",
+  		"#if (FXAA_PC == 1)",
+  		"/*--------------------------------------------------------------------------*/",
+  		"FxaaFloat4 FxaaPixelShader(",
+  		"    //",
+  		"    // Use noperspective interpolation here (turn off perspective interpolation).",
+  		"    // {xy} = center of pixel",
+  		"    FxaaFloat2 pos,",
+  		"    //",
+  		"    // Used only for FXAA Console, and not used on the 360 version.",
+  		"    // Use noperspective interpolation here (turn off perspective interpolation).",
+  		"    // {xy_} = upper left of pixel",
+  		"    // {_zw} = lower right of pixel",
+  		"    FxaaFloat4 fxaaConsolePosPos,",
+  		"    //",
+  		"    // Input color texture.",
+  		"    // {rgb_} = color in linear or perceptual color space",
+  		"    // if (FXAA_GREEN_AS_LUMA == 0)",
+  		"    //     {__a} = luma in perceptual color space (not linear)",
+  		"    FxaaTex tex,",
+  		"    //",
+  		"    // Only used on the optimized 360 version of FXAA Console.",
+  		"    // For everything but 360, just use the same input here as for \"tex\".",
+  		"    // For 360, same texture, just alias with a 2nd sampler.",
+  		"    // This sampler needs to have an exponent bias of -1.",
+  		"    FxaaTex fxaaConsole360TexExpBiasNegOne,",
+  		"    //",
+  		"    // Only used on the optimized 360 version of FXAA Console.",
+  		"    // For everything but 360, just use the same input here as for \"tex\".",
+  		"    // For 360, same texture, just alias with a 3nd sampler.",
+  		"    // This sampler needs to have an exponent bias of -2.",
+  		"    FxaaTex fxaaConsole360TexExpBiasNegTwo,",
+  		"    //",
+  		"    // Only used on FXAA Quality.",
+  		"    // This must be from a constant/uniform.",
+  		"    // {x_} = 1.0/screenWidthInPixels",
+  		"    // {_y} = 1.0/screenHeightInPixels",
+  		"    FxaaFloat2 fxaaQualityRcpFrame,",
+  		"    //",
+  		"    // Only used on FXAA Console.",
+  		"    // This must be from a constant/uniform.",
+  		"    // This effects sub-pixel AA quality and inversely sharpness.",
+  		"    //   Where N ranges between,",
+  		"    //     N = 0.50 (default)",
+  		"    //     N = 0.33 (sharper)",
+  		"    // {x__} = -N/screenWidthInPixels",
+  		"    // {_y_} = -N/screenHeightInPixels",
+  		"    // {_z_} =  N/screenWidthInPixels",
+  		"    // {__w} =  N/screenHeightInPixels",
+  		"    FxaaFloat4 fxaaConsoleRcpFrameOpt,",
+  		"    //",
+  		"    // Only used on FXAA Console.",
+  		"    // Not used on 360, but used on PS3 and PC.",
+  		"    // This must be from a constant/uniform.",
+  		"    // {x__} = -2.0/screenWidthInPixels",
+  		"    // {_y_} = -2.0/screenHeightInPixels",
+  		"    // {_z_} =  2.0/screenWidthInPixels",
+  		"    // {__w} =  2.0/screenHeightInPixels",
+  		"    FxaaFloat4 fxaaConsoleRcpFrameOpt2,",
+  		"    //",
+  		"    // Only used on FXAA Console.",
+  		"    // Only used on 360 in place of fxaaConsoleRcpFrameOpt2.",
+  		"    // This must be from a constant/uniform.",
+  		"    // {x__} =  8.0/screenWidthInPixels",
+  		"    // {_y_} =  8.0/screenHeightInPixels",
+  		"    // {_z_} = -4.0/screenWidthInPixels",
+  		"    // {__w} = -4.0/screenHeightInPixels",
+  		"    FxaaFloat4 fxaaConsole360RcpFrameOpt2,",
+  		"    //",
+  		"    // Only used on FXAA Quality.",
+  		"    // This used to be the FXAA_QUALITY_SUBPIX define.",
+  		"    // It is here now to allow easier tuning.",
+  		"    // Choose the amount of sub-pixel aliasing removal.",
+  		"    // This can effect sharpness.",
+  		"    //   1.00 - upper limit (softer)",
+  		"    //   0.75 - default amount of filtering",
+  		"    //   0.50 - lower limit (sharper, less sub-pixel aliasing removal)",
+  		"    //   0.25 - almost off",
+  		"    //   0.00 - completely off",
+  		"    FxaaFloat fxaaQualitySubpix,",
+  		"    //",
+  		"    // Only used on FXAA Quality.",
+  		"    // This used to be the FXAA_QUALITY_EDGE_THRESHOLD define.",
+  		"    // It is here now to allow easier tuning.",
+  		"    // The minimum amount of local contrast required to apply algorithm.",
+  		"    //   0.333 - too little (faster)",
+  		"    //   0.250 - low quality",
+  		"    //   0.166 - default",
+  		"    //   0.125 - high quality",
+  		"    //   0.063 - overkill (slower)",
+  		"    FxaaFloat fxaaQualityEdgeThreshold,",
+  		"    //",
+  		"    // Only used on FXAA Quality.",
+  		"    // This used to be the FXAA_QUALITY_EDGE_THRESHOLD_MIN define.",
+  		"    // It is here now to allow easier tuning.",
+  		"    // Trims the algorithm from processing darks.",
+  		"    //   0.0833 - upper limit (default, the start of visible unfiltered edges)",
+  		"    //   0.0625 - high quality (faster)",
+  		"    //   0.0312 - visible limit (slower)",
+  		"    // Special notes when using FXAA_GREEN_AS_LUMA,",
+  		"    //   Likely want to set this to zero.",
+  		"    //   As colors that are mostly not-green",
+  		"    //   will appear very dark in the green channel!",
+  		"    //   Tune by looking at mostly non-green content,",
+  		"    //   then start at zero and increase until aliasing is a problem.",
+  		"    FxaaFloat fxaaQualityEdgeThresholdMin,",
+  		"    //",
+  		"    // Only used on FXAA Console.",
+  		"    // This used to be the FXAA_CONSOLE_EDGE_SHARPNESS define.",
+  		"    // It is here now to allow easier tuning.",
+  		"    // This does not effect PS3, as this needs to be compiled in.",
+  		"    //   Use FXAA_CONSOLE_PS3_EDGE_SHARPNESS for PS3.",
+  		"    //   Due to the PS3 being ALU bound,",
+  		"    //   there are only three safe values here: 2 and 4 and 8.",
+  		"    //   These options use the shaders ability to a free *|/ by 2|4|8.",
+  		"    // For all other platforms can be a non-power of two.",
+  		"    //   8.0 is sharper (default!!!)",
+  		"    //   4.0 is softer",
+  		"    //   2.0 is really soft (good only for vector graphics inputs)",
+  		"    FxaaFloat fxaaConsoleEdgeSharpness,",
+  		"    //",
+  		"    // Only used on FXAA Console.",
+  		"    // This used to be the FXAA_CONSOLE_EDGE_THRESHOLD define.",
+  		"    // It is here now to allow easier tuning.",
+  		"    // This does not effect PS3, as this needs to be compiled in.",
+  		"    //   Use FXAA_CONSOLE_PS3_EDGE_THRESHOLD for PS3.",
+  		"    //   Due to the PS3 being ALU bound,",
+  		"    //   there are only two safe values here: 1/4 and 1/8.",
+  		"    //   These options use the shaders ability to a free *|/ by 2|4|8.",
+  		"    // The console setting has a different mapping than the quality setting.",
+  		"    // Other platforms can use other values.",
+  		"    //   0.125 leaves less aliasing, but is softer (default!!!)",
+  		"    //   0.25 leaves more aliasing, and is sharper",
+  		"    FxaaFloat fxaaConsoleEdgeThreshold,",
+  		"    //",
+  		"    // Only used on FXAA Console.",
+  		"    // This used to be the FXAA_CONSOLE_EDGE_THRESHOLD_MIN define.",
+  		"    // It is here now to allow easier tuning.",
+  		"    // Trims the algorithm from processing darks.",
+  		"    // The console setting has a different mapping than the quality setting.",
+  		"    // This only applies when FXAA_EARLY_EXIT is 1.",
+  		"    // This does not apply to PS3,",
+  		"    // PS3 was simplified to avoid more shader instructions.",
+  		"    //   0.06 - faster but more aliasing in darks",
+  		"    //   0.05 - default",
+  		"    //   0.04 - slower and less aliasing in darks",
+  		"    // Special notes when using FXAA_GREEN_AS_LUMA,",
+  		"    //   Likely want to set this to zero.",
+  		"    //   As colors that are mostly not-green",
+  		"    //   will appear very dark in the green channel!",
+  		"    //   Tune by looking at mostly non-green content,",
+  		"    //   then start at zero and increase until aliasing is a problem.",
+  		"    FxaaFloat fxaaConsoleEdgeThresholdMin,",
+  		"    //",
+  		"    // Extra constants for 360 FXAA Console only.",
+  		"    // Use zeros or anything else for other platforms.",
+  		"    // These must be in physical constant registers and NOT immediates.",
+  		"    // Immediates will result in compiler un-optimizing.",
+  		"    // {xyzw} = float4(1.0, -1.0, 0.25, -0.25)",
+  		"    FxaaFloat4 fxaaConsole360ConstDir",
+  		") {",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat2 posM;",
+  		"    posM.x = pos.x;",
+  		"    posM.y = pos.y;",
+  		"    #if (FXAA_GATHER4_ALPHA == 1)",
+  		"        #if (FXAA_DISCARD == 0)",
+  		"            FxaaFloat4 rgbyM = FxaaTexTop(tex, posM);",
+  		"            #if (FXAA_GREEN_AS_LUMA == 0)",
+  		"                #define lumaM rgbyM.w",
+  		"            #else",
+  		"                #define lumaM rgbyM.y",
+  		"            #endif",
+  		"        #endif",
+  		"        #if (FXAA_GREEN_AS_LUMA == 0)",
+  		"            FxaaFloat4 luma4A = FxaaTexAlpha4(tex, posM);",
+  		"            FxaaFloat4 luma4B = FxaaTexOffAlpha4(tex, posM, FxaaInt2(-1, -1));",
+  		"        #else",
+  		"            FxaaFloat4 luma4A = FxaaTexGreen4(tex, posM);",
+  		"            FxaaFloat4 luma4B = FxaaTexOffGreen4(tex, posM, FxaaInt2(-1, -1));",
+  		"        #endif",
+  		"        #if (FXAA_DISCARD == 1)",
+  		"            #define lumaM luma4A.w",
+  		"        #endif",
+  		"        #define lumaE luma4A.z",
+  		"        #define lumaS luma4A.x",
+  		"        #define lumaSE luma4A.y",
+  		"        #define lumaNW luma4B.w",
+  		"        #define lumaN luma4B.z",
+  		"        #define lumaW luma4B.x",
+  		"    #else",
+  		"        FxaaFloat4 rgbyM = FxaaTexTop(tex, posM);",
+  		"        #if (FXAA_GREEN_AS_LUMA == 0)",
+  		"            #define lumaM rgbyM.w",
+  		"        #else",
+  		"            #define lumaM rgbyM.y",
+  		"        #endif",
+  		"        #if (FXAA_GLSL_100 == 1)",
+  		"          FxaaFloat lumaS = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 0.0, 1.0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaE = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 1.0, 0.0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaN = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 0.0,-1.0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaW = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2(-1.0, 0.0), fxaaQualityRcpFrame.xy));",
+  		"        #else",
+  		"          FxaaFloat lumaS = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0, 1), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaN = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 0,-1), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 0), fxaaQualityRcpFrame.xy));",
+  		"        #endif",
+  		"    #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat maxSM = max(lumaS, lumaM);",
+  		"    FxaaFloat minSM = min(lumaS, lumaM);",
+  		"    FxaaFloat maxESM = max(lumaE, maxSM);",
+  		"    FxaaFloat minESM = min(lumaE, minSM);",
+  		"    FxaaFloat maxWN = max(lumaN, lumaW);",
+  		"    FxaaFloat minWN = min(lumaN, lumaW);",
+  		"    FxaaFloat rangeMax = max(maxWN, maxESM);",
+  		"    FxaaFloat rangeMin = min(minWN, minESM);",
+  		"    FxaaFloat rangeMaxScaled = rangeMax * fxaaQualityEdgeThreshold;",
+  		"    FxaaFloat range = rangeMax - rangeMin;",
+  		"    FxaaFloat rangeMaxClamped = max(fxaaQualityEdgeThresholdMin, rangeMaxScaled);",
+  		"    FxaaBool earlyExit = range < rangeMaxClamped;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    if(earlyExit)",
+  		"        #if (FXAA_DISCARD == 1)",
+  		"            FxaaDiscard;",
+  		"        #else",
+  		"            return rgbyM;",
+  		"        #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    #if (FXAA_GATHER4_ALPHA == 0)",
+  		"        #if (FXAA_GLSL_100 == 1)",
+  		"          FxaaFloat lumaNW = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2(-1.0,-1.0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaSE = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 1.0, 1.0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2( 1.0,-1.0), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaFloat2(-1.0, 1.0), fxaaQualityRcpFrame.xy));",
+  		"        #else",
+  		"          FxaaFloat lumaNW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1,-1), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaSE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1, 1), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2( 1,-1), fxaaQualityRcpFrame.xy));",
+  		"          FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));",
+  		"        #endif",
+  		"    #else",
+  		"        FxaaFloat lumaNE = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(1, -1), fxaaQualityRcpFrame.xy));",
+  		"        FxaaFloat lumaSW = FxaaLuma(FxaaTexOff(tex, posM, FxaaInt2(-1, 1), fxaaQualityRcpFrame.xy));",
+  		"    #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat lumaNS = lumaN + lumaS;",
+  		"    FxaaFloat lumaWE = lumaW + lumaE;",
+  		"    FxaaFloat subpixRcpRange = 1.0/range;",
+  		"    FxaaFloat subpixNSWE = lumaNS + lumaWE;",
+  		"    FxaaFloat edgeHorz1 = (-2.0 * lumaM) + lumaNS;",
+  		"    FxaaFloat edgeVert1 = (-2.0 * lumaM) + lumaWE;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat lumaNESE = lumaNE + lumaSE;",
+  		"    FxaaFloat lumaNWNE = lumaNW + lumaNE;",
+  		"    FxaaFloat edgeHorz2 = (-2.0 * lumaE) + lumaNESE;",
+  		"    FxaaFloat edgeVert2 = (-2.0 * lumaN) + lumaNWNE;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat lumaNWSW = lumaNW + lumaSW;",
+  		"    FxaaFloat lumaSWSE = lumaSW + lumaSE;",
+  		"    FxaaFloat edgeHorz4 = (abs(edgeHorz1) * 2.0) + abs(edgeHorz2);",
+  		"    FxaaFloat edgeVert4 = (abs(edgeVert1) * 2.0) + abs(edgeVert2);",
+  		"    FxaaFloat edgeHorz3 = (-2.0 * lumaW) + lumaNWSW;",
+  		"    FxaaFloat edgeVert3 = (-2.0 * lumaS) + lumaSWSE;",
+  		"    FxaaFloat edgeHorz = abs(edgeHorz3) + edgeHorz4;",
+  		"    FxaaFloat edgeVert = abs(edgeVert3) + edgeVert4;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat subpixNWSWNESE = lumaNWSW + lumaNESE;",
+  		"    FxaaFloat lengthSign = fxaaQualityRcpFrame.x;",
+  		"    FxaaBool horzSpan = edgeHorz >= edgeVert;",
+  		"    FxaaFloat subpixA = subpixNSWE * 2.0 + subpixNWSWNESE;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    if(!horzSpan) lumaN = lumaW;",
+  		"    if(!horzSpan) lumaS = lumaE;",
+  		"    if(horzSpan) lengthSign = fxaaQualityRcpFrame.y;",
+  		"    FxaaFloat subpixB = (subpixA * (1.0/12.0)) - lumaM;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat gradientN = lumaN - lumaM;",
+  		"    FxaaFloat gradientS = lumaS - lumaM;",
+  		"    FxaaFloat lumaNN = lumaN + lumaM;",
+  		"    FxaaFloat lumaSS = lumaS + lumaM;",
+  		"    FxaaBool pairN = abs(gradientN) >= abs(gradientS);",
+  		"    FxaaFloat gradient = max(abs(gradientN), abs(gradientS));",
+  		"    if(pairN) lengthSign = -lengthSign;",
+  		"    FxaaFloat subpixC = FxaaSat(abs(subpixB) * subpixRcpRange);",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat2 posB;",
+  		"    posB.x = posM.x;",
+  		"    posB.y = posM.y;",
+  		"    FxaaFloat2 offNP;",
+  		"    offNP.x = (!horzSpan) ? 0.0 : fxaaQualityRcpFrame.x;",
+  		"    offNP.y = ( horzSpan) ? 0.0 : fxaaQualityRcpFrame.y;",
+  		"    if(!horzSpan) posB.x += lengthSign * 0.5;",
+  		"    if( horzSpan) posB.y += lengthSign * 0.5;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat2 posN;",
+  		"    posN.x = posB.x - offNP.x * FXAA_QUALITY_P0;",
+  		"    posN.y = posB.y - offNP.y * FXAA_QUALITY_P0;",
+  		"    FxaaFloat2 posP;",
+  		"    posP.x = posB.x + offNP.x * FXAA_QUALITY_P0;",
+  		"    posP.y = posB.y + offNP.y * FXAA_QUALITY_P0;",
+  		"    FxaaFloat subpixD = ((-2.0)*subpixC) + 3.0;",
+  		"    FxaaFloat lumaEndN = FxaaLuma(FxaaTexTop(tex, posN));",
+  		"    FxaaFloat subpixE = subpixC * subpixC;",
+  		"    FxaaFloat lumaEndP = FxaaLuma(FxaaTexTop(tex, posP));",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    if(!pairN) lumaNN = lumaSS;",
+  		"    FxaaFloat gradientScaled = gradient * 1.0/4.0;",
+  		"    FxaaFloat lumaMM = lumaM - lumaNN * 0.5;",
+  		"    FxaaFloat subpixF = subpixD * subpixE;",
+  		"    FxaaBool lumaMLTZero = lumaMM < 0.0;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    lumaEndN -= lumaNN * 0.5;",
+  		"    lumaEndP -= lumaNN * 0.5;",
+  		"    FxaaBool doneN = abs(lumaEndN) >= gradientScaled;",
+  		"    FxaaBool doneP = abs(lumaEndP) >= gradientScaled;",
+  		"    if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P1;",
+  		"    if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P1;",
+  		"    FxaaBool doneNP = (!doneN) || (!doneP);",
+  		"    if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P1;",
+  		"    if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P1;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    if(doneNP) {",
+  		"        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"        doneN = abs(lumaEndN) >= gradientScaled;",
+  		"        doneP = abs(lumaEndP) >= gradientScaled;",
+  		"        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P2;",
+  		"        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P2;",
+  		"        doneNP = (!doneN) || (!doneP);",
+  		"        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P2;",
+  		"        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P2;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"        #if (FXAA_QUALITY_PS > 3)",
+  		"        if(doneNP) {",
+  		"            if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"            if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"            if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"            if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"            doneN = abs(lumaEndN) >= gradientScaled;",
+  		"            doneP = abs(lumaEndP) >= gradientScaled;",
+  		"            if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P3;",
+  		"            if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P3;",
+  		"            doneNP = (!doneN) || (!doneP);",
+  		"            if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P3;",
+  		"            if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P3;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"            #if (FXAA_QUALITY_PS > 4)",
+  		"            if(doneNP) {",
+  		"                if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P4;",
+  		"                if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P4;",
+  		"                doneNP = (!doneN) || (!doneP);",
+  		"                if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P4;",
+  		"                if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P4;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                #if (FXAA_QUALITY_PS > 5)",
+  		"                if(doneNP) {",
+  		"                    if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                    if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                    if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                    if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                    doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                    doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                    if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P5;",
+  		"                    if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P5;",
+  		"                    doneNP = (!doneN) || (!doneP);",
+  		"                    if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P5;",
+  		"                    if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P5;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                    #if (FXAA_QUALITY_PS > 6)",
+  		"                    if(doneNP) {",
+  		"                        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                        doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                        doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P6;",
+  		"                        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P6;",
+  		"                        doneNP = (!doneN) || (!doneP);",
+  		"                        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P6;",
+  		"                        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P6;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                        #if (FXAA_QUALITY_PS > 7)",
+  		"                        if(doneNP) {",
+  		"                            if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                            if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                            if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                            if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                            doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                            doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                            if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P7;",
+  		"                            if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P7;",
+  		"                            doneNP = (!doneN) || (!doneP);",
+  		"                            if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P7;",
+  		"                            if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P7;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    #if (FXAA_QUALITY_PS > 8)",
+  		"    if(doneNP) {",
+  		"        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"        doneN = abs(lumaEndN) >= gradientScaled;",
+  		"        doneP = abs(lumaEndP) >= gradientScaled;",
+  		"        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P8;",
+  		"        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P8;",
+  		"        doneNP = (!doneN) || (!doneP);",
+  		"        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P8;",
+  		"        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P8;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"        #if (FXAA_QUALITY_PS > 9)",
+  		"        if(doneNP) {",
+  		"            if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"            if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"            if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"            if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"            doneN = abs(lumaEndN) >= gradientScaled;",
+  		"            doneP = abs(lumaEndP) >= gradientScaled;",
+  		"            if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P9;",
+  		"            if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P9;",
+  		"            doneNP = (!doneN) || (!doneP);",
+  		"            if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P9;",
+  		"            if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P9;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"            #if (FXAA_QUALITY_PS > 10)",
+  		"            if(doneNP) {",
+  		"                if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P10;",
+  		"                if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P10;",
+  		"                doneNP = (!doneN) || (!doneP);",
+  		"                if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P10;",
+  		"                if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P10;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                #if (FXAA_QUALITY_PS > 11)",
+  		"                if(doneNP) {",
+  		"                    if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                    if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                    if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                    if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                    doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                    doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                    if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P11;",
+  		"                    if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P11;",
+  		"                    doneNP = (!doneN) || (!doneP);",
+  		"                    if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P11;",
+  		"                    if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P11;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                    #if (FXAA_QUALITY_PS > 12)",
+  		"                    if(doneNP) {",
+  		"                        if(!doneN) lumaEndN = FxaaLuma(FxaaTexTop(tex, posN.xy));",
+  		"                        if(!doneP) lumaEndP = FxaaLuma(FxaaTexTop(tex, posP.xy));",
+  		"                        if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;",
+  		"                        if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;",
+  		"                        doneN = abs(lumaEndN) >= gradientScaled;",
+  		"                        doneP = abs(lumaEndP) >= gradientScaled;",
+  		"                        if(!doneN) posN.x -= offNP.x * FXAA_QUALITY_P12;",
+  		"                        if(!doneN) posN.y -= offNP.y * FXAA_QUALITY_P12;",
+  		"                        doneNP = (!doneN) || (!doneP);",
+  		"                        if(!doneP) posP.x += offNP.x * FXAA_QUALITY_P12;",
+  		"                        if(!doneP) posP.y += offNP.y * FXAA_QUALITY_P12;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                    }",
+  		"                    #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                }",
+  		"                #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"            }",
+  		"            #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"        }",
+  		"        #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    }",
+  		"    #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                        }",
+  		"                        #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                    }",
+  		"                    #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"                }",
+  		"                #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"            }",
+  		"            #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"        }",
+  		"        #endif",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    }",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat dstN = posM.x - posN.x;",
+  		"    FxaaFloat dstP = posP.x - posM.x;",
+  		"    if(!horzSpan) dstN = posM.y - posN.y;",
+  		"    if(!horzSpan) dstP = posP.y - posM.y;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaBool goodSpanN = (lumaEndN < 0.0) != lumaMLTZero;",
+  		"    FxaaFloat spanLength = (dstP + dstN);",
+  		"    FxaaBool goodSpanP = (lumaEndP < 0.0) != lumaMLTZero;",
+  		"    FxaaFloat spanLengthRcp = 1.0/spanLength;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaBool directionN = dstN < dstP;",
+  		"    FxaaFloat dst = min(dstN, dstP);",
+  		"    FxaaBool goodSpan = directionN ? goodSpanN : goodSpanP;",
+  		"    FxaaFloat subpixG = subpixF * subpixF;",
+  		"    FxaaFloat pixelOffset = (dst * (-spanLengthRcp)) + 0.5;",
+  		"    FxaaFloat subpixH = subpixG * fxaaQualitySubpix;",
+  		"/*--------------------------------------------------------------------------*/",
+  		"    FxaaFloat pixelOffsetGood = goodSpan ? pixelOffset : 0.0;",
+  		"    FxaaFloat pixelOffsetSubpix = max(pixelOffsetGood, subpixH);",
+  		"    if(!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;",
+  		"    if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;",
+  		"    #if (FXAA_DISCARD == 1)",
+  		"        return FxaaTexTop(tex, posM);",
+  		"    #else",
+  		"        return FxaaFloat4(FxaaTexTop(tex, posM).xyz, lumaM);",
+  		"    #endif",
+  		"}",
+  		"/*==========================================================================*/",
+  		"#endif",
+  		"",
+  		"void main() {",
+  		"  gl_FragColor = FxaaPixelShader(",
+  		"    vUv,",
+  		"    vec4(0.0),",
+  		"    tDiffuse,",
+  		"    tDiffuse,",
+  		"    tDiffuse,",
+  		"    resolution,",
+  		"    vec4(0.0),",
+  		"    vec4(0.0),",
+  		"    vec4(0.0),",
+  		"    0.75,",
+  		"    0.166,",
+  		"    0.0833,",
+  		"    0.0,",
+  		"    0.0,",
+  		"    0.0,",
+  		"    vec4(0.0)",
+  		"  );",
+  		"",
+  		"  // TODO avoid querying texture twice for same texel",
+  		"  gl_FragColor.a = texture2D(tDiffuse, vUv).a;",
+  		"}"
+  	].join( "\n" )
+
+  };
+
+  var Spark = function Spark() {
+      this.sparkArray = [];
+      this.textSprite = null;
+      this.size = 0;
+      this.counter = 0;
+      this.period = 0;
+      this.unit = [
+          new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
+          new Vector3(0, 1, 0), new Vector3(0, -1, 0)
+      ];
+  };
+  Spark.prototype.reset = function reset () {
+      this.sparkArray.forEach(function (m) {
+          m.geometry.dispose();
+      });
+      this.sparkArray = [];
+      this.material.opacity = 1.0;
+      this.counter = 0;
+      this.period = 0;
+      this.center = new Vector3(0, 0, 0);
+      this.size = 0;
+      this.unit = [
+          new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
+          new Vector3(0, 1, 0), new Vector3(0, -1, 0)
+      ];
+      var tmpRotateVector = new Vector3();
+      tmpRotateVector.set(1, 0, 0); // X axis
+      // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X 
+      var tmpRotateQuaternion = new Quaternion();
+      tmpRotateQuaternion.setFromAxisAngle(tmpRotateVector, Math.random() * Math.PI);
+      tmpRotateVector.set(0, 1, 0); // Y axis
+      // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y 
+      var tmpRotateQuaternion2 = new Quaternion();
+      tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector, Math.random() * Math.PI);
+      tmpRotateQuaternion.multiply(tmpRotateQuaternion2);
+      var tmpRotateMatrix = new Matrix4().identity();
+      tmpRotateMatrix.makeRotationFromQuaternion(tmpRotateQuaternion);
+      this.unit.forEach(function (u) {
+          u.applyMatrix4(tmpRotateMatrix);
+      });
+      this.textSprite = null;
+  };
+  Spark.prototype.setURL = function setURL (url1) {
+      var textureLoader = new TextureLoader();
+      var map1 = textureLoader.load(url1);
+      this.material = new SpriteMaterial({ map: map1, color: 0xffffff, fog: true });
+  };
+  Spark.prototype.makeTextSprite = function makeTextSprite (message) {
+      var fontface = "Arial";
+      var fontsize = 100;
+      var canvas = document.createElement('canvas');
+      var context = canvas.getContext('2d');
+      if (!context)
+          { return; }
+      context.font = "Bold " + fontsize + "px " + fontface;
+      context.fillStyle = "white";
+      context.fillText(message, 0, fontsize);
+      var texture = new Texture(canvas);
+      texture.needsUpdate = true;
+      var spriteMaterial = new SpriteMaterial({ map: texture, color: 0xFFFFFF, fog: true });
+      var sprite = new Sprite(spriteMaterial);
+      var scale = 1; //10/metrics.width;
+      sprite.scale.set(10, 2, 1 * scale);
+      this.textSprite = sprite;
+  };
+  var ViewerEx = /*@__PURE__*/(function (Viewer) {
+      function ViewerEx(idOrElement, stage, pixiCallback) {
+          Viewer.call(this, idOrElement);
+          this.spark = new Spark();
+          this.flashCount = 0;
+          this.ethernaMode = {
+              ethernaPickingMode: true,
+              ethernaNucleotideBase: 1,
+              highColor: 0xFFFFFF,
+              mediumColor: 0x8F9DB0,
+              weakColor: 0x546986,
+              zeroColor: 0xC0C0C0,
+          };
+          this.highlightTimeout = 3000;
+          this.etherna_pairs = undefined;
+          this.etherna_sequence = '';
+          this.fromOuter = false;
+          this.pixiCallback = undefined;
+          this.baseColor = 0xFFFF00;
+          this.stage = stage;
+          this.wrapper.removeChild(this.renderer.domElement);
+          this.container.removeChild(this.wrapper);
+          this.wrapper = document.createElement('div');
+          this.pixiCallback = pixiCallback;
+          this.signals.nextFrame.add(this.updateSpark, this);
+      }
+
+      if ( Viewer ) ViewerEx.__proto__ = Viewer;
+      ViewerEx.prototype = Object.create( Viewer && Viewer.prototype );
+      ViewerEx.prototype.constructor = ViewerEx;
+      ViewerEx.prototype._initRenderer = function _initRenderer () {
+          var this$1$1 = this;
+
+          if (!Viewer.prototype._initRenderer.call(this))
+              { return false; }
+          this.composer = new EffectComposer(this.renderer);
+          var renderPass = new RenderPass(this.scene, this.camera);
+          this.composer.addPass(renderPass);
+          this.selectOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
+          this.selectOutlinePass.edgeStrength = 5;
+          this.selectOutlinePass.edgeGlow = 0.5;
+          this.selectOutlinePass.edgeThickness = 2;
+          this.composer.addPass(this.selectOutlinePass);
+          // this.markOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
+          // this.markOutlinePass.edgeStrength = 5;
+          // this.markOutlinePass.edgeGlow = 0.5;
+          // this.markOutlinePass.edgeThickness = 2;
+          // this.composer.addPass(this.markOutlinePass);
+          this.effectFXAA = new ShaderPass(FXAAShader);
+          this.effectFXAA.uniforms['resolution'].value.set(1 / this.width, 1 / this.height);
+          this.composer.addPass(this.effectFXAA);
+          setInterval(function () {
+              if (this$1$1.markGroup.children.length > 0) {
+                  this$1$1.flashCount++;
+                  this$1$1.markGroup.children.forEach(function (mesh) {
+                      var mat = mesh.material;
+                      mat.opacity = (this$1$1.flashCount % 2) * 0.6;
+                  });
+                  this$1$1.requestRender();
+              }
+          }, 500);
+          return true;
+      };
+      ViewerEx.prototype._initScene = function _initScene () {
+          if (!this.scene) {
+              this.scene = new Scene();
+              this.scene.name = 'scene';
+          }
+          this.translationGroup = new Group();
+          this.translationGroup.name = 'translationGroup';
+          this.scene.add(this.translationGroup);
+          this.rotationGroup = new Group();
+          this.rotationGroup.name = 'rotationGroup';
+          this.translationGroup.add(this.rotationGroup);
+          this.modelGroup = new Group();
+          this.modelGroup.name = 'modelGroup';
+          this.rotationGroup.add(this.modelGroup);
+          this.pickingGroup = new Group();
+          this.pickingGroup.name = 'pickingGroup';
+          this.rotationGroup.add(this.pickingGroup);
+          this.backgroundGroup = new Group();
+          this.backgroundGroup.name = 'backgroundGroup';
+          this.rotationGroup.add(this.backgroundGroup);
+          this.helperGroup = new Group();
+          this.helperGroup.name = 'helperGroup';
+          this.rotationGroup.add(this.helperGroup);
+          // fog
+          this.scene.fog = new Fog(this.parameters.fogColor.getHex());
+          // light
+          this.spotLight = new SpotLight(this.parameters.lightColor.getHex(), this.parameters.lightIntensity);
+          this.scene.add(this.spotLight);
+          this.ambientLight = new AmbientLight(this.parameters.ambientColor.getHex(), this.parameters.ambientIntensity);
+          this.scene.add(this.ambientLight);
+          this.sparkGroup = new Group();
+          this.sparkGroup.name = 'spark';
+          this.sparkSpriteGroup = new Group();
+          this.sparkGroup.add(this.sparkSpriteGroup);
+          this.modelGroup.add(this.sparkGroup);
+          this.sparkGroup.visible = false;
+          this.hoverBaseGroup = new Group();
+          this.hoverBaseGroup.name = 'hoverBaseGroup';
+          this.modelGroup.add(this.hoverBaseGroup);
+          this.selectBaseGroup = new Group();
+          this.selectBaseGroup.name = 'selectBaseGroup';
+          this.modelGroup.add(this.selectBaseGroup);
+          this.markGroup = new Group();
+          this.markGroup.name = 'markGroup';
+          this.modelGroup.add(this.markGroup);
+      };
+      ViewerEx.prototype.__render = function __render (picking, camera, renderTarget) {
+          if ( picking === void 0 ) picking = false;
+
+          if (picking) {
+              if (!this.lastRenderedPicking)
+                  { this.__renderPickingGroup(camera); }
+          }
+          else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
+              // TODO super sample broken for stereo camera
+              this.__renderSuperSample(camera, renderTarget);
+              this.__renderModelGroup(camera, renderTarget);
+              if (this.pixiCallback) {
+                  this.signals.rendered.dispatch();
+                  this.signals.nextFrame.dispatch();
+                  this.pixiCallback(this.renderer.domElement, this.width, this.height);
+              }
+          }
+          else {
+              this.__renderModelGroup(camera, renderTarget);
+              if (this.pixiCallback) {
+                  this.signals.rendered.dispatch();
+                  this.signals.nextFrame.dispatch();
+                  this.pixiCallback(this.renderer.domElement, this.width, this.height);
+              }
+          }
+      };
+      ViewerEx.prototype.setSize = function setSize (width, height) {
+          this.width = width || 0;
+          this.height = height || 0;
+          this.perspectiveCamera.aspect = this.width / this.height;
+          this.orthographicCamera.left = -this.width / 2;
+          this.orthographicCamera.right = this.width / 2;
+          this.orthographicCamera.top = this.height / 2;
+          this.orthographicCamera.bottom = -this.height / 2;
+          this.camera.updateProjectionMatrix();
+          var dpr = window.devicePixelRatio;
+          this.renderer.setPixelRatio(dpr);
+          this.renderer.setSize(width, height);
+          var dprWidth = this.width * dpr;
+          var dprHeight = this.height * dpr;
+          this.pickingTarget.setSize(dprWidth, dprHeight);
+          this.sampleTarget.setSize(dprWidth, dprHeight);
+          this.holdTarget.setSize(dprWidth, dprHeight);
+          this.composer.setSize(width, height);
+          this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
+          this.requestRender();
+      };
+      ViewerEx.prototype.__renderModelGroup = function __renderModelGroup (camera, renderTarget) {
+          this.renderer.setRenderTarget(renderTarget || null);
+          this.renderer.clear();
+          this.__setVisibility(false, false, true, false);
+          this.renderer.render(this.scene, camera);
+          this.renderer.clear(false, true, true);
+          this.updateInfo();
+          this.__setVisibility(true, false, false, true);
+          this.composer.render();
+          this.renderer.setRenderTarget(null); // set back to default canvas
+          this.updateInfo();
+      };
+      ViewerEx.prototype.hoverEBaseObject = function hoverEBaseObject (resno, fromViewer, color1) {
+          var this$1$1 = this;
+
+          var fromSelf = true;
+          if (fromViewer !== undefined)
+              { fromSelf = fromViewer; }
+          if (!fromSelf) {
+              if (resno >= 0) {
+                  this.fromOuter = true;
+              }
+              else {
+                  this.fromOuter = false;
+              }
+          }
+          if (resno < 0) {
+              if (this.fromOuter)
+                  { return; }
+          }
+          var selGeometry = null;
+          this.hoverBaseGroup.children.forEach(function (obj) {
+              this$1$1.hoverBaseGroup.remove(obj);
+          });
+          this.modelGroup.children.forEach(function (group) {
+              if (group.name == 'meshGroup') {
+                  var mesh = group.children[0];
+                  var geometry = mesh.geometry;
+                  if (geometry.name == 'ebase') {
+                      var newPos = new Array(0);
+                      var posInfo = geometry.getAttribute('position');
+                      var posArray = posInfo.array;
+                      // posInfo.count
+                      var idInfo = geometry.getAttribute('primitiveId');
+                      var idArray = idInfo.array;
+                      var x0 = 0, y0 = 0, z0 = 0;
+                      for (var i = 0; i < idArray.length; i++) {
+                          if (idArray[i] == resno) {
+                              newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+                              x0 += posArray[i * 3];
+                              y0 += posArray[i * 3 + 1];
+                              z0 += posArray[i * 3 + 2];
+                          }
+                      }
+                      x0 /= newPos.length;
+                      y0 /= newPos.length;
+                      z0 /= newPos.length;
+                      selGeometry = new BufferGeometry();
+                      selGeometry.setFromPoints(newPos);
+                      selGeometry.translate(-x0, -y0, -z0);
+                      selGeometry.scale(1.3, 1.3, 1.3);
+                      selGeometry.translate(x0, y0, z0);
+                  }
+              }
+          });
+          var color = color1 ? color1 : 0xFFFF00;
+          if (selGeometry) {
+              var mat = new MeshBasicMaterial({
+                  color: color,
+                  transparent: true,
+                  opacity: 0.6,
+                  depthWrite: false
+              });
+              var newMesh = new Mesh(selGeometry, mat);
+              this.hoverBaseGroup.add(newMesh);
+          }
+          this.requestRender();
+      };
+      ViewerEx.prototype.setBaseColor = function setBaseColor (color) {
+          this.baseColor = color;
+      };
+      ViewerEx.prototype.extendHighlightTimer = function extendHighlightTimer () {
+          var this$1$1 = this;
+
+          clearTimeout(this.highlightTimer);
+          this.highlightTimer = setTimeout(function () {
+              this$1$1.selectEBaseObject(-1);
+          }, this.highlightTimeout);
+      };
+      ViewerEx.prototype.selectEBaseObject = function selectEBaseObject (resno, bChange, timeOut, color1, color2) {
+          var this$1$1 = this;
+
+          if (bChange === undefined)
+              { bChange = true; }
+          if (timeOut === undefined)
+              { timeOut = 3000; }
+          this.highlightTimeout = timeOut;
+          clearTimeout(this.highlightTimer);
+          if (color1)
+              { this.selectOutlinePass.visibleEdgeColor.set(color1); }
+          if (color2)
+              { this.selectOutlinePass.hiddenEdgeColor.set(color2); }
+          if (resno >= 0) {
+              if (bChange) {
+                  var selGeometry = null;
+                  var selectedObjects = [];
+                  var bContained = false;
+                  this.selectBaseGroup.children.forEach(function (obj) {
+                      if (obj.name === (resno + ''))
+                          { bContained = true; }
+                      selectedObjects.push(obj);
+                  });
+                  if (!bContained) {
+                      this.modelGroup.children.forEach(function (group) {
+                          if (group.name == 'meshGroup') {
+                              var mesh = group.children[0];
+                              var geometry = mesh.geometry;
+                              if (geometry.name == 'ebase') {
+                                  var newPos = new Array(0);
+                                  var posInfo = geometry.getAttribute('position');
+                                  var posArray = posInfo.array;
+                                  var idInfo = geometry.getAttribute('primitiveId');
+                                  var idArray = idInfo.array;
+                                  for (var i = 0; i < idArray.length; i++) {
+                                      if (idArray[i] == resno) {
+                                          newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+                                      }
+                                  }
+                                  if (newPos.length > 0) {
+                                      selGeometry = new BufferGeometry();
+                                      selGeometry.setFromPoints(newPos);
+                                  }
+                              }
+                          }
+                      });
+                  }
+                  if (selGeometry) {
+                      var mat = new MeshBasicMaterial({
+                          color: 0xFFFFFF,
+                          transparent: true,
+                          opacity: 0.0,
+                          depthWrite: false,
+                      });
+                      var newMesh = new Mesh(selGeometry, mat);
+                      newMesh.name = resno + '';
+                      this.selectBaseGroup.add(newMesh);
+                      selectedObjects.push(newMesh);
+                      this.selectOutlinePass.selectedObjects = selectedObjects;
+                  }
+              }
+              this.extendHighlightTimer();
+              this.requestRender();
+          }
+          else if (resno < 0) {
+              var bRefresh = this.selectBaseGroup.children.length > 0;
+              if (bRefresh) {
+                  this.selectBaseGroup.children.forEach(function (obj) {
+                      this$1$1.selectBaseGroup.remove(obj);
+                  });
+                  this.selectOutlinePass.selectedObjects = [];
+                  this.requestRender();
+              }
+          }
+      };
+      ViewerEx.prototype.markEBaseObject = function markEBaseObject (resno, color1, color2) {
+          var this$1$1 = this;
+          var bNew = true;
+          this.markGroup.children.forEach(function (obj) {
+              if (parseInt(obj.name) == resno) {
+                  this$1$1.markGroup.remove(obj);
+                  bNew = false;
+              }
+          });
+          if (bNew) {
+              var selGeometry = null;
+              this.modelGroup.children.forEach(function (group) {
+                  if (group.name == 'meshGroup') {
+                      var mesh = group.children[0];
+                      var geometry = mesh.geometry;
+                      if (geometry.name == 'ebase') {
+                          var newPos = new Array(0);
+                          var posInfo = geometry.getAttribute('position');
+                          var posArray = posInfo.array;
+                          var idInfo = geometry.getAttribute('primitiveId');
+                          var idArray = idInfo.array;
+                          // var x0 = 0, y0 = 0, z0 = 0;
+                          for (var i = 0; i < idArray.length; i++) {
+                              if (idArray[i] == resno) {
+                                  newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
+                              }
+                          }
+                          selGeometry = new BufferGeometry();
+                          selGeometry.setFromPoints(newPos);
+                      }
+                  }
+              });
+              if (selGeometry) {
+                  var mat = new MeshBasicMaterial({
+                      color: 0x000000,
+                      transparent: true,
+                      opacity: 0.8,
+                      depthWrite: false,
+                  });
+                  var newMesh = new Mesh(selGeometry, mat);
+                  newMesh.name = resno.toString();
+                  this.markGroup.add(newMesh);
+              }
+          }
+          this.requestRender();
+      };
+      ViewerEx.prototype.beginSpark = function beginSpark () {
+          var this$1$1 = this;
+
+          this.sparkSpriteGroup.children.forEach(function (mesh) {
+              this$1$1.sparkSpriteGroup.remove(mesh);
+          });
+          this.sparkGroup.children.forEach(function (mesh) {
+              if (mesh instanceof Group) ;
+              else
+                  { this$1$1.sparkGroup.remove(mesh); }
+          });
+          this.spark.reset();
+          this.sparkGroup.visible = false;
+          clearInterval(this.spark.polling);
+      };
+      ViewerEx.prototype.makeTextSprite = function makeTextSprite (msg) {
+          this.spark.makeTextSprite(msg);
+      };
+      ViewerEx.prototype.addSpark = function addSpark (resno) {
+          var this$1$1 = this;
+
+          this.modelGroup.children.forEach(function (group) {
+              if (group.name == 'meshGroup') {
+                  var mesh = group.children[0];
+                  var geometry = mesh.geometry;
+                  if (geometry.name == 'ebase') {
+                      var posInfo = geometry.getAttribute('position');
+                      var posArray = posInfo.array;
+                      var idInfo = geometry.getAttribute('primitiveId');
+                      var idArray = idInfo.array;
+                      var x0 = 0, y0 = 0, z0 = 0;
+                      var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+                      var count = 0;
+                      for (var i = 0; i < idArray.length; i++) {
+                          if (idArray[i] == resno) {
+                              var x = posArray[i * 3], y = posArray[i * 3 + 1], z = posArray[i * 3 + 2];
+                              x0 += x;
+                              y0 += y;
+                              z0 += z;
+                              if (x > maxX)
+                                  { maxX = x; }
+                              if (y > maxY)
+                                  { maxY = y; }
+                              if (z > maxZ)
+                                  { maxZ = z; }
+                              count++;
+                          }
+                      }
+                      x0 /= count;
+                      y0 /= count;
+                      z0 /= count;
+                      var R = Math.sqrt((maxX - x0) * (maxX - x0) + (maxY - y0) * (maxY - y0) + (maxZ - z0) * (maxZ - z0));
+                      for (var i = 0; i < this$1$1.spark.unit.length; i++) {
+                          var sprite = new Sprite(this$1$1.spark.material);
+                          sprite.position.set(x0, y0, z0);
+                          sprite.name = i + '';
+                          sprite.scale.set(R, R, 1.0);
+                          this$1$1.spark.sparkArray.push(sprite);
+                      }
+                      // const sprite = new Sprite(this.spark.material);
+                      // sprite.position.set( x0, y0, z0);
+                      // var n = Math.floor(Math.random()*400);
+                      // sprite.name = (n%4)+'';
+                      // sprite.scale.set(R, R, 1.0 );
+                      // this.spark.sparkArray.push(sprite);
+                      this$1$1.spark.size = Math.max(this$1$1.spark.size, R);
+                  }
+              }
+          });
+      };
+      ViewerEx.prototype.endSpark = function endSpark (period) {
+          var this$1$1 = this;
+
+          // console.log('end spark = ', period); 
+          this.spark.counter = 0;
+          this.spark.period = period;
+          var count = 0;
+          this.spark.sparkArray.forEach(function (m) {
+              this$1$1.spark.center.add(m.position);
+              this$1$1.sparkSpriteGroup.add(m);
+              count++;
+          });
+          this.spark.center.divideScalar(count);
+          // if(this.spark.textSprite) {
+          //   this.sparkGroup.add(this.spark.textSprite);
+          //   this.spark.textSprite.position.set(this.spark.center.x, this.spark.center.y, this.spark.center.z)
+          //   console.log('xxxxxxxxxx', this.spark.center);
+          // }
+          this.sparkGroup.visible = true;
+          this.requestRender();
+          this.spark.polling = setInterval(function () {
+              this$1$1.requestRender();
+          }, 1);
+      };
+      ViewerEx.prototype.updateSpark = function updateSpark () {
+          var this$1$1 = this;
+
+          if (this.sparkGroup.visible) {
+              var opacity = 1.0;
+              if (this.spark.counter < this.spark.period)
+                  { opacity = 1.0 - this.spark.counter / this.spark.period; }
+              this.sparkSpriteGroup.children.forEach(function (obj) {
+                  if (obj.visible) {
+                      var delta = (this$1$1.spark.size / 4) * (this$1$1.spark.period - this$1$1.spark.counter) / this$1$1.spark.period;
+                      var i = parseInt(obj.name, 10);
+                      obj.translateOnAxis(this$1$1.spark.unit[i], delta);
+                      var p2 = this$1$1.stage.viewerControls.getPositionOnCanvas(obj.position);
+                      if (p2.x < 0 || p2.x > this$1$1.width || p2.y < 0 || p2.y > this$1$1.height) {
+                          obj.visible = false;
+                      }
+                      var sprite = obj;
+                      sprite.material.opacity = opacity;
+                      sprite.scale.set(this$1$1.spark.size, this$1$1.spark.size, 1.0);
+                  }
+              });
+              // this.spark.textSprite?.scale.set(10,2,1);
+              this.spark.counter++;
+              if (this.spark.counter >= this.spark.period) {
+                  this.sparkGroup.visible = false;
+                  // console.log('updateSpark --- ', this.spark.counter, this.spark.period);
+                  this.spark.reset();
+                  clearInterval(this.spark.polling);
+              }
+              this.requestRender();
+          }
+      };
+      ViewerEx.prototype.setEthernaPairs = function setEthernaPairs (pairs) {
+          this.etherna_pairs = pairs;
+      };
+      ViewerEx.prototype.setEthernaSequence = function setEthernaSequence (sequence, num) {
+          this.etherna_sequence = sequence;
+          this.ethernaMode.ethernaNucleotideBase = num;
+      };
+      ViewerEx.prototype.setEthernaToolTipMode = function setEthernaToolTipMode (mode) {
+          this.ethernaMode.ethernaPickingMode = mode;
+      };
+      ViewerEx.prototype.setHBondColor = function setHBondColor (colors) {
+          this.ethernaMode.highColor = colors[0];
+          this.ethernaMode.mediumColor = colors[1];
+          this.ethernaMode.weakColor = colors[2];
+          this.ethernaMode.zeroColor = colors[3];
+      };
+      ViewerEx.prototype.getWebGLCanvas = function getWebGLCanvas () {
+          return this.renderer.domElement;
+      };
+      ViewerEx.tooltipPick = function tooltipPick (stage, pickingProxy0) {
+          var pickingProxy = pickingProxy0;
+          var viewer = stage.viewer;
+          stage.tooltip.style.display = 'none';
+          var sp = stage.getParameters();
+          if (sp.tooltip && pickingProxy) {
+              var mp = pickingProxy.mouse.position;
+              window.dispatchEvent(new CustomEvent('tooltip', {
+                  detail: {
+                      'x': mp.x,
+                      'y': mp.y,
+                      'label': pickingProxy.getLabel(),
+                  }
+              }));
+              var result = pickingProxy.checkBase();
+              if (result.isBase) {
+                  viewer.hoverEBaseObject(result.resno - 1, true, viewer.baseColor);
+                  window.dispatchEvent(new CustomEvent('picking', {
+                      detail: {
+                          'resno': result.resno,
+                          'resname': result.resname,
+                          'action': 'hover',
+                      }
+                  }));
+              }
+              else
+                  { viewer.hoverEBaseObject(-1); }
+          }
+          else {
+              viewer.hoverEBaseObject(-1);
+              window.dispatchEvent(new CustomEvent('tooltip', {
+                  detail: {
+                      'x': 0,
+                      'y': 0,
+                      'label': '',
+                  }
+              }));
+          }
+      };
+      ViewerEx.movePick = function movePick (stage, pickingProxy0) {
+          var pickingProxy = pickingProxy0;
+          if (pickingProxy) {
+              var result = pickingProxy.checkBase();
+              if (result.isBase) {
+                  window.dispatchEvent(new CustomEvent('picking', {
+                      detail: {
+                          'resno': result.resno,
+                          'resname': result.resname,
+                          'action': 'clicked',
+                      }
+                  }));
+              }
+          }
+      };
+
+      return ViewerEx;
+  }(Viewer));
+
+  var PickingProxyEx = /*@__PURE__*/(function (PickingProxy) {
+      function PickingProxyEx(pickingData, stage) {
+          PickingProxy.call(this, pickingData, stage);
+          this.stage = stage;
+      }
+
+      if ( PickingProxy ) PickingProxyEx.__proto__ = PickingProxy;
+      PickingProxyEx.prototype = Object.create( PickingProxy && PickingProxy.prototype );
+      PickingProxyEx.prototype.constructor = PickingProxyEx;
+      PickingProxyEx.prototype.getLabel = function getLabel () {
+          var viewer = this.stage.viewer;
+          var atom = this.atom || this.closeAtom;
+          var checkResult = this.checkBase();
+          if (viewer.ethernaMode.ethernaPickingMode) {
+              if (!checkResult.isBase)
+                  { return ''; }
+              else {
+                  var name = '';
+                  if (this.bond.atom1.resno !== undefined)
+                      { name += (this.bond.atom1.resno + viewer.ethernaMode.ethernaNucleotideBase - 1); }
+                  if (this.bond.atom1.resname)
+                      { name += ': ' + this.bond.atom1.resname; }
+                  return name;
+              }
+          }
+          var msg = 'nothing';
+          if (this.arrow) {
+              msg = this.arrow.name;
+          }
+          else if (atom) {
+              msg = "atom: " + (atom.qualifiedName()) + " (" + (atom.structure.name) + ")";
+          }
+          else if (this.axes) {
+              msg = 'axes';
+          }
+          else if (this.bond) {
+              msg = "bond: " + (this.bond.atom1.qualifiedName()) + " - " + (this.bond.atom2.qualifiedName()) + " (" + (this.bond.structure.name) + ")";
+          }
+          else if (this.box) {
+              msg = this.box.name;
+          }
+          else if (this.cone) {
+              msg = this.cone.name;
+          }
+          else if (this.clash) {
+              msg = "clash: " + (this.clash.clash.sele1) + " - " + (this.clash.clash.sele2);
+          }
+          else if (this.contact) {
+              msg = (this.contact.type) + ": " + (this.contact.atom1.qualifiedName()) + " - " + (this.contact.atom2.qualifiedName()) + " (" + (this.contact.atom1.structure.name) + ")";
+          }
+          else if (this.cylinder) {
+              msg = this.cylinder.name;
+          }
+          else if (this.distance) {
+              msg = "distance: " + (this.distance.atom1.qualifiedName()) + " - " + (this.distance.atom2.qualifiedName()) + " (" + (this.distance.structure.name) + ")";
+          }
+          else if (this.ellipsoid) {
+              msg = this.ellipsoid.name;
+          }
+          else if (this.octahedron) {
+              msg = this.octahedron.name;
+          }
+          else if (this.point) {
+              msg = this.point.name;
+          }
+          else if (this.mesh) {
+              msg = "mesh: " + (this.mesh.name || this.mesh.serial) + " (" + (this.mesh.shape.name) + ")";
+          }
+          else if (this.slice) {
+              msg = "slice: " + (this.slice.value.toPrecision(3)) + " (" + (this.slice.volume.name) + ")";
+          }
+          else if (this.sphere) {
+              msg = this.sphere.name;
+          }
+          else if (this.surface) {
+              msg = "surface: " + (this.surface.surface.name);
+          }
+          else if (this.tetrahedron) {
+              msg = this.tetrahedron.name;
+          }
+          else if (this.torus) {
+              msg = this.torus.name;
+          }
+          else if (this.unitcell) {
+              msg = "unitcell: " + (this.unitcell.unitcell.spacegroup) + " (" + (this.unitcell.structure.name) + ")";
+          }
+          else if (this.unknown) {
+              msg = 'unknown';
+          }
+          else if (this.volume) {
+              msg = "volume: " + (this.volume.value.toPrecision(3)) + " (" + (this.volume.volume.name) + ")";
+          }
+          else if (this.wideline) {
+              msg = this.wideline.name;
+          }
+          return msg;
+      };
+      PickingProxyEx.prototype.checkBase = function checkBase () {
+          if (this.bond) {
+              if ((this.bond.atom1.resno == this.bond.atom2.resno) && this.bond.atom1.atomname.includes("C4'") && (this.bond.atom2.atomname.includes("N1") || this.bond.atom2.atomname.includes("N3"))) {
+                  return { isBase: true, resno: this.bond.atom1.resno, resname: this.bond.atom1.resname };
+              }
+          }
+          return { isBase: false, resno: -1, resname: '' };
+      };
+
+      return PickingProxyEx;
+  }(PickingProxy));
+
+  var PickingControlsEX = /*@__PURE__*/(function (PickingControls) {
+      function PickingControlsEX(stage) {
+          PickingControls.call(this, stage);
+          this.stage = stage;
+      }
+
+      if ( PickingControls ) PickingControlsEX.__proto__ = PickingControls;
+      PickingControlsEX.prototype = Object.create( PickingControls && PickingControls.prototype );
+      PickingControlsEX.prototype.constructor = PickingControlsEX;
+      PickingControlsEX.prototype.pick = function pick (x, y) {
+          var pickingData = this.viewer.pick(x, y);
+          if (pickingData.picker &&
+              pickingData.picker.type !== 'ignore' &&
+              pickingData.pid !== undefined) {
+              var pickerArray = pickingData.picker.array;
+              if (pickerArray && pickingData.pid >= pickerArray.length) {
+                  console.error('pid >= picker.array.length');
+              }
+              else {
+                  return new PickingProxyEx(pickingData, this.stage);
+              }
+          }
+      };
+
+      return PickingControlsEX;
+  }(PickingControls));
+
+  var ViewerControlsEx = /*@__PURE__*/(function (ViewerControls) {
+      function ViewerControlsEx(stage) {
+          ViewerControls.call(this, stage);
+          this.stage = stage;
+      }
+
+      if ( ViewerControls ) ViewerControlsEx.__proto__ = ViewerControls;
+      ViewerControlsEx.prototype = Object.create( ViewerControls && ViewerControls.prototype );
+      ViewerControlsEx.prototype.constructor = ViewerControlsEx;
+      ViewerControlsEx.prototype.changed = function changed () {
+          var viewer = this.viewer;
+          viewer.extendHighlightTimer();
+          this.viewer.requestRender();
+          this.signals.changed.dispatch();
+      };
+
+      return ViewerControlsEx;
+  }(ViewerControls));
+
+  var tmpRotateMatrix = new Matrix4();
+  var tmpRotateVector = new Vector3();
+  var tmpRotateQuaternion = new Quaternion();
+  var tmpRotateQuaternion2 = new Quaternion();
+  var tmpPanVector = new Vector3();
+  var TrackballControlsEx = /*@__PURE__*/(function (TrackballControls) {
+      function TrackballControlsEx(stage, params) {
+          if ( params === void 0 ) params = {};
+
+          TrackballControls.call(this, stage, params);
+          this.stage = stage;
+      }
+
+      if ( TrackballControls ) TrackballControlsEx.__proto__ = TrackballControls;
+      TrackballControlsEx.prototype = Object.create( TrackballControls && TrackballControls.prototype );
+      TrackballControlsEx.prototype.constructor = TrackballControlsEx;
+      TrackballControlsEx.prototype._setPanVector = function _setPanVector (x, y, z) {
+          if ( z === void 0 ) z = 0;
+
+          var scaleFactor = this.controls.getCanvasScaleFactor(z);
+          tmpPanVector.set(x, y, 0);
+          tmpPanVector.multiplyScalar(this.panSpeed * scaleFactor);
+      };
+      TrackballControlsEx.prototype.pan = function pan (x, y) {
+          this._setPanVector(x, y);
+          this.controls.translate(tmpPanVector);
+      };
+      TrackballControlsEx.prototype.rotate = function rotate (x, y) {
+          var ref = this._getRotateXY(x, y);
+          var dx = ref[0];
+          var dy = ref[1];
+          // rotate around screen X then screen Y
+          this._getCameraRotation(tmpRotateMatrix);
+          tmpRotateVector.set(1, 0, 0); // X axis
+          // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X 
+          tmpRotateQuaternion.setFromAxisAngle(tmpRotateVector, dy);
+          tmpRotateVector.set(0, 1, 0); // Y axis
+          // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y 
+          tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector, dx);
+          tmpRotateQuaternion.multiply(tmpRotateQuaternion2);
+          tmpRotateMatrix.makeRotationFromQuaternion(tmpRotateQuaternion);
+          this.controls.applyRotateMatrix(tmpRotateMatrix);
+      };
+
+      return TrackballControlsEx;
+  }(TrackballControls));
+
+  StageDefaultParameters.lightColor = 0xffffff;
+  StageDefaultParameters.ambientColor = 0xffffff;
+  var StageEx = /*@__PURE__*/(function (Stage) {
+      function StageEx(idOrElement, params, pixiCallback) {
+          if ( params === void 0 ) params = {};
+          if ( pixiCallback === void 0 ) pixiCallback = undefined;
+
+          Stage.call(this, idOrElement, params);
+          this.viewer.dispose();
+          this.viewer = new ViewerEx(idOrElement, this, pixiCallback);
+          if (!this.viewer.renderer)
+              { return; }
+          this.viewer.container.appendChild(this.tooltip);
+          this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement);
+          this.mouseObserver.viewer = this.viewer;
+          this.viewerControls = new ViewerControlsEx(this);
+          this.trackballControls = new TrackballControlsEx(this);
+          this.pickingControls = new PickingControlsEX(this);
+          this.animationControls = new AnimationControls(this);
+          this.mouseControls = new MouseControls(this);
+          this.keyControls = new KeyControls(this);
+          this.pickingBehavior = new PickingBehavior(this);
+          this.mouseBehavior = new MouseBehavior(this);
+          this.animationBehavior = new AnimationBehavior(this);
+          this.keyBehavior = new KeyBehavior(this);
+          this.spinAnimation = this.animationControls.spin([0, 1, 0], 0.005);
+          this.spinAnimation.pause(true);
+          this.rockAnimation = this.animationControls.rock([0, 1, 0], 0.005);
+          this.rockAnimation.pause(true);
+          // must come after the viewer has been instantiated
+          this.parameters = createParams(params, StageDefaultParameters);
+          this.setParameters(this.parameters);
+          this.viewer.animate();
+      }
+
+      if ( Stage ) StageEx.__proto__ = Stage;
+      StageEx.prototype = Object.create( Stage && Stage.prototype );
+      StageEx.prototype.constructor = StageEx;
+      StageEx.checkModelFile = function checkModelFile (path, callback) {
+          var params = {};
+          var p = Object.assign({}, {}, params);
+          // const name = getFileInfo(path).name
+          var onLoadFn = function (object) {
+              if (object instanceof Structure)
+                  { callback(object); }
+              else
+                  { callback(null); }
+          };
+          var onErrorFn = function (e) {
+              callback(null);
+          };
+          var ext = defaults(p.ext, getFileInfo(path).ext);
+          var promise;
+          if (ParserRegistry.isTrajectory(ext)) {
+              promise = Promise.reject(new Error(("loadFile: ext '" + ext + "' is a trajectory and must be loaded into a structure component")));
+          }
+          else {
+              promise = autoLoad(path, p);
+          }
+          return promise.then(onLoadFn, onErrorFn);
+      };
+
+      StageEx.prototype.loadFile = function loadFile (path, params, etherna_pairs) {
+          if ( params === void 0 ) params = {};
+          if ( etherna_pairs === void 0 ) etherna_pairs = [];
+
+          this.viewer.setEthernaPairs(etherna_pairs);
+          return Stage.prototype.loadFile.call(this, path, params);
+      };
+      StageEx.prototype.getZoomForBox = function getZoomForBox (boundingBox) {
+          var tmpZoomVector = new Vector3();
+          var bbSize = boundingBox.getSize(tmpZoomVector);
+          var maxSize = Math.max(bbSize.x, bbSize.y, bbSize.z);
+          var minSize = Math.min(bbSize.x, bbSize.y, bbSize.z);
+          var distance = maxSize + Math.sqrt(minSize);
+          var fov = degToRad(this.viewer.perspectiveCamera.fov);
+          var width = this.viewer.width;
+          var height = this.viewer.height;
+          var aspect = width / height;
+          var aspectFactor = (height < width ? 1 : aspect);
+          distance = Math.abs(((distance * 0.5) / aspectFactor) / Math.sin(fov / 2));
+          distance += this.parameters.clipDist;
+          return -distance;
+      };
+
+      return StageEx;
+  }(Stage));
 
   /**
    * @file Shape Component
@@ -90333,10 +90466,10 @@
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
    */
-  var scale$6 = new Vector3();
-  var eye$6 = new Vector3();
-  var target$6 = new Vector3();
-  var up$6 = new Vector3(0, 1, 0);
+  var scale$7 = new Vector3();
+  var eye$7 = new Vector3();
+  var target$7 = new Vector3();
+  var up$7 = new Vector3(0, 1, 0);
   var CylinderGeometryBufferDefaultParameters = Object.assign({
       radialSegments: 1,
       openEnded: true
@@ -90409,12 +90542,12 @@
       var prototypeAccessors = { defaultParameters: { configurable: true } };
       prototypeAccessors.defaultParameters.get = function () { return CylinderGeometryBufferDefaultParameters; };
       CylinderGeometryBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
-          eye$6.fromArray(this._from, i3);
-          target$6.fromArray(this._to, i3);
-          matrix.lookAt(eye$6, target$6, up$6);
+          eye$7.fromArray(this._from, i3);
+          target$7.fromArray(this._to, i3);
+          matrix.lookAt(eye$7, target$7, up$7);
           var r = this._radius[i];
-          scale$6.set(r, r, eye$6.distanceTo(target$6));
-          matrix.scale(scale$6);
+          scale$7.set(r, r, eye$7.distanceTo(target$7));
+          matrix.scale(scale$7);
       };
       CylinderGeometryBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
           if ( data === void 0 ) data = {};
@@ -91104,279 +91237,6 @@
   RepresentationRegistry.add('backbone', BackboneRepresentation);
 
   /**
-   * @file Extended Ball And Stick Representation for Eterna game
-   * @author KKK
-   * @private
-   */
-  /**
-   * Ball And Stick representation parameter object. Extends {@link RepresentationParameters} and
-   * {@link StructureRepresentationParameters}.
-   *
-   * @typedef {Object} EBallAndStickRepresentationParameters - ball and stick representation parameters
-   *
-   * @property {Integer} sphereDetail - sphere quality (icosahedron subdivisions)
-   * @property {Integer} radialSegments - cylinder quality (number of segments)
-   * @property {Boolean} openEnded - capped or not
-   * @property {Boolean} disableImpostor - disable use of raycasted impostors for rendering
-   * @property {Float} aspectRatio - size difference between atom and bond radii
-   * @property {Boolean} lineOnly - render only bonds, and only as lines
-   * @property {Integer} linewidth - width of lines
-   * @property {Boolean} cylinderOnly - render only bonds (no atoms)
-   * @property {String} multipleBond - one off "off", "symmetric", "offset"
-   * @property {Float} bondSpacing - spacing for multiple bond rendering
-   * @property {Float} bondScale - scale/radius for multiple bond rendering
-   */
-  /**
-   * Ball And Stick representation. Show atoms as spheres and bonds as cylinders.
-   *
-   * __Name:__ _ball+stick_
-   *
-   * @example
-   * stage.loadFile( "rcsb://1crn" ).then( function( o ){
-   *     o.addRepresentation( "eball+stick" );
-   *     o.autoView();
-   * } );
-   */
-  var EBallAndStickRepresentation = /*@__PURE__*/(function (StructureRepresentation) {
-      function EBallAndStickRepresentation(structure, viewer, params) {
-          StructureRepresentation.call(this, structure, viewer, params);
-          this.type = 'eball+stick';
-          this.parameters = Object.assign({
-              sphereDetail: true,
-              radialSegments: true,
-              openEnded: true,
-              disableImpostor: true,
-              aspectRatio: {
-                  type: 'number', precision: 1, max: 10.0, min: 1.0
-              },
-              lineOnly: {
-                  type: 'boolean', rebuild: true
-              },
-              cylinderOnly: {
-                  type: 'boolean', rebuild: true
-              },
-              multipleBond: {
-                  type: 'select',
-                  rebuild: true,
-                  options: {
-                      'off': 'off',
-                      'symmetric': 'symmetric',
-                      'offset': 'offset'
-                  }
-              },
-              bondScale: {
-                  type: 'number', precision: 2, max: 1.0, min: 0.01
-              },
-              bondSpacing: {
-                  type: 'number', precision: 2, max: 2.0, min: 0.5
-              },
-              linewidth: {
-                  type: 'integer', max: 50, min: 1, buffer: true
-              }
-          }, this.parameters);
-          this.init(params);
-      }
-
-      if ( StructureRepresentation ) EBallAndStickRepresentation.__proto__ = StructureRepresentation;
-      EBallAndStickRepresentation.prototype = Object.create( StructureRepresentation && StructureRepresentation.prototype );
-      EBallAndStickRepresentation.prototype.constructor = EBallAndStickRepresentation;
-      EBallAndStickRepresentation.prototype.init = function init (params) {
-          var p = params || {};
-          p.radiusType = defaults(p.radiusType, 'size');
-          p.radiusSize = defaults(p.radiusSize, 0.15);
-          p.useInteriorColor = defaults(p.useInteriorColor, true);
-          this.aspectRatio = defaults(p.aspectRatio, 2.0);
-          this.lineOnly = defaults(p.lineOnly, false);
-          this.cylinderOnly = defaults(p.cylinderOnly, false);
-          this.multipleBond = defaults(p.multipleBond, 'off');
-          this.bondSpacing = defaults(p.bondSpacing, 1.0);
-          this.bondScale = defaults(p.bondScale, 0.4);
-          this.linewidth = defaults(p.linewidth, 2);
-          this.extSugar = defaults(p.extSugar, true);
-          StructureRepresentation.prototype.init.call(this, p);
-      };
-      EBallAndStickRepresentation.prototype.getAtomRadius = function getAtomRadius (atom) {
-          return this.aspectRatio * StructureRepresentation.prototype.getAtomRadius.call(this, atom);
-      };
-      EBallAndStickRepresentation.prototype.getAtomParams = function getAtomParams (what, params) {
-          var p = StructureRepresentation.prototype.getAtomParams.call(this, what, params);
-          p.radiusParams.scale *= this.aspectRatio;
-          return p;
-      };
-      EBallAndStickRepresentation.prototype.getBondParams = function getBondParams (what, params) {
-          params = Object.assign({
-              multipleBond: this.multipleBond,
-              bondSpacing: this.bondSpacing,
-              bondScale: this.bondScale
-          }, params);
-          return StructureRepresentation.prototype.getBondParams.call(this, what, params);
-      };
-      EBallAndStickRepresentation.prototype.getAtomData = function getAtomData (sview, what, params) {
-          var this$1$1 = this;
-
-          var _a;
-          var tmpData = sview.getAtomData(this.getAtomParams(what, params));
-          var count = 0;
-          if (tmpData) {
-              (_a = tmpData.index) === null || _a === void 0 ? void 0 : _a.forEach(function (element) {
-                  var atomProxy = sview.getAtomProxy(element);
-                  if (atomProxy.isExtCandidate(this$1$1.extSugar)) {
-                      count++;
-                  }
-              });
-          }
-          var atomData = {};
-          var atomCount = count;
-          var position = new Float32Array(atomCount * 3);
-          var color = new Float32Array(atomCount * 3);
-          var picking = new AtomPicker(new Float32Array(atomCount), sview.getStructure());
-          var radius = new Float32Array(atomCount);
-          var index = new Uint32Array(atomCount);
-          if (tmpData.index) {
-              var k = 0;
-              for (var i = 0; i < tmpData.index.length; i++) {
-                  var atomProxy = sview.getAtomProxy(tmpData.index[i]);
-                  if (atomProxy.isExtCandidate(this.extSugar)) {
-                      index[k] = tmpData.index[i];
-                      if (tmpData.position) {
-                          position[3 * k] = tmpData.position[3 * i];
-                          position[3 * k + 1] = tmpData.position[3 * i + 1];
-                          position[3 * k + 2] = tmpData.position[3 * i + 2];
-                      }
-                      if (tmpData.color) {
-                          color[k * 3] = tmpData.color[i * 3];
-                          color[k * 3 + 1] = tmpData.color[i * 3 + 1];
-                          color[k * 3 + 2] = tmpData.color[i * 3 + 2];
-                      }
-                      if (tmpData.radius) {
-                          radius[k] = tmpData.radius[i];
-                      }
-                      if (tmpData.picking) {
-                          picking.array[k] = tmpData.picking.array[i];
-                      }
-                      k++;
-                  }
-              }
-          }
-          atomData.position = position;
-          atomData.color = color;
-          atomData.radius = radius;
-          atomData.index = index;
-          atomData.picking = picking;
-          return atomData;
-      };
-      EBallAndStickRepresentation.prototype.getBondData = function getBondData (sview, what, params) {
-          return sview.getBackBondData(this.getBondParams(what, params), this.extSugar);
-      };
-      EBallAndStickRepresentation.prototype.createData = function createData (sview) {
-          var bufferList = [];
-          if (this.lineOnly) {
-              this.lineBuffer = new WideLineBuffer(this.getBondData(sview, { position: true, color: true, picking: true }), this.getBufferParams({ linewidth: this.linewidth }));
-              bufferList.push(this.lineBuffer);
-          }
-          else {
-              var cylinderBuffer = new CylinderBuffer(this.getBondData(sview), this.getBufferParams({
-                  openEnded: this.openEnded,
-                  radialSegments: this.radialSegments,
-                  disableImpostor: this.disableImpostor,
-                  dullInterior: true
-              }));
-              bufferList.push(cylinderBuffer);
-              if (!this.cylinderOnly) {
-                  var sphereBuffer = new SphereBuffer(this.getAtomData(sview), this.getBufferParams({
-                      sphereDetail: this.sphereDetail,
-                      disableImpostor: this.disableImpostor,
-                      dullInterior: true
-                  }));
-                  bufferList.push(sphereBuffer);
-              }
-          }
-          return {
-              bufferList: bufferList
-          };
-      };
-      EBallAndStickRepresentation.prototype.updateData = function updateData (what, data) {
-          // if (this.multipleBond !== 'off' && what && what.radius) {
-          //   what.position = true
-          // }
-          // const bondData = this.getBondData(data.sview as StructureView, what)
-          // if (this.lineOnly) {
-          //   const lineData: Partial<CylinderBufferData> = {}
-          //   if (!what || what.position) {
-          //     Object.assign(lineData, {
-          //       position1: bondData.position1,
-          //       position2: bondData.position2
-          //     })
-          //   }
-          //   if (!what || what.color) {
-          //     Object.assign(lineData, {
-          //       color: bondData.color,
-          //       color2: bondData.color2
-          //     })
-          //   }
-          //   data.bufferList[0].setAttributes(lineData)
-          // } else {
-          //   var cylinderData: Partial<CylinderBufferData> = {}
-          //   if (!what || what.position) {
-          //     Object.assign(cylinderData, {
-          //       position1: bondData.position1,
-          //       position2: bondData.position2
-          //     })
-          //   }
-          //   if (!what || what.color) {
-          //     Object.assign(cylinderData, {
-          //       color: bondData.color,
-          //       color2: bondData.color2
-          //     })
-          //   }
-          //   if (!what || what.radius) {
-          //     Object.assign(cylinderData, {
-          //       radius: bondData.radius
-          //     })
-          //   }
-          //   data.bufferList[0].setAttributes(cylinderData)
-          //   if (!this.cylinderOnly) {
-          //     var atomData = this.getAtomData(data.sview as StructureView, what)
-          //     var sphereData: Partial<SphereBufferData> = {}
-          //     if (!what || what.position) {
-          //       Object.assign(sphereData, {
-          //         position: atomData.position
-          //       })
-          //     }
-          //     if (!what || what.color) {
-          //       Object.assign(sphereData, {
-          //         color: atomData.color
-          //       })
-          //     }
-          //     if (!what || what.radius) {
-          //       Object.assign(sphereData, {
-          //         radius: atomData.radius
-          //       })
-          //     }
-          //     data.bufferList[1].setAttributes(sphereData)
-          //   }
-          // }
-      };
-      EBallAndStickRepresentation.prototype.setParameters = function setParameters (params) {
-          if ( params === void 0 ) params = {};
-
-          var rebuild = false;
-          var what = {};
-          if (params.aspectRatio || params.bondSpacing || params.bondScale) {
-              Object.assign(what, { radius: true });
-              if (!ExtensionFragDepth || this.disableImpostor) {
-                  rebuild = true;
-              }
-          }
-          StructureRepresentation.prototype.setParameters.call(this, params, what, rebuild);
-          return this;
-      };
-
-      return EBallAndStickRepresentation;
-  }(StructureRepresentation));
-  RepresentationRegistry.add('eball+stick', EBallAndStickRepresentation);
-
-  /**
    * @file Base Representation
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
@@ -91426,81 +91286,14 @@
   RepresentationRegistry.add('base', BaseRepresentation);
 
   /**
-   * @file Ellipsoid Geometry Buffer
-   * @author Alexander Rose <alexander.rose@weirdbyte.de>
-   * @private
-   */
-  var scale$5 = new Vector3();
-  var target$5 = new Vector3();
-  var up$5 = new Vector3();
-  var eye$5 = new Vector3(0, 0, 0);
-  var EllipsoidBufferDefaultParameters = Object.assign({
-      sphereDetail: 2,
-  }, BufferDefaultParameters);
-  /**
-   * Ellipsoid buffer. Draws ellipsoids.
-   *
-   * @example
-   * var ellipsoidBuffer = new EllipsoidBuffer({
-   *   position: new Float32Array([ 0, 0, 0 ]),
-   *   color: new Float32Array([ 1, 0, 0 ]),
-   *   radius: new Float32Array([ 1 ]),
-   *   majorAxis: new Float32Array([ 1, 1, 0 ]),
-   *   minorAxis: new Float32Array([ 0.5, 0, 0.5 ]),
-   * });
-   */
-  var EllipsoidBuffer = /*@__PURE__*/(function (GeometryBuffer) {
-      function EllipsoidBuffer(data, params) {
-          if ( params === void 0 ) params = {};
-
-          GeometryBuffer.call(this, data, params, new IcosahedronBufferGeometry(1, defaults(params.sphereDetail, 2)));
-          this.updateNormals = true;
-          this.setAttributes(data, true);
-      }
-
-      if ( GeometryBuffer ) EllipsoidBuffer.__proto__ = GeometryBuffer;
-      EllipsoidBuffer.prototype = Object.create( GeometryBuffer && GeometryBuffer.prototype );
-      EllipsoidBuffer.prototype.constructor = EllipsoidBuffer;
-
-      var prototypeAccessors = { defaultParameters: { configurable: true } };
-      prototypeAccessors.defaultParameters.get = function () { return EllipsoidBufferDefaultParameters; };
-      EllipsoidBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
-          target$5.fromArray(this._majorAxis, i3);
-          up$5.fromArray(this._minorAxis, i3);
-          matrix.lookAt(eye$5, target$5, up$5);
-          //kkk
-          //scale sphere in 3 axises to make ellipsoid
-          scale$5.set(this._radius[i] * this._vScale, up$5.length(), target$5.length());
-          matrix.scale(scale$5);
-      };
-      EllipsoidBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
-          if ( data === void 0 ) data = {};
-
-          if (data.radius)
-              { this._radius = data.radius; }
-          if (data.majorAxis)
-              { this._majorAxis = data.majorAxis; }
-          if (data.minorAxis)
-              { this._minorAxis = data.minorAxis; }
-          this._vScale = defaults(data.vScale, 1); //kkk
-          GeometryBuffer.prototype.setAttributes.call(this, data, initNormals);
-      };
-
-      Object.defineProperties( EllipsoidBuffer.prototype, prototypeAccessors );
-
-      return EllipsoidBuffer;
-  }(GeometryBuffer));
-  BufferRegistry.add('ellipsoid', EllipsoidBuffer);
-
-  /**
    * @file Cone Buffer
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
    */
-  var scale$4 = new Vector3();
-  var eye$4 = new Vector3();
-  var target$4 = new Vector3();
-  var up$4 = new Vector3(0, 1, 0);
+  var scale$6 = new Vector3();
+  var eye$6 = new Vector3();
+  var target$6 = new Vector3();
+  var up$6 = new Vector3(0, 1, 0);
   function getGeo(params) {
       if ( params === void 0 ) params = {};
 
@@ -91550,12 +91343,12 @@
       var prototypeAccessors = { defaultParameters: { configurable: true } };
       prototypeAccessors.defaultParameters.get = function () { return ConeBufferDefaultParameters; };
       ConeBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
-          eye$4.fromArray(this._position1, i3);
-          target$4.fromArray(this._position2, i3);
-          matrix.lookAt(eye$4, target$4, up$4);
+          eye$6.fromArray(this._position1, i3);
+          target$6.fromArray(this._position2, i3);
+          matrix.lookAt(eye$6, target$6, up$6);
           var r = this._radius[i];
-          scale$4.set(r, r, eye$4.distanceTo(target$4));
-          matrix.scale(scale$4);
+          scale$6.set(r, r, eye$6.distanceTo(target$6));
+          matrix.scale(scale$6);
       };
       ConeBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
           if ( data === void 0 ) data = {};
@@ -91576,6 +91369,56 @@
       return ConeBuffer;
   }(GeometryBuffer));
   BufferRegistry.add('cone', ConeBuffer);
+
+  var scale$5 = new Vector3();
+  var target$5 = new Vector3();
+  var up$5 = new Vector3();
+  var eye$5 = new Vector3(0, 0, 0);
+  var EllipsoidExBufferDefaultParameters = Object.assign({
+      sphereDetail: 2,
+      vScale: 1,
+  }, BufferDefaultParameters);
+  var EllipsoidExBuffer = /*@__PURE__*/(function (GeometryBuffer) {
+      function EllipsoidExBuffer(data, params) {
+          if ( params === void 0 ) params = {};
+
+          GeometryBuffer.call(this, data, params, new IcosahedronBufferGeometry(1, defaults(params.sphereDetail, 2)));
+          this.updateNormals = true;
+          this._vScale = defaults(params.vScale, 1);
+          this.setAttributes(data, true);
+      }
+
+      if ( GeometryBuffer ) EllipsoidExBuffer.__proto__ = GeometryBuffer;
+      EllipsoidExBuffer.prototype = Object.create( GeometryBuffer && GeometryBuffer.prototype );
+      EllipsoidExBuffer.prototype.constructor = EllipsoidExBuffer;
+
+      var prototypeAccessors = { defaultParameters: { configurable: true } };
+      prototypeAccessors.defaultParameters.get = function () { return EllipsoidExBufferDefaultParameters; };
+      EllipsoidExBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
+          target$5.fromArray(this._majorAxis, i3);
+          up$5.fromArray(this._minorAxis, i3);
+          matrix.lookAt(eye$5, target$5, up$5);
+          //scale sphere in 3 axises to make ellipsoid
+          scale$5.set(this._radius[i] * this._vScale, up$5.length(), target$5.length());
+          matrix.scale(scale$5);
+      };
+      EllipsoidExBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
+          if ( data === void 0 ) data = {};
+
+          if (data.radius)
+              { this._radius = data.radius; }
+          if (data.majorAxis)
+              { this._majorAxis = data.majorAxis; }
+          if (data.minorAxis)
+              { this._minorAxis = data.minorAxis; }
+          GeometryBuffer.prototype.setAttributes.call(this, data, initNormals);
+      };
+
+      Object.defineProperties( EllipsoidExBuffer.prototype, prototypeAccessors );
+
+      return EllipsoidExBuffer;
+  }(GeometryBuffer));
+  BufferRegistry.add('ellipsoidex', EllipsoidExBuffer);
 
   /**
    * @file Extended Base Representation for Eterna game
@@ -91598,6 +91441,7 @@
       function EBaseRepresentation(structure, viewer, params) {
           BallAndStickRepresentation.call(this, structure, viewer, params);
           this.type = 'ebase';
+          EBaseRepresentation.divAnnotations = [];
           this.parameters = Object.assign({}, this.parameters, {
               multipleBond: null,
               bondSpacing: null
@@ -91661,7 +91505,8 @@
                       num: i,
                       label: (i + 1) + ''
                   };
-                  this.divAnnotations.push(annotation);
+                  // console.log(EBaseRepresentation.divAnnotations);
+                  EBaseRepresentation.divAnnotations.push(annotation);
                   var x1, y1, z1, d1;
                   if (bondData.picking && rawBondData.picking) {
                       var atomIndex2 = bondData.picking.bondStore.atomIndex2;
@@ -91717,10 +91562,9 @@
               dataParam.position = position;
               dataParam.color = bondData.color;
               dataParam.radius = radius;
-              dataParam.vScale = this.vScale;
               dataParam.majorAxis = new Float32Array(majorAxis);
               dataParam.minorAxis = new Float32Array(minorAxis);
-              var elilipsoidBuffer = new EllipsoidBuffer(dataParam);
+              var elilipsoidBuffer = new EllipsoidExBuffer(dataParam, { vScale: this.vScale });
               elilipsoidBuffer.geometry.name = 'ebase';
               bufferList.push(elilipsoidBuffer);
               var pairsDatas = this.getPairData(bondData);
@@ -91758,8 +91602,15 @@
               bufferList: bufferList
           };
       };
+      EBaseRepresentation.prototype.getAnnotations = function getAnnotations () {
+          return EBaseRepresentation.divAnnotations;
+      };
+      EBaseRepresentation.prototype.resetAnnotations = function resetAnnotations () {
+          EBaseRepresentation.divAnnotations = [];
+      };
       EBaseRepresentation.prototype.getPairData = function getPairData (data) {
-          if (this.viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
+          var viewer = this.viewer;
+          if (viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
               var pos01 = [];
               var pos02 = [];
               var colors0 = [];
@@ -91769,16 +91620,16 @@
               var radius = [];
               var pairMap = new Map();
               var strengthArrray = [];
-              for (var i = 0; i < this.viewer.etherna_pairs.length; i++) {
-                  var pairNum = this.viewer.etherna_pairs[i];
+              for (var i = 0; i < viewer.etherna_pairs.length; i++) {
+                  var pairNum = viewer.etherna_pairs[i];
                   if (pairNum < 0)
                       { continue; }
                   if (pairMap.get(i) === pairNum || pairMap.get(pairNum) === i)
                       { continue; }
                   pairMap.set(i, pairNum);
                   var strength$1 = 0;
-                  if (this.viewer.etherna_sequence.length > 0) {
-                      var seq = this.viewer.etherna_sequence;
+                  if (viewer.etherna_sequence.length > 0) {
+                      var seq = viewer.etherna_sequence;
                       if (seq[i] == 'G' && seq[pairNum] == 'C' || seq[i] == 'C' && seq[pairNum] == 'G')
                           { strength$1 = 3; }
                       else if (seq[i] == 'A' && seq[pairNum] == 'U' || seq[i] == 'U' && seq[pairNum] == 'A')
@@ -91832,7 +91683,7 @@
                       pos02.push(z2);
                   }
                   if (strength$1 == 3) {
-                      var color = this.viewer.ethernaMode.highColor;
+                      var color = viewer.ethernaMode.highColor;
                       var r = color >> 16 & 255;
                       var g = color >> 8 & 255;
                       var b = color & 255;
@@ -91841,7 +91692,7 @@
                       colors.push(b / 255.0);
                   }
                   else if (strength$1 == 2) {
-                      var color = this.viewer.ethernaMode.mediumColor;
+                      var color = viewer.ethernaMode.mediumColor;
                       var r = color >> 16 & 255;
                       var g = color >> 8 & 255;
                       var b = color & 255;
@@ -91850,7 +91701,7 @@
                       colors.push(b / 255.0);
                   }
                   else if (strength$1 == 1) {
-                      var color = this.viewer.ethernaMode.weakColor;
+                      var color = viewer.ethernaMode.weakColor;
                       var r = color >> 16 & 255;
                       var g = color >> 8 & 255;
                       var b = color & 255;
@@ -91859,7 +91710,7 @@
                       colors.push(b / 255.0);
                   }
                   else {
-                      var color = this.viewer.ethernaMode.zeroColor;
+                      var color = viewer.ethernaMode.zeroColor;
                       var r = color >> 16 & 255;
                       var g = color >> 8 & 255;
                       var b = color & 255;
@@ -91943,6 +91794,7 @@
 
       return EBaseRepresentation;
   }(BallAndStickRepresentation));
+  EBaseRepresentation.divAnnotations = [];
   RepresentationRegistry.add('ebase', EBaseRepresentation);
 
   /**
@@ -97935,10 +97787,10 @@
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
    */
-  var scale$3 = new Vector3();
-  var target$3 = new Vector3();
-  var up$3 = new Vector3();
-  var eye$3 = new Vector3(0, 0, 0);
+  var scale$4 = new Vector3();
+  var target$4 = new Vector3();
+  var up$4 = new Vector3();
+  var eye$4 = new Vector3(0, 0, 0);
   /**
    * Box buffer. Draws boxes.
    *
@@ -97964,11 +97816,11 @@
       BoxBuffer.prototype = Object.create( GeometryBuffer && GeometryBuffer.prototype );
       BoxBuffer.prototype.constructor = BoxBuffer;
       BoxBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
-          target$3.fromArray(this._heightAxis, i3);
-          up$3.fromArray(this._depthAxis, i3);
-          matrix.lookAt(eye$3, target$3, up$3);
-          scale$3.set(this._size[i], up$3.length(), target$3.length());
-          matrix.scale(scale$3);
+          target$4.fromArray(this._heightAxis, i3);
+          up$4.fromArray(this._depthAxis, i3);
+          matrix.lookAt(eye$4, target$4, up$4);
+          scale$4.set(this._size[i], up$4.length(), target$4.length());
+          matrix.scale(scale$4);
       };
       BoxBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
           if ( data === void 0 ) data = {};
@@ -97985,6 +97837,70 @@
       return BoxBuffer;
   }(GeometryBuffer));
   BufferRegistry.add('box', BoxBuffer);
+
+  /**
+   * @file Ellipsoid Geometry Buffer
+   * @author Alexander Rose <alexander.rose@weirdbyte.de>
+   * @private
+   */
+  var scale$3 = new Vector3();
+  var target$3 = new Vector3();
+  var up$3 = new Vector3();
+  var eye$3 = new Vector3(0, 0, 0);
+  var EllipsoidBufferDefaultParameters = Object.assign({
+      sphereDetail: 2,
+  }, BufferDefaultParameters);
+  /**
+   * Ellipsoid buffer. Draws ellipsoids.
+   *
+   * @example
+   * var ellipsoidBuffer = new EllipsoidBuffer({
+   *   position: new Float32Array([ 0, 0, 0 ]),
+   *   color: new Float32Array([ 1, 0, 0 ]),
+   *   radius: new Float32Array([ 1 ]),
+   *   majorAxis: new Float32Array([ 1, 1, 0 ]),
+   *   minorAxis: new Float32Array([ 0.5, 0, 0.5 ]),
+   * });
+   */
+  var EllipsoidBuffer = /*@__PURE__*/(function (GeometryBuffer) {
+      function EllipsoidBuffer(data, params) {
+          if ( params === void 0 ) params = {};
+
+          GeometryBuffer.call(this, data, params, new IcosahedronBufferGeometry(1, defaults(params.sphereDetail, 2)));
+          this.updateNormals = true;
+          this.setAttributes(data, true);
+      }
+
+      if ( GeometryBuffer ) EllipsoidBuffer.__proto__ = GeometryBuffer;
+      EllipsoidBuffer.prototype = Object.create( GeometryBuffer && GeometryBuffer.prototype );
+      EllipsoidBuffer.prototype.constructor = EllipsoidBuffer;
+
+      var prototypeAccessors = { defaultParameters: { configurable: true } };
+      prototypeAccessors.defaultParameters.get = function () { return EllipsoidBufferDefaultParameters; };
+      EllipsoidBuffer.prototype.applyPositionTransform = function applyPositionTransform (matrix, i, i3) {
+          target$3.fromArray(this._majorAxis, i3);
+          up$3.fromArray(this._minorAxis, i3);
+          matrix.lookAt(eye$3, target$3, up$3);
+          scale$3.set(this._radius[i], up$3.length(), target$3.length());
+          matrix.scale(scale$3);
+      };
+      EllipsoidBuffer.prototype.setAttributes = function setAttributes (data, initNormals) {
+          if ( data === void 0 ) data = {};
+
+          if (data.radius)
+              { this._radius = data.radius; }
+          if (data.majorAxis)
+              { this._majorAxis = data.majorAxis; }
+          if (data.minorAxis)
+              { this._minorAxis = data.minorAxis; }
+          GeometryBuffer.prototype.setAttributes.call(this, data, initNormals);
+      };
+
+      Object.defineProperties( EllipsoidBuffer.prototype, prototypeAccessors );
+
+      return EllipsoidBuffer;
+  }(GeometryBuffer));
+  BufferRegistry.add('ellipsoid', EllipsoidBuffer);
 
   /**
    * @file Octahedron Buffer
@@ -99788,7 +99704,7 @@
                               if (first) {
                                   authAsymId = pointerNames.indexOf('auth_asym_id');
                                   // authSeqId = pointerNames.indexOf('auth_seq_id')
-                                  authSeqId = pointerNames.indexOf('label_seq_id'); //kkk
+                                  authSeqId = pointerNames.indexOf('label_seq_id');
                                   labelAtomId = pointerNames.indexOf('label_atom_id');
                                   labelCompId = pointerNames.indexOf('label_comp_id');
                                   labelAsymId = pointerNames.indexOf('label_asym_id');
@@ -109585,6 +109501,7 @@
   exports.CylinderBuffer = CylinderBuffer;
   exports.DatasourceRegistry = DatasourceRegistry;
   exports.DecompressorRegistry = DecompressorRegistry;
+  exports.EBaseRepresentation = EBaseRepresentation;
   exports.EllipsoidBuffer = EllipsoidBuffer;
   exports.Euler = Euler;
   exports.Frames = Frames;
@@ -109621,6 +109538,7 @@
   exports.SpatialHash = SpatialHash;
   exports.SphereBuffer = SphereBuffer;
   exports.Stage = Stage;
+  exports.StageEx = StageEx;
   exports.StaticDatasource = StaticDatasource;
   exports.StlWriter = StlWriter;
   exports.Structure = Structure;
@@ -109637,6 +109555,7 @@
   exports.Vector3 = Vector3;
   exports.Version = Version;
   exports.Viewer = Viewer;
+  exports.ViewerEx = ViewerEx;
   exports.Volume = Volume;
   exports.VolumeComponent = VolumeComponent;
   exports.WidelineBuffer = WideLineBuffer;

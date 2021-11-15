@@ -26,8 +26,10 @@ import Selection from './selection/selection'
 import PdbWriter from './writer/pdb-writer'
 import SdfWriter from './writer/sdf-writer'
 import StlWriter from './writer/stl-writer'
-import Stage, {PixiRenderCallback} from './stage/stage'
+import Stage from './stage/stage'
+import StageEx, {PixiRenderCallback, ModelCheckCallback} from './eterna-extention/stage/stage-ex'
 import Viewer from './viewer/viewer'
+import ViewerEx from './eterna-extention/viewer/viewer-ex'
 import Collection from './component/collection'
 import ComponentCollection from './component/component-collection'
 import Component from './component/component'
@@ -35,7 +37,7 @@ import ShapeComponent from './component/shape-component'
 import StructureComponent, { StructureRepresentationType } from './component/structure-component'
 import SurfaceComponent from './component/surface-component'
 import VolumeComponent, { VolumeRepresentationType } from './component/volume-component'
-import Representation, {DivAnnotation} from './representation/representation'
+import Representation from './representation/representation'
 import RepresentationCollection from './component/representation-collection'
 import RepresentationElement from './component/representation-element'
 import Assembly from './symmetry/assembly'
@@ -91,9 +93,12 @@ import './representation/angle-representation'
 import './representation/axes-representation'
 import './representation/backbone-representation'
 import './representation/ballandstick-representation'
-import './representation/eballandstick-representation' //kkk
 import './representation/base-representation'
-import './representation/ebase-representation' //kkk
+
+// added for eterna-extension
+import './eterna-extention/representation/ebase-representation' 
+import EBaseRepresentation, {DivAnnotation} from './eterna-extention/representation/ebase-representation'
+
 import './representation/cartoon-representation'
 import './representation/contact-representation'
 import './representation/dihedral-representation'
@@ -281,9 +286,13 @@ export {
   KeyActions,
   PickingProxy,
 
-  // kkk
+  // added for eterna-extension
+  StageEx,
+  ViewerEx,
   AtomProxy,
   Representation, 
+  EBaseRepresentation, 
   DivAnnotation,
   PixiRenderCallback,
+  ModelCheckCallback,
 }

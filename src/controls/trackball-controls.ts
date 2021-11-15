@@ -62,27 +62,27 @@ class TrackballControls {
     return this.stage.transformAtom
   }
 
-  private _setPanVector (x: number, y: number, z = 0) {
+  protected _setPanVector (x: number, y: number, z = 0) {
     const scaleFactor = this.controls.getCanvasScaleFactor(z)
     tmpPanVector.set(x, y, 0)
     tmpPanVector.multiplyScalar(this.panSpeed * scaleFactor)
   }
 
-  private _getRotateXY (x: number, y: number) {
+  protected _getRotateXY (x: number, y: number) {
     return [
       this.rotateSpeed * -x * 0.01,
       this.rotateSpeed * y * 0.01
     ]
   }
 
-  private _getCameraRotation(m: Matrix4) {
+  protected _getCameraRotation(m: Matrix4) {
     m.extractRotation(this.viewer.camera.matrixWorld)
     m.multiply(tmpRotateYMatrix.makeRotationY(Math.PI))
 
     return m
   }
 
-  private _transformPanVector () {
+  protected _transformPanVector () {
     if (!this.component) return
 
     // Adjust for component and scene rotation
@@ -103,14 +103,13 @@ class TrackballControls {
   pan (x: number, y: number) {
     this._setPanVector(x, y)
 
-    //kkk
-    // // Adjust for scene rotation
-    // tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix)
+    // Adjust for scene rotation
+    tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix)
 
-    // // Adjust for camera rotation
-    // tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix))
+    // Adjust for camera rotation
+    tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix))
 
-    // tmpPanVector.applyMatrix4(tmpPanMatrix)
+    tmpPanVector.applyMatrix4(tmpPanMatrix)
     this.controls.translate(tmpPanVector)
   }
 
@@ -144,11 +143,11 @@ class TrackballControls {
     // rotate around screen X then screen Y
     this._getCameraRotation(tmpRotateMatrix)
     tmpRotateVector.set(1, 0, 0) // X axis
-    // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X //kkk
+    tmpRotateVector.applyMatrix4(tmpRotateMatrix) 
     tmpRotateQuaternion.setFromAxisAngle(tmpRotateVector, dy)
 
     tmpRotateVector.set(0, 1, 0) // Y axis
-    // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y //kkk
+    tmpRotateVector.applyMatrix4(tmpRotateMatrix) 
     tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector, dx)
 
     tmpRotateQuaternion.multiply(tmpRotateQuaternion2)

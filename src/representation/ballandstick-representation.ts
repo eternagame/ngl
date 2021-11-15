@@ -33,8 +33,6 @@ export interface BallAndStickRepresentationParameters extends StructureRepresent
   multipleBond: 'off' | 'symmetric' | 'offset'
   bondSpacing: number
   bondScale: number
-  vScale: number //kkk //added for EBall representation 
-  extSugar: boolean //kkk
 }
 
 /**

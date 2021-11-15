@@ -1,0 +1,68 @@
+/// <reference types="node" />
+import Stage from '../../stage/stage';
+import { PixiRenderCallback } from '../stage/stage-ex';
+import { PerspectiveCamera, OrthographicCamera, Vector3, WebGLRenderTarget, Group, SpriteMaterial, Sprite } from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
+import Viewer from "../../viewer/viewer";
+import { PickingProxy } from '../../ngl';
+declare class Spark {
+    sparkArray: Sprite[];
+    textSprite: Sprite | null;
+    size: number;
+    counter: number;
+    period: number;
+    polling: NodeJS.Timeout;
+    unit: Vector3[];
+    material: SpriteMaterial;
+    center: Vector3;
+    reset(): void;
+    setURL(url1: string): void;
+    makeTextSprite(message: string): void;
+}
+export default class ViewerEx extends Viewer {
+    protected hoverBaseGroup: Group;
+    protected selectBaseGroup: Group;
+    protected markGroup: Group;
+    protected sparkGroup: Group;
+    protected sparkSpriteGroup: Group;
+    spark: Spark;
+    composer: EffectComposer;
+    selectOutlinePass: OutlinePass;
+    effectFXAA: ShaderPass;
+    flashCount: number;
+    ethernaMode: any;
+    highlightTimer: NodeJS.Timeout;
+    highlightTimeout: number;
+    protected stage: Stage;
+    etherna_pairs: number[] | undefined;
+    etherna_sequence: string;
+    fromOuter: boolean;
+    pixiCallback: PixiRenderCallback | undefined;
+    constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined);
+    protected _initRenderer(): boolean;
+    protected _initScene(): void;
+    protected __render(picking: boolean | undefined, camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
+    setSize(width: number, height: number): void;
+    protected __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
+    hoverEBaseObject(resno: number, fromViewer?: boolean, color1?: number): void;
+    baseColor: number;
+    setBaseColor(color: number): void;
+    extendHighlightTimer(): void;
+    selectEBaseObject(resno: number, bChange?: boolean, timeOut?: number, color1?: number, color2?: number): void;
+    markEBaseObject(resno: number, color1?: number, color2?: number): void;
+    beginSpark(): void;
+    makeTextSprite(msg: string): void;
+    addSpark(resno: number): void;
+    endSpark(period: number): void;
+    updateSpark(): void;
+    setEthernaPairs(pairs: number[] | undefined): void;
+    setEthernaSequence(sequence: string, num: number): void;
+    setEthernaToolTipMode(mode: boolean): void;
+    setHBondColor(colors: number[]): void;
+    getWebGLCanvas(): HTMLCanvasElement;
+    static tooltipPick(stage: Stage, pickingProxy0: PickingProxy): void;
+    static movePick(stage: Stage, pickingProxy0: PickingProxy): void;
+}
+export {};

@@ -230,6 +230,5 @@ declare class PickingProxy {
     get wideline(): ShapePrimitive;
     _objectIfType(type: string): {} | undefined;
     getLabel(): string;
-    checkBase(): any;
 }
 export default PickingProxy;

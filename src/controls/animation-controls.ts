@@ -8,7 +8,7 @@ import { Vector3, Quaternion, Matrix4 } from 'three'
 
 import { ensureMatrix4 } from '../utils'
 import Animation, {
-    SpinAnimation, RockAnimation, MoveAnimation, MoveAnimation2, ZoomAnimation,
+    SpinAnimation, RockAnimation, MoveAnimation, ZoomAnimation,
     RotateAnimation, ValueAnimation, TimeoutAnimation, AnimationList
 } from '../animation/animation'
 import Stage from '../stage/stage'
@@ -149,15 +149,6 @@ class AnimationControls {
     )
   }
 
-  move2 (deltaTo: Vector3, duration?: number) {
-    const moveFrom = this.controls.position.clone().negate()
-    const moveTo = this.controls.position.clone().add(deltaTo);
-
-    return this.add(
-      new MoveAnimation2(duration, this.controls, moveFrom, moveTo)
-    )
-  }
-
   /**
    * Add a zoom animation
    * @param  {Number} zoomTo - target distance
@@ -183,13 +174,6 @@ class AnimationControls {
     return new AnimationList([
       this.move(moveTo, duration),
       this.zoom(zoomTo, duration)
-    ])
-  }
-
-  //kkk
-  zoom2 (deltaTo: Vector3, duration?: number) {
-    return new AnimationList([
-      this.move2(deltaTo, duration)
     ])
   }
 

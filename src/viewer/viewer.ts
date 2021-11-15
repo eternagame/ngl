@@ -5,7 +5,6 @@
  */
 // import * as THREE from 'three';
 import { Signal } from 'signals'
-import Stage, {PixiRenderCallback} from '../stage/stage' //kkk
 import {
   PerspectiveCamera, OrthographicCamera, StereoCamera,
   Vector2, Box3, Vector3, Matrix4, Color,
@@ -15,18 +14,11 @@ import {
   ShaderMaterial, 
   PlaneGeometry, Geometry,
   Scene, Mesh, Group, Object3D, Uniform,
-  Fog, SpotLight, AmbientLight, SpriteMaterial,Sprite,TextureLoader,Texture,
-  BufferGeometry, BufferAttribute, //AxesHelper,
-  LineSegments, //TextureLoader, IcosahedronGeometry,
-  LinearEncoding, sRGBEncoding, TextureEncoding, MeshBasicMaterial
+  Fog, SpotLight, AmbientLight, 
+  BufferGeometry, BufferAttribute, 
+  LineSegments, 
+  LinearEncoding, sRGBEncoding, TextureEncoding
 } from 'three'
-
-//kkk
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
-import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
-import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 
 import '../shader/BasicLine.vert'
 import '../shader/BasicLine.frag'
@@ -180,64 +172,7 @@ export interface ViewerParameters {
 export interface BufferInstance {
   matrix: Matrix4
 }
-class Spark {
-  sparkArray: Sprite[] = [];
-  textSprite: Sprite | null = null;
-  size: number = 0;
-  counter:number = 0;
-  period: number = 0;
-  polling: NodeJS.Timeout;
-  unit:Vector3[] = [
-    new Vector3(1,0,0), new Vector3(-1,0,0), 
-    new Vector3(0,1,0), new Vector3(0,-1,0)
-  ];
-  material:SpriteMaterial;
-  center:Vector3;
-  reset() {
-    this.sparkArray.forEach((m)=>{
-      m.geometry.dispose();
-    });
-    this.sparkArray = [];
-    this.material.opacity = 1.0;
-    this.counter = 0;
-    this.period = 0;
-    this.center = new Vector3(0,0,0);
-    this.size = 0;
-    this.unit = [
-      new Vector3(1,0,0), new Vector3(-1,0,0), 
-      new Vector3(0,1,0), new Vector3(0,-1,0)
-    ];
-    this.textSprite = null;
-  }
-  setURL(url1:string) {
-    const textureLoader = new TextureLoader();
-    const map1 = textureLoader.load(url1);
-		this.material = new SpriteMaterial( { map: map1, color: 0xffffff, fog: true } );
-  }
-  makeTextSprite(message:string) {
-    var fontface = "Arial";
-    var fontsize = 100;
 
-    var canvas = document.createElement('canvas');
-    var context = canvas.getContext('2d');
-    if(!context) return;
-
-    context.font = "Bold " + fontsize + "px " + fontface;
-    context.fillStyle = "white";
-    context.fillText( message, 0, fontsize);
-
-    var texture = new Texture(canvas) 
-    texture.needsUpdate = true;
-
-    var spriteMaterial = new SpriteMaterial( { map: texture, color: 0xFFFFFF, fog: true} );
-    var sprite = new Sprite( spriteMaterial );
-    var scale = 1;//10/metrics.width;
-    sprite.scale.set(10, 2, 1*scale);
-    this.textSprite = sprite;  
-  }
-}
-
-//kkk
 /**
  * Viewer class
  * @class
@@ -249,69 +184,44 @@ export default class Viewer {
   container: HTMLElement
   wrapper: HTMLElement
 
-  private rendering: boolean
-  private renderPending: boolean
-  private lastRenderedPicking: boolean
-  private isStill: boolean
+  protected rendering: boolean
+  protected renderPending: boolean
+  protected lastRenderedPicking: boolean
+  protected isStill: boolean
 
   sampleLevel: number
   private cDist: number
   private bRadius: number
 
-  private parameters: ViewerParameters
+  protected parameters: ViewerParameters
   stats: Stats
 
   perspectiveCamera: PerspectiveCamera
-  private orthographicCamera: OrthographicCamera
-  private stereoCamera: StereoCamera
+  protected orthographicCamera: OrthographicCamera
+  protected stereoCamera: StereoCamera
   camera: PerspectiveCamera | OrthographicCamera
 
   width: number
   height: number
 
   scene: Scene
-  private spotLight: SpotLight
-  private ambientLight: AmbientLight
+  protected spotLight: SpotLight
+  protected ambientLight: AmbientLight
   rotationGroup: Group
   translationGroup: Group
-  private modelGroup: Group
+  protected modelGroup: Group
 
-  private selectGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
-  private selectGroup2: Group //kkk //add variable to implement outline highlight effect of the selected bases.
-  private markGroup: Group //kkk //add variable to implement outline highlight effect of the selected bases.
-  private sparkGroup: Group //kkk 
-  private sparkSpriteGroup: Group //kkk 
-
-  private pickingGroup: Group
-  private backgroundGroup: Group
-  private helperGroup: Group
+  protected pickingGroup: Group
+  protected backgroundGroup: Group
+  protected helperGroup: Group
 
   renderer: WebGLRenderer
 
-  //kkk
-  left: number = 0;
-  top: number = 0;
-  composer: EffectComposer
-  selectOutlinePass: OutlinePass
-  // markOutlinePass: OutlinePass
-  effectFXAA: ShaderPass
-  flashCount: number = 0
-  baseColor: number = 0xFFFF00
-  ethernaMode:any = {
-    ethernaPickingMode:true, 
-    ethernaNucleotideBase: 1,
-    highColor: 0xFFFFFF,
-    mediumColor: 0x8F9DB0,
-    weakColor: 0x546986,
-    zeroColor: 0xC0C0C0,
-  } //kkk
-  spark: Spark = new Spark();
-
   private supportsHalfFloat: boolean
 
-  private pickingTarget: WebGLRenderTarget
-  private sampleTarget: WebGLRenderTarget
-  private holdTarget: WebGLRenderTarget
+  protected pickingTarget: WebGLRenderTarget
+  protected sampleTarget: WebGLRenderTarget
+  protected holdTarget: WebGLRenderTarget
 
   private compositeUniforms: {
     tForeground: Uniform
@@ -342,15 +252,7 @@ export default class Viewer {
 
   private distVector = new Vector3()
 
-  //kkk
-  private stage: Stage;
-  etherna_pairs: number[] | undefined = undefined;
-  etherna_sequence: string = '';
-  fromOuter: boolean = false;
-  pixiCallback: PixiRenderCallback | undefined;
-
-  constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined) {
-    this.stage = stage;//kkk
+  constructor(idOrElement: HTMLElement) {
     this.signals = {
       ticked: new Signal(),
       rendered: new Signal(),
@@ -358,19 +260,14 @@ export default class Viewer {
     }
 
     this.container = idOrElement
-    this.pixiCallback = pixiCallback;
 
     var box = this.container.getBoundingClientRect();
     this.width = box.width;
     this.height = box.height;
 
-    //kkk
-    if(pixiCallback) this.wrapper = this.container;
-    else {
-      this.wrapper = document.createElement('div')
-      this.wrapper.style.position = 'relative'
-      this.container.appendChild(this.wrapper)
-    }
+    this.wrapper = document.createElement('div')
+    this.wrapper.style.position = 'relative'
+    this.container.appendChild(this.wrapper)
 
     this._initParams()
     this._initStats()
@@ -390,166 +287,6 @@ export default class Viewer {
     this.setFog()
 
     this.animate = this.animate.bind(this)
-
-    this.signals.nextFrame.add(this.updateSpark, this)
-  }
-
-  //kkk //
-  beginSpark() {
-    this.sparkSpriteGroup.children.forEach((mesh) => {
-      this.sparkSpriteGroup.remove(mesh);
-    });
-    this.sparkGroup.children.forEach((mesh) => {
-      if(mesh instanceof Group) {}
-      else this.sparkGroup.remove(mesh);
-    });
-    this.spark.reset();
-    this.sparkGroup.visible = false;
-    clearInterval(this.spark.polling);
-    // this.spark.unit.forEach((u)=>{
-    //   u
-    //   .unproject(this.camera)
-    //   .sub(this.translationGroup.position)
-    //   .applyMatrix4(new Matrix4().getInverse(this.rotationGroup.matrix))
-    // });
-  }
-  makeTextSprite(msg:string) {
-    this.spark.makeTextSprite(msg);
-  }
-  //kkk //
-  addSpark(resno: number) {
-    this.modelGroup.children.forEach(group => {
-      if (group.name == 'meshGroup') {
-        let mesh: Mesh = <Mesh>group.children[0];
-        let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
-        if (geometry.name == 'ebase') {
-          let posInfo = geometry.getAttribute('position');
-          let posArray = <Float32Array>posInfo.array;
-          let idInfo = geometry.getAttribute('primitiveId');
-          let idArray = <Float32Array>idInfo.array;
-          var x0 = 0, y0 = 0, z0 = 0;
-          var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-          var count = 0;
-          for (var i = 0; i < idArray.length; i++) {
-            if (idArray[i] == resno) {
-              var x = posArray[i * 3], y = posArray[i * 3 + 1], z = posArray[i * 3 + 2];
-              x0 += x;
-              y0 += y;
-              z0 += z;
-              if(x > maxX) maxX = x;
-              if(y > maxY) maxY = y;
-              if(z > maxZ) maxZ = z;
-              count++;
-            }
-          }
-          x0 /= count;
-          y0 /= count;
-          z0 /= count;
-          var R = Math.sqrt((maxX-x0)*(maxX-x0) + (maxY-y0)*(maxY-y0) + (maxZ-z0)*(maxZ-z0));
-
-          for(var i=0;i<4;i++) {
-            const sprite = new Sprite(this.spark.material);
-            sprite.position.set( x0, y0, z0);
-            sprite.name = i+'';
-            sprite.scale.set(R, R, 1.0 );
-            this.spark.sparkArray.push(sprite);
-          } 
-          // const sprite = new Sprite(this.spark.material);
-					// sprite.position.set( x0, y0, z0);
-          // var n = Math.floor(Math.random()*400);
-          // sprite.name = (n%4)+'';
-					// sprite.scale.set(R, R, 1.0 );
-          // this.spark.sparkArray.push(sprite);
-
-          this.spark.size = Math.max(this.spark.size, R);
-        }
-      }
-    });
-  }
-  //kkk //
-  endSpark(period:number) {
-    // console.log('end spark = ', period); 
-    this.spark.counter = 0;
-    this.spark.period = period;   
-    var count = 0;
-    this.spark.sparkArray.forEach((m)=>{
-      this.spark.center.add(m.position);
-      this.sparkSpriteGroup.add(m);
-      count++;
-    });
-    this.spark.center.divideScalar(count);
-    // if(this.spark.textSprite) {
-    //   this.sparkGroup.add(this.spark.textSprite);
-    //   this.spark.textSprite.position.set(this.spark.center.x, this.spark.center.y, this.spark.center.z)
-    //   console.log('xxxxxxxxxx', this.spark.center);
-    // }
-    this.sparkGroup.visible = true;
-    this.requestRender();
-    this.spark.polling = setInterval(()=>{
-      this.requestRender();
-    }, 1);
-  }
-
-  updateSpark() {
-    if (this.sparkGroup.visible) {
-      var opacity = 1.0;
-      if(this.spark.counter<this.spark.period)
-        opacity = 1.0 - this.spark.counter/this.spark.period;
-
-      this.sparkSpriteGroup.children.forEach((obj) => {
-        if(obj.visible) {
-          var delta = (this.spark.size/4)*(this.spark.period-this.spark.counter)/this.spark.period;
-          var i = parseInt(obj.name, 10);
-          obj.translateOnAxis(this.spark.unit[i], delta);
-          var p2 = this.stage.viewerControls.getPositionOnCanvas(obj.position);
-          if(p2.x<0 || p2.x>this.width || p2.y<0 || p2.y > this.height) {
-            obj.visible = false;
-          }
-          var sprite = <Sprite>obj;
-          sprite.material.opacity = opacity;
-					sprite.scale.set(this.spark.size,this.spark.size, 1.0 );
-        }
-      });
-      // this.spark.textSprite?.scale.set(10,2,1);
-  
-      this.spark.counter++;
-      if(this.spark.counter >= this.spark.period) {
-        this.sparkGroup.visible = false;
-        // console.log('updateSpark --- ', this.spark.counter, this.spark.period);
-        this.spark.reset();
-        clearInterval(this.spark.polling);
-      }
-      this.requestRender();
-    }
-  }
-  //kkk //setPosition
-  setPosition(x:number, y:number) {
-    this.left = x;
-    this.top = y;
-  }
-  //kkk //setEthernaPairs
-  setEthernaPairs(pairs: number[] | undefined) {
-    this.etherna_pairs = pairs;
-  }
-  //kkk //setEthernaPairs
-  setEthernaSequence(sequence: string, num: number) {
-    this.etherna_sequence = sequence;
-    this.ethernaMode.ethernaNucleotideBase = num;
-  }
-  //kkk
-  setEthernaToolTipMode(mode:boolean) {
-    this.ethernaMode.ethernaPickingMode = mode; 
-  }
-  //kkk
-  setHBondColor(colors:number[]) {
-    this.ethernaMode.highColor = colors[0];
-    this.ethernaMode.mediumColor = colors[1];
-    this.ethernaMode.weakColor = colors[2];
-    this.ethernaMode.zeroColor = colors[3];
-  }
-  //kkk
-  setPixiCallback(callback: PixiRenderCallback) {
-    this.pixiCallback = callback;
   }
 
 
@@ -618,43 +355,23 @@ export default class Viewer {
     this.stats = new Stats()
   }
 
-  private _initScene() {
+  protected _initScene() {
     if (!this.scene) {
       this.scene = new Scene()
       this.scene.name = 'scene'
     }
 
-    this.translationGroup = new Group()
-    this.translationGroup.name = 'translationGroup'
-    this.scene.add(this.translationGroup)
-
     this.rotationGroup = new Group()
     this.rotationGroup.name = 'rotationGroup'
-    this.translationGroup.add(this.rotationGroup)
+    this.scene.add(this.rotationGroup)
+
+    this.translationGroup = new Group()
+    this.translationGroup.name = 'translationGroup'
+    this.rotationGroup.add(this.translationGroup)
 
     this.modelGroup = new Group()
     this.modelGroup.name = 'modelGroup'
-    this.rotationGroup.add(this.modelGroup)
-
-    //kkk
-    this.sparkGroup = new Group()
-    this.sparkGroup.name = 'spark'
-    this.sparkSpriteGroup = new Group();
-    this.sparkGroup.add(this.sparkSpriteGroup);
-    this.modelGroup.add(this.sparkGroup);
-    this.sparkGroup.visible = false;
-    //kkk
-    this.selectGroup = new Group()
-    this.selectGroup.name = 'selectGroup'
-    this.modelGroup.add(this.selectGroup);
-    //kkk
-    this.selectGroup2 = new Group()
-    this.selectGroup2.name = 'selectGroup2'
-    this.modelGroup.add(this.selectGroup2);
-    //kkk
-    this.markGroup = new Group()
-    this.markGroup.name = 'markGroup'
-    this.modelGroup.add(this.markGroup);
+    this.translationGroup.add(this.modelGroup)
 
     this.pickingGroup = new Group()
     this.pickingGroup.name = 'pickingGroup'
@@ -688,7 +405,7 @@ export default class Viewer {
     // this.scene.add( axesHelper );
   }
 
-  private _initRenderer() {
+  protected _initRenderer(): boolean {
     const dpr = window.devicePixelRatio
     const width = this.width;
     const height = this.height;
@@ -749,9 +466,7 @@ export default class Viewer {
       this.supportsHalfFloat = true
     }
 
-    //kkk
-    if(this.pixiCallback == undefined) 
-      this.wrapper.appendChild(this.renderer.domElement)
+    this.wrapper.appendChild(this.renderer.domElement)
 
     if (Debug) {
       console.log(JSON.stringify({
@@ -835,38 +550,7 @@ export default class Viewer {
       new PlaneGeometry(2, 2), this.compositeMaterial
     ))
 
-    //kkk
-    //variables for outline highlight rendering
-    this.composer = new EffectComposer(this.renderer);
-    const renderPass = new RenderPass(this.scene, this.camera);
-    this.composer.addPass(renderPass);
-
-    this.selectOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
-    this.selectOutlinePass.edgeStrength = 5;
-    this.selectOutlinePass.edgeGlow = 0.5;
-    this.selectOutlinePass.edgeThickness = 2;
-    this.composer.addPass(this.selectOutlinePass);
-
-    // this.markOutlinePass = new OutlinePass(new Vector2(this.width, this.height), this.scene, this.camera);
-    // this.markOutlinePass.edgeStrength = 5;
-    // this.markOutlinePass.edgeGlow = 0.5;
-    // this.markOutlinePass.edgeThickness = 2;
-    // this.composer.addPass(this.markOutlinePass);
-
-    this.effectFXAA = new ShaderPass(FXAAShader);
-    this.effectFXAA.uniforms['resolution'].value.set(1 / this.width, 1 / this.height);
-    this.composer.addPass(this.effectFXAA);
-
-    setInterval(() => {
-      if (this.markGroup.children.length > 0) {
-        this.flashCount++;
-        this.markGroup.children.forEach((mesh: Mesh) => {
-          var mat = <MeshBasicMaterial>mesh.material;
-          mat.opacity = (this.flashCount % 2) * 0.6;
-        });
-        this.requestRender();
-      }
-    }, 500);
+    return true;
   }
 
   private _initHelper() {
@@ -951,198 +635,6 @@ export default class Viewer {
     // Log.timeEnd( "Viewer.add" );
   }
 
-  //kkk
-  //set base to highlight outline
-  selectEBaseObject(resno: number, fromViewer?: boolean, color1?: number) {
-    var fromSelf = true;
-    if (fromViewer !== undefined) fromSelf = fromViewer;
-    if (!fromSelf) {
-      if (resno >= 0) {
-        this.fromOuter = true;
-      }
-      else {
-        this.fromOuter = false;
-      }
-    }
-    if (resno < 0) {
-      if (this.fromOuter) return;
-    }
-
-    let selGeometry = null;
-    var selectedObjects = [];
-    this.selectGroup.children.forEach((obj) => {
-      this.selectGroup.remove(obj);
-    });
-    this.modelGroup.children.forEach(group => {
-      if (group.name == 'meshGroup') {
-        let mesh: Mesh = <Mesh>group.children[0];
-        let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
-        if (geometry.name == 'ebase') {
-          let newPos = new Array<Vector3>(0);
-          let posInfo = geometry.getAttribute('position');
-          let posArray = <Float32Array>posInfo.array;
-          // posInfo.count
-          let idInfo = geometry.getAttribute('primitiveId');
-          let idArray = <Float32Array>idInfo.array;
-          var x0 = 0, y0 = 0, z0 = 0;
-          for (var i = 0; i < idArray.length; i++) {
-            if (idArray[i] == resno) {
-              newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-              x0 += posArray[i * 3];
-              y0 += posArray[i * 3 + 1];
-              z0 += posArray[i * 3 + 2];
-            }
-          }
-          x0 /= newPos.length;
-          y0 /= newPos.length;
-          z0 /= newPos.length;
-          selGeometry = new BufferGeometry();
-          selGeometry.setFromPoints(newPos);
-          selGeometry.translate(-x0, -y0, -z0);
-          selGeometry.scale(1.3, 1.3, 1.3);
-          selGeometry.translate(x0, y0, z0);
-        }
-      }
-    });
-    var color = color1 ? color1 : 0xFFFF00;
-    if (selGeometry) {
-      var mat = new MeshBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.6,
-        depthWrite: false
-      });
-      var newMesh = new Mesh(selGeometry, mat);
-      this.selectGroup.add(newMesh);
-      selectedObjects.push(newMesh);
-    }
-    this.requestRender();
-  }
-
-  setBaseColor(color: number) {
-    this.baseColor = color;
-  }
-  selectEBaseObject2(resno: number, bChange?: boolean, color1?: number, color2?: number) {
-    if (bChange == null) bChange = true;
-    var selGeometry = null;
-    var selectedObjects = [];
-    this.selectGroup2.children.forEach((obj) => {
-      this.selectGroup2.remove(obj);
-    });
-    if (resno >= 0) {
-      this.modelGroup.children.forEach(group => {
-        if (group.name == 'meshGroup') {
-          let mesh: Mesh = <Mesh>group.children[0];
-          let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
-          if (geometry.name == 'ebase') {
-            let newPos = new Array<Vector3>(0);
-            // let newNormal = new Array(0);
-            // let colorInfo = geometry.getAttribute('color');
-            let posInfo = geometry.getAttribute('position');
-            let posArray = <Float32Array>posInfo.array;
-            // let normalArray = <Float32Array>geometry.getAttribute('normal').array;
-            // posInfo.count
-            let idInfo = geometry.getAttribute('primitiveId');
-            let idArray = <Float32Array>idInfo.array;
-            // var x0 = 0, y0 = 0, z0 = 0;
-            for (var i = 0; i < idArray.length; i++) {
-              if (idArray[i] == resno) {
-                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                // x0 += posArray[i * 3];
-                // y0 += posArray[i * 3 + 1];
-                // z0 += posArray[i * 3 + 2];
-              }
-            }
-            if (newPos.length > 0) {
-              selGeometry = new BufferGeometry();
-              selGeometry.setFromPoints(newPos);
-              // x0 /= newPos.length;
-              // y0 /= newPos.length;
-              // z0 /= newPos.length;
-              // this.stage.animationControls.move(new Vector3(x0, y0, z0)) //kkk
-            }
-          }
-        }
-      });
-      if (selGeometry) {
-        var mat = new MeshBasicMaterial({
-          color: 0xFFFFFF,
-          transparent: true,
-          opacity: 0.0,
-          depthWrite: false,
-        });
-        var newMesh = new Mesh(selGeometry, mat);
-        this.selectGroup2.add(newMesh);
-        selectedObjects.push(newMesh);
-      }
-      if (color1) this.selectOutlinePass.visibleEdgeColor.set(color1);
-      if (color2) this.selectOutlinePass.hiddenEdgeColor.set(color2);
-      if (bChange) this.selectOutlinePass.selectedObjects = selectedObjects;
-    }
-    this.requestRender();
-  }
-  //kkk mark&unmark base
-  markEBaseObject(resno: number, color1?: number, color2?: number) {
-    var selectedObjects = [];
-    var bNew: boolean = true;
-    this.markGroup.children.forEach((obj) => {
-      if (parseInt(obj.name) == resno) {
-        this.markGroup.remove(obj);
-        bNew = false;
-      }
-      else {
-        selectedObjects.push(obj);
-      }
-    });
-    if (bNew) {
-      var selGeometry = null;
-      this.modelGroup.children.forEach(group => {
-        if (group.name == 'meshGroup') {
-          let mesh: Mesh = <Mesh>group.children[0];
-          let geometry: BufferGeometry = <BufferGeometry>mesh.geometry;
-          if (geometry.name == 'ebase') {
-            let newPos = new Array<Vector3>(0);
-            let posInfo = geometry.getAttribute('position');
-            let posArray = <Float32Array>posInfo.array;
-            let idInfo = geometry.getAttribute('primitiveId');
-            let idArray = <Float32Array>idInfo.array;
-            // var x0 = 0, y0 = 0, z0 = 0;
-            for (var i = 0; i < idArray.length; i++) {
-              if (idArray[i] == resno) {
-                newPos.push(new Vector3(posArray[i * 3], posArray[i * 3 + 1], posArray[i * 3 + 2]));
-                // x0 += posArray[i * 3];
-                // y0 += posArray[i * 3 + 1];
-                // z0 += posArray[i * 3 + 2];
-              }
-            }
-            // x0 /= newPos.length;
-            // y0 /= newPos.length;
-            // z0 /= newPos.length;
-            selGeometry = new BufferGeometry();
-            selGeometry.setFromPoints(newPos);
-            // this.stage.animationControls.move(new Vector3(x0, y0, z0))
-          }
-        }
-      });
-      if (selGeometry) {
-        var mat = new MeshBasicMaterial({
-          color: 0x000000,
-          transparent: true,
-          opacity: 0.8,
-          depthWrite: false,
-        });
-        var newMesh = new Mesh(selGeometry, mat);
-        newMesh.name = resno.toString();
-        this.markGroup.add(newMesh);
-        selectedObjects.push(newMesh);
-      }
-    }
-    // if (color1) this.markOutlinePass.visibleEdgeColor.set(color1);
-    // if (color2) this.markOutlinePass.hiddenEdgeColor.set(color2);
-    // this.markOutlinePass.selectedObjects = selectedObjects;
-    this.requestRender();
-  }
-
   addBuffer(buffer: Buffer, instance?: BufferInstance) {
     // Log.time( "Viewer.addBuffer" );
 
@@ -1197,7 +689,7 @@ export default class Viewer {
   }
 
   remove(buffer: Buffer) {
-    this.rotationGroup.children.forEach(function (group) { //kkk
+    this.rotationGroup.children.forEach(function (group) { 
       group.remove(buffer.group)
       group.remove(buffer.wireframeGroup)
     })
@@ -1451,16 +943,10 @@ export default class Viewer {
     this.sampleTarget.setSize(dprWidth, dprHeight)
     this.holdTarget.setSize(dprWidth, dprHeight)
 
-    //kkk
-    // resize composer
-    this.composer.setSize(width, height);
-    this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
-
     this.requestRender()
   }
 
   handleResize(width:number, height: number) {
-    //kkk
     if(width == 0 || height == 0) {
       const box = this.container.getBoundingClientRect()
       this.setSize(box.width, box.height)
@@ -1717,7 +1203,7 @@ export default class Viewer {
     sortProjectedPosition(this.scene, camera)
   }
 
-  private __setVisibility(model: boolean, picking: boolean, background: boolean, helper: boolean) {
+  protected __setVisibility(model: boolean, picking: boolean, background: boolean, helper: boolean) {
     this.modelGroup.visible = model
     this.pickingGroup.visible = picking
     this.backgroundGroup.visible = background
@@ -1735,7 +1221,7 @@ export default class Viewer {
     this.ambientLight.intensity = this.parameters.ambientIntensity
   }
 
-  private __renderPickingGroup(camera: PerspectiveCamera | OrthographicCamera) {
+  protected __renderPickingGroup(camera: PerspectiveCamera | OrthographicCamera) {
     this.renderer.setRenderTarget(this.pickingTarget || null)
     this.renderer.clear()
     this.__setVisibility(false, true, false, false)
@@ -1752,7 +1238,7 @@ export default class Viewer {
     // }
   }
 
-  private __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
+  protected __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     this.renderer.setRenderTarget(renderTarget || null)
     this.renderer.clear()
 
@@ -1762,15 +1248,12 @@ export default class Viewer {
     this.updateInfo()
 
     this.__setVisibility(true, false, false, true)
-    //kkk
-    //use composer rendering for outline highlighting effects
-    this.composer.render();
-    // this.renderer.render(this.scene, camera)
+    this.renderer.render(this.scene, camera)
     this.renderer.setRenderTarget(null) // set back to default canvas
     this.updateInfo();
   }
 
-  private __renderSuperSample(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
+  protected __renderSuperSample(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     // based on the Supersample Anti-Aliasing Render Pass
     // contributed to three.js by bhouston / http://clara.io/
     //
@@ -1852,7 +1335,7 @@ export default class Viewer {
     renderer.setViewport(0, 0, size.width, size.height)
   }
 
-  private __render(picking = false, camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
+  protected __render(picking = false, camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     if (picking) {
       if (!this.lastRenderedPicking) this.__renderPickingGroup(camera)
     } 
@@ -1860,21 +1343,9 @@ export default class Viewer {
       // TODO super sample broken for stereo camera
       this.__renderSuperSample(camera, renderTarget)
       this.__renderModelGroup(camera, renderTarget)
-      //kkk
-      if(this.pixiCallback) {
-        this.signals.rendered.dispatch()
-        this.signals.nextFrame.dispatch() 
-        this.pixiCallback(this.renderer.domElement, this.width, this.height)
-      }
     } 
     else {
       this.__renderModelGroup(camera, renderTarget);
-      //kkk
-      if(this.pixiCallback) {
-        this.signals.rendered.dispatch()
-        this.signals.nextFrame.dispatch()
-        this.pixiCallback(this.renderer.domElement, this.width, this.height)
-      }
     }
   }
 
@@ -1920,87 +1391,5 @@ export default class Viewer {
 
   dispose() {
     this.renderer.dispose()
-  }
-
-  //kkk
-  getCanvasBoundPoints():Vector2[] {
-    if(this.stage.loadedComponent == undefined) return [];
-
-    var min = this.boundingBox.min;
-    var max = this.boundingBox.max;
-    var posArray = [
-      new Vector2(),
-      new Vector2(),
-      new Vector2(),
-      new Vector2(),
-      new Vector2(),
-      new Vector2(),
-      new Vector2(),
-      new Vector2()
-  ];
-    var points = [
-        new Vector3(),
-        new Vector3(),
-        new Vector3(),
-        new Vector3(),
-        new Vector3(),
-        new Vector3(),
-        new Vector3(),
-        new Vector3()
-    ];
-
-    points[ 0 ].set( min.x, min.y, min.z ); // 000
-    points[ 1 ].set( min.x, min.y, max.z ); // 001
-    points[ 2 ].set( min.x, max.y, min.z ); // 010
-    points[ 3 ].set( min.x, max.y, max.z ); // 011
-    points[ 4 ].set( max.x, min.y, min.z ); // 100
-    points[ 5 ].set( max.x, min.y, max.z ); // 101
-    points[ 6 ].set( max.x, max.y, min.z ); // 110
-    points[ 7 ].set( max.x, max.y, max.z ); // 111
-
-    for(var i=0;i<8;i++) {
-        var p3 = points[i];
-        p3 = p3.applyMatrix4(this.stage.loadedComponent.matrix);
-        var p2 = this.stage.viewerControls.getPositionOnCanvas(p3);
-        posArray[i].set(p2.x, p2.y);
-    }
-    return posArray;
-  }
-  isPointInBoundBox(x:number, y:number, bEulerSys:boolean=true):boolean {
-    return true;
-    // function polyContainsPt(pt:Vector2, poly:Vector2[]) {
-    //   var sign:number[] = [];
-    //   for(var i=0;i<poly.length;i++) {
-    //     var p1 = poly[i];
-    //     var p2 = poly[(i+1)%poly.length];
-    //     var v1 = p2.clone().sub(p1);
-    //     var v2 = pt.clone().sub(p1);
-    //     sign.push(Math.sign(v1.cross(v2)));
-    //   }
-    //   var prevSign = 0;
-    //   for(var i=0;i<sign.length;i++) {
-    //     if(sign[i] != 0) {
-    //       if(prevSign == 0) prevSign = sign[i];
-    //       else if(prevSign == -sign[i]) return false;
-    //     }
-    //   }
-    //   return true;
-    // }
-    // var pt = new Vector2(x, y);
-    // if(!bEulerSys) pt.y = this.height - pt.y;
-
-    // var ptArray = this.getCanvasBoundPoints();
-    // if(ptArray.length == 8) {
-    //   if(polyContainsPt(pt, [ptArray[0], ptArray[1], ptArray[3], ptArray[2]])) return true;
-    //   if(polyContainsPt(pt, [ptArray[4], ptArray[5], ptArray[7], ptArray[6]])) return true;
-    //   if(polyContainsPt(pt, [ptArray[1], ptArray[3], ptArray[7], ptArray[5]])) return true;
-    //   if(polyContainsPt(pt, [ptArray[0], ptArray[2], ptArray[6], ptArray[4]])) return true;
-    //   if(polyContainsPt(pt, [ptArray[2], ptArray[6], ptArray[7], ptArray[3]])) return true;
-    //   if(polyContainsPt(pt, [ptArray[0], ptArray[4], ptArray[5], ptArray[1]])) return true;
-    // }
-    // return false;
-  }
-  getWebGLCanvas() {
-    return this.renderer.domElement;
   }
 }

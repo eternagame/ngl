@@ -4,23 +4,33 @@
  * @private
  */
 
-import { RepresentationRegistry } from '../globals'
-import { defaults } from '../utils'
-import BallAndStickRepresentation, { BallAndStickRepresentationParameters } from './ballandstick-representation'
-import { Structure } from '../ngl';
-import Viewer from '../viewer/viewer';
-import StructureView from '../structure/structure-view';
-import { AtomDataFields, AtomDataParams, BondDataFields, BondDataParams, BondData, AtomData } from '../structure/structure-data';
-import EllipsoidBuffer, { EllipsoidBufferData } from '../buffer/ellipsoid-buffer'
-import WideLineBuffer from '../buffer/wideline-buffer'
-import { StructureRepresentationData } from './structure-representation';
-import AtomProxy from '../proxy/atom-proxy';
-import CylinderBuffer, { CylinderBufferData } from '../buffer/cylinder-buffer'
-import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer'
-import ConeBuffer, { ConeBufferData } from '../buffer/cone-buffer'
-import { DivAnnotation } from './representation';
+import { RepresentationRegistry } from '../../globals'
+import { defaults } from '../../utils'
+import BallAndStickRepresentation, { BallAndStickRepresentationParameters } from '../../representation/ballandstick-representation'
+import { Structure, ViewerEx } from '../../ngl';
+import Viewer from '../../viewer/viewer';
+import StructureView from '../../structure/structure-view';
+import { AtomDataFields, AtomDataParams, BondDataFields, BondDataParams, BondData, AtomData } from '../../structure/structure-data';
+import { EllipsoidBufferData } from '../../buffer/ellipsoid-buffer'
+import WideLineBuffer from '../../buffer/wideline-buffer'
+import { StructureRepresentationData } from '../../representation/structure-representation';
+import AtomProxy from '../../proxy/atom-proxy';
+import CylinderBuffer, { CylinderBufferData } from '../../buffer/cylinder-buffer'
+import CylinderGeometryBuffer from '../../buffer/cylindergeometry-buffer'
+import ConeBuffer, { ConeBufferData } from '../../buffer/cone-buffer'
+import EllipsoidExBuffer from '../buffer/ellipsoid-buffer-ex';
 
 
+export interface DivAnnotation {
+    x: number;
+    y: number;
+    z: number;
+    num: number;
+    label: string;
+}
+export interface EBaseRepresentationParameters extends BallAndStickRepresentationParameters {
+    vScale: number
+}
 /**
  * Base representation. Show cylinders for RNA/DNA ladders.
  *
@@ -34,15 +44,12 @@ import { DivAnnotation } from './representation';
  * } );
  */
 class EBaseRepresentation extends BallAndStickRepresentation {
-    /**
-     * @param  {Structure} structure - the structure object
-     * @param  {Viewer} viewer - the viewer object
-     * @param  {BallAndStickRepresentationParameters} params - parameters object
-     */
-    constructor(structure: Structure, viewer: Viewer, params: Partial<BallAndStickRepresentationParameters>) {
+    static divAnnotations: DivAnnotation[] = []; 
+    constructor(structure: Structure, viewer: Viewer, params: Partial<EBaseRepresentationParameters>) {
         super(structure, viewer, params)
 
         this.type = 'ebase'
+        EBaseRepresentation.divAnnotations = [];
 
         this.parameters = Object.assign({
 
@@ -54,7 +61,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
         })
     }
 
-    init(params: Partial<BallAndStickRepresentationParameters>) {
+    init(params: Partial<EBaseRepresentationParameters>) {
         let p = params || {}
         p.aspectRatio = defaults(p.aspectRatio, 1.0)
         p.radiusSize = defaults(p.radiusSize, 0.3)
@@ -121,7 +128,8 @@ class EBaseRepresentation extends BallAndStickRepresentation {
                     num:i, 
                     label: (i+1)+''
                 };
-                this.divAnnotations.push(annotation); 
+                // console.log(EBaseRepresentation.divAnnotations);
+                EBaseRepresentation.divAnnotations.push(annotation); 
 
                 var x1, y1, z1, d1;
                 if (bondData.picking && rawBondData.picking) {
@@ -178,13 +186,12 @@ class EBaseRepresentation extends BallAndStickRepresentation {
             dataParam.position = position;
             dataParam.color = bondData.color;
             dataParam.radius = radius;
-            dataParam.vScale = this.vScale;
             dataParam.majorAxis = new Float32Array(majorAxis);
             dataParam.minorAxis = new Float32Array(minorAxis);
-            const elilipsoidBuffer = new EllipsoidBuffer(dataParam)
+            const elilipsoidBuffer = new EllipsoidExBuffer(dataParam, {vScale: this.vScale})
             elilipsoidBuffer.geometry.name = 'ebase';
 
-            bufferList.push(elilipsoidBuffer as EllipsoidBuffer)
+            bufferList.push(elilipsoidBuffer as EllipsoidExBuffer)
 
             var pairsDatas = this.getPairData(bondData);
             if (pairsDatas !== null) {
@@ -236,8 +243,16 @@ class EBaseRepresentation extends BallAndStickRepresentation {
         }
     }
 
+    public getAnnotations() {
+        return EBaseRepresentation.divAnnotations;
+    }
+    public resetAnnotations() {
+        EBaseRepresentation.divAnnotations = [];
+    }
+
     getPairData(data: BondData) {
-        if (this.viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
+        var viewer = <ViewerEx>this.viewer;
+        if (viewer.etherna_pairs !== undefined && data.position2 !== undefined) {
             var pos01 = [];
             var pos02 = [];
             var colors0: number[] = [];
@@ -247,15 +262,15 @@ class EBaseRepresentation extends BallAndStickRepresentation {
             var radius: number[] = [];
             var pairMap = new Map();
             var strengthArrray = [];
-            for (var i = 0; i < this.viewer.etherna_pairs.length; i++) {
-                var pairNum = this.viewer.etherna_pairs[i];
+            for (var i = 0; i < viewer.etherna_pairs.length; i++) {
+                var pairNum = viewer.etherna_pairs[i];
                 if (pairNum < 0) continue;
                 if (pairMap.get(i) === pairNum || pairMap.get(pairNum) === i) continue;
                 pairMap.set(i, pairNum);
 
                 let strength = 0;
-                if (this.viewer.etherna_sequence.length > 0) {
-                    var seq = this.viewer.etherna_sequence;
+                if (viewer.etherna_sequence.length > 0) {
+                    var seq = viewer.etherna_sequence;
                     if (seq[i] == 'G' && seq[pairNum] == 'C' || seq[i] == 'C' && seq[pairNum] == 'G')
                         strength = 3;
                     else if (seq[i] == 'A' && seq[pairNum] == 'U' || seq[i] == 'U' && seq[pairNum] == 'A')
@@ -312,7 +327,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
                 }
 
                 if (strength == 3) {
-                    var color:number = this.viewer.ethernaMode.highColor;
+                    var color:number = viewer.ethernaMode.highColor;
                     var r = color >> 16 & 255
                     var g = color >> 8 & 255
                     var b = color & 255
@@ -321,7 +336,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
                     colors.push(b/255.0);
                 }
                 else if (strength == 2) {
-                    var color:number = this.viewer.ethernaMode.mediumColor;
+                    var color:number = viewer.ethernaMode.mediumColor;
                     var r = color >> 16 & 255
                     var g = color >> 8 & 255
                     var b = color & 255
@@ -330,7 +345,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
                     colors.push(b/255.0);
                 }
                 else if (strength == 1) {
-                    var color:number = this.viewer.ethernaMode.weakColor;
+                    var color:number = viewer.ethernaMode.weakColor;
                     var r = color >> 16 & 255
                     var g = color >> 8 & 255
                     var b = color & 255
@@ -339,7 +354,7 @@ class EBaseRepresentation extends BallAndStickRepresentation {
                     colors.push(b/255.0);
                 }
                 else {
-                    var color:number = this.viewer.ethernaMode.zeroColor;
+                    var color:number = viewer.ethernaMode.zeroColor;
                     var r = color >> 16 & 255
                     var g = color >> 8 & 255
                     var b = color & 255

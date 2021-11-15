@@ -74,10 +74,6 @@ declare global {
     msRequestFullscreen(): void
   }
 }
-export interface PixiRenderCallback {
-  (imgData: HTMLCanvasElement, width:number, height:number): void;
-}
-
 /**
  * Stage parameter object.
  * @typedef {Object} StageParameters - stage parameters
@@ -118,11 +114,6 @@ export interface StageSignals {
   hovered: Signal
 }
 
-//kkk
-interface PixiCifCheckerCallback {
-  (component: Structure | null): void;
-}
-
 export type RenderQualityType = 'auto' | 'low' | 'medium' | 'high'
 
 export const StageDefaultParameters = {
@@ -144,9 +135,9 @@ export const StageDefaultParameters = {
   cameraFov: 40,
   cameraEyeSep: 0.3,
   cameraType: 'perspective' as 'perspective' | 'orthographic' | 'stereo',
-  lightColor: 0xffffff as string | number, //kkk
+  lightColor: 0xffffff as string | number, 
   lightIntensity: 1.0,
-  ambientColor: 0xffffff as string | number, //kkk
+  ambientColor: 0xffffff as string | number, 
   ambientIntensity: 0.2,
   hoverTimeout: 0,
   tooltip: true,
@@ -157,7 +148,6 @@ export type StageParameters = typeof StageDefaultParameters
 export interface StageLoadFileParams extends LoaderParameters {
   defaultRepresentation: boolean,
   assembly: string
-  etherna_pairs: number[] //kkk //add etherna pairs field
 }
 /**
  * Stage class, central for creating molecular scenes with NGL.
@@ -208,17 +198,14 @@ class Stage {
   spinAnimation: Animation
   rockAnimation: Animation
 
-  loadedComponent:Component //kkk
-
-  constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}, pixiCallback:PixiRenderCallback|undefined = undefined) {
-    this.viewer = new Viewer(idOrElement, this, pixiCallback) //kkk
+  constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
+    this.viewer = new Viewer(idOrElement) 
     if (!this.viewer.renderer) return
 
     this.tooltip = document.createElement('div')
     Object.assign(this.tooltip.style, {
       display: 'none',
-      // position: 'fixed',
-      position: 'relative', //kkk
+      position: 'fixed',
       zIndex: '1000000',
       pointerEvents: 'none',
       backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
@@ -229,7 +216,7 @@ class Stage {
     this.viewer.container.appendChild(this.tooltip)
 
     this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement)
-    this.mouseObserver.viewer = this.viewer; //kkk
+    this.mouseObserver.viewer = this.viewer; 
     this.viewerControls = new ViewerControls(this)
     this.trackballControls = new TrackballControls(this)
     this.pickingControls = new PickingControls(this)
@@ -287,7 +274,7 @@ class Stage {
   }
 
   log(msg: string) {
-    console.log('STAGE LOG', msg)
+    // console.log('STAGE LOG', msg)
     this.logList.push(msg)
   }
 
@@ -465,8 +452,6 @@ class Stage {
     const p = Object.assign({}, this.defaultFileParams, params)
     const name = getFileInfo(path).name
 
-    this.viewer.setEthernaPairs(p.etherna_pairs); //kkk set etherna_pairs
-
     this.tasks.increment()
     this.log(`loading file '${name}'`)
 
@@ -479,7 +464,6 @@ class Stage {
       }
       this.tasks.decrement()
 
-      this.loadedComponent = component as Component; //kkk
       return component
     }
 
@@ -488,37 +472,6 @@ class Stage {
       const errorMsg = `error loading file: '${e}'`
       this.log(errorMsg)
       throw errorMsg  // throw so it can be catched
-    }
-
-    const ext = defaults(p.ext, getFileInfo(path).ext)
-    let promise: Promise<any>
-
-    if (ParserRegistry.isTrajectory(ext)) {
-      promise = Promise.reject(
-        new Error(`loadFile: ext '${ext}' is a trajectory and must be loaded into a structure component`)
-      )
-    } else {
-      promise = autoLoad(path, p)
-    }
-
-    return promise.then(onLoadFn, onErrorFn)
-  }
-
-  //kkk
-  static checkModelFile(path: string | File | Blob, callback: PixiCifCheckerCallback) {
-    var params: Partial<StageLoadFileParams> = {};
-    const p = Object.assign({}, {}, params)
-    // const name = getFileInfo(path).name
-
-    const onLoadFn = (object: Structure | Surface | Volume) => {
-      if(object instanceof Structure)
-        callback(object);
-      else 
-        callback(null);
-    }
-
-    const onErrorFn = (e: Error | string) => {
-      callback(null);
     }
 
     const ext = defaults(p.ext, getFileInfo(path).ext)
@@ -614,7 +567,6 @@ class Stage {
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  //kkk
   handleResize(width:number=0, height: number=0) {
     this.viewer.handleResize(width, height)
   }
@@ -825,7 +777,7 @@ class Stage {
     const aspectFactor = (height < width ? 1 : aspect)
 
     distance = Math.abs(
-      ((distance * 0.5) / aspectFactor) / Math.sin(fov / 2) //kkk
+      ((distance * 0.5) / aspectFactor) / Math.sin(fov / 2) 
     )
     distance += this.parameters.clipDist
     return -distance

@@ -85,13 +85,6 @@ export interface RepresentationParameters {
  * @property {Boolean} [disablePicking] - disable picking
  */
 
-export interface DivAnnotation {
-  x: number;
-  y: number;
-  z: number;
-  num: number;
-  label: string;
-}
 /**
  * Representation object
  * @interface
@@ -106,7 +99,6 @@ class Representation {
   tasks: Counter
   private queue: Queue<any>
   bufferList: Buffer[]
-  divAnnotations: DivAnnotation[]; //kkk
 
   lazy: boolean
   lazyProps: { build: boolean, bufferParams: BufferParameters | {}, what: {}}
@@ -155,7 +147,6 @@ class Representation {
     // const p = params || {}
 
     this.type = ''
-    this.divAnnotations = [];
 
     this.parameters = {
 
@@ -277,14 +268,6 @@ class Representation {
     }
 
     this.toBePrepared = false
-  }
-
-  //kkk
-  getAnnotations() {
-    return this.divAnnotations;
-  }
-  resetAnnotations() {
-    this.divAnnotations = [];
   }
 
   init (params: Partial<RepresentationParameters>) {

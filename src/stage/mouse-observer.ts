@@ -181,8 +181,6 @@ class MouseObserver {
     // document.addEventListener('touchstart', this._onTouchstart, opt)
     // document.addEventListener('touchend', this._onTouchend, opt)
     // document.addEventListener('touchmove', this._onTouchmove, opt)
-
-    //kkk
     this.domElement.addEventListener('mousewheel', this._onMousewheel)
     this.domElement.addEventListener('wheel', this._onMousewheel)
     this.domElement.addEventListener('MozMousePixelScroll', this._onMousewheel)
@@ -243,7 +241,6 @@ class MouseObserver {
     if (event.target !== this.domElement || !this.handleScroll) {
       return
     }
-    if(!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
     
     event.preventDefault()
     this._setKeys(event)
@@ -287,8 +284,6 @@ class MouseObserver {
   _onMousemove(event: MouseEvent) {
     this._setCanvasPosition(event)
 
-    if(!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
-
     if (event.target === this.domElement) {
       event.preventDefault()
       this.overElement = true
@@ -314,7 +309,6 @@ class MouseObserver {
       return
     }
     this._setCanvasPosition(event)
-    if(!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
 
     event.preventDefault()
     this._setKeys(event)
@@ -325,13 +319,6 @@ class MouseObserver {
     this.which = event.which
     this.buttons = getMouseButtons(event)
     this.pressed = true
-    //kkk //broadcast mouse down event in forms of custom event.
-    // window.dispatchEvent(new CustomEvent('kkk', {
-    //   detail: {
-    //     'clientX': event.clientX,
-    //     'clientY': event.clientY,
-    //   }
-    // }));
   }
 
   /**
@@ -380,11 +367,6 @@ class MouseObserver {
         this._setCanvasPosition(event.touches[0])
     }
 
-    if(!this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) {
-      this.pressed = false
-      return;//kkk
-    }
-
     event.preventDefault()
     this.pressed = true
     switch (event.touches.length) {
@@ -430,7 +412,6 @@ class MouseObserver {
     if (event.touches.length>0) {
       this._setCanvasPosition(event.touches[0])
     }
-    if(!this.pressed && !this.viewer.isPointInBoundBox(this.canvasPosition.x, this.canvasPosition.y)) return;//kkk
 
     if (event.target === this.domElement) {
       event.preventDefault()
@@ -533,7 +514,6 @@ class MouseObserver {
     // document.removeEventListener('touchstart', this._onTouchstart)
     // document.removeEventListener('touchend', this._onTouchend)
     // document.removeEventListener('touchmove', this._onTouchmove)
-    //kkk
     this.domElement.removeEventListener('mousewheel', this._onMousewheel)
     this.domElement.removeEventListener('wheel', this._onMousewheel)
     this.domElement.removeEventListener('MozMousePixelScroll', this._onMousewheel)

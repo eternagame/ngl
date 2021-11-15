@@ -36,16 +36,13 @@ import { UnitcellRepresentationParameters } from '../representation/unitcell-rep
 import { SliceRepresentationParameters } from '../representation/slice-representation';
 import { MolecularSurfaceRepresentationParameters } from '../representation/molecularsurface-representation';
 import { DotRepresentationParameters } from '../representation/dot-representation';
-import { EBallAndStickRepresentationParameters } from '../representation/eballandstick-representation';
 export declare type StructureRepresentationType = keyof StructureRepresentationParametersMap;
 interface StructureRepresentationParametersMap {
     'angle': AngleRepresentationParameters;
     'axes': AxesRepresentationParameters;
     'backbone': BallAndStickRepresentationParameters;
     'ball+stick': BallAndStickRepresentationParameters;
-    'eball+stick': EBallAndStickRepresentationParameters;
     'base': BallAndStickRepresentationParameters;
-    'ebase': BallAndStickRepresentationParameters;
     'cartoon': CartoonRepresentationParameters;
     'contact': ContactRepresentationParameters;
     'dihedral': DihedralRepresentationParameters;
@@ -176,7 +173,6 @@ declare class StructureComponent extends Component {
      * @return {undefined}
      */
     autoView(duration?: number): any;
-    resetPos(): void;
     getBoxUntransformed(sele: string): Box3;
     getCenterUntransformed(sele: string): Vector3;
     superpose(component: StructureComponent, align: boolean, sele1: string, sele2: string): this;

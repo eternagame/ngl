@@ -45,9 +45,6 @@ declare global {
         msRequestFullscreen(): void;
     }
 }
-export interface PixiRenderCallback {
-    (imgData: HTMLCanvasElement, width: number, height: number): void;
-}
 /**
  * Stage parameter object.
  * @typedef {Object} StageParameters - stage parameters
@@ -86,9 +83,6 @@ export interface StageSignals {
     clicked: Signal;
     hovered: Signal;
 }
-interface PixiCifCheckerCallback {
-    (component: Structure | null): void;
-}
 export declare type RenderQualityType = 'auto' | 'low' | 'medium' | 'high';
 export declare const StageDefaultParameters: {
     impostor: boolean;
@@ -115,13 +109,12 @@ export declare const StageDefaultParameters: {
     ambientIntensity: number;
     hoverTimeout: number;
     tooltip: boolean;
-    mousePreset: "default" | "eterna" | "pymol" | "coot" | "astexviewer";
+    mousePreset: "default" | "pymol" | "coot" | "astexviewer";
 };
 export declare type StageParameters = typeof StageDefaultParameters;
 export interface StageLoadFileParams extends LoaderParameters {
     defaultRepresentation: boolean;
     assembly: string;
-    etherna_pairs: number[];
 }
 /**
  * Stage class, central for creating molecular scenes with NGL.
@@ -158,8 +151,7 @@ declare class Stage {
     keyBehavior: KeyBehavior;
     spinAnimation: Animation;
     rockAnimation: Animation;
-    loadedComponent: Component;
-    constructor(idOrElement: HTMLElement, params?: Partial<StageParameters>, pixiCallback?: PixiRenderCallback | undefined);
+    constructor(idOrElement: HTMLElement, params?: Partial<StageParameters>);
     /**
      * Set stage parameters
      */
@@ -193,7 +185,7 @@ declare class Stage {
         ambientIntensity: number;
         hoverTimeout: number;
         tooltip: boolean;
-        mousePreset: "default" | "eterna" | "pymol" | "coot" | "astexviewer";
+        mousePreset: "default" | "pymol" | "coot" | "astexviewer";
     };
     /**
      * Create default representations for the given component
@@ -236,7 +228,6 @@ declare class Stage {
      *                   depending on the type of the loaded file.
      */
     loadFile(path: string | File | Blob, params?: Partial<StageLoadFileParams>): Promise<void | Component>;
-    static checkModelFile(path: string | File | Blob, callback: PixiCifCheckerCallback): Promise<void>;
     loadScript(path: string | File | Blob): any;
     /**
      * Add the given component to the stage

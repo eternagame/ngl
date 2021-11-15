@@ -219,7 +219,6 @@ declare class Structure implements Structure {
     eachModel(callback: (entity: ModelProxy) => void, selection?: Selection): void;
     getAtomData(params: AtomDataParams): AtomData;
     getBondData(params: BondDataParams): BondData;
-    getBackBondData(params: BondDataParams, bExtSugar?: boolean): BondData;
     getBackboneAtomData(params: AtomDataParams): AtomData;
     getBackboneBondData(params: BondDataParams): BondData;
     getRungAtomData(params: AtomDataParams): AtomData;

@@ -199,9 +199,6 @@ declare class AtomProxy {
      * @return {Boolean} flag
      */
     isBackbone(): boolean;
-    isSugarAtom(): boolean;
-    isSugarBondAtom(): boolean;
-    isExtCandidate(bExtSugar?: boolean): boolean;
     /**
      * If atom is part of a polymer
      * @return {Boolean} flag

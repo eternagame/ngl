@@ -56,7 +56,6 @@ class ViewerControls {
     return this.viewer.translationGroup.position
   }
 
-  //kkk
   get rotationPosition () { 
     return this.viewer.rotationGroup.position
   }

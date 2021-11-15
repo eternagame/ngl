@@ -50,7 +50,7 @@ export interface BondData {
     position2?: Float32Array,
     color?: Float32Array,
     color2?: Float32Array,
-    picking?: BondPicker, //AtomPicker //kkk
+    picking?: BondPicker, 
     radius?: Float32Array
     radius2?: Float32Array
 }

@@ -1,15 +1,10 @@
-/// <reference types="node" />
 /**
  * @file Viewer
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @private
  */
 import { Signal } from 'signals';
-import Stage, { PixiRenderCallback } from '../stage/stage';
-import { PerspectiveCamera, OrthographicCamera, Vector2, Box3, Vector3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, SpriteMaterial, Sprite, TextureEncoding } from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
-import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
+import { PerspectiveCamera, OrthographicCamera, StereoCamera, Box3, Matrix4, Color, WebGLRenderer, WebGLRenderTarget, Scene, Group, SpotLight, AmbientLight, TextureEncoding } from 'three';
 import '../shader/BasicLine.vert';
 import '../shader/BasicLine.frag';
 import '../shader/Quad.vert';
@@ -48,20 +43,6 @@ export interface ViewerParameters {
 export interface BufferInstance {
     matrix: Matrix4;
 }
-declare class Spark {
-    sparkArray: Sprite[];
-    textSprite: Sprite | null;
-    size: number;
-    counter: number;
-    period: number;
-    polling: NodeJS.Timeout;
-    unit: Vector3[];
-    material: SpriteMaterial;
-    center: Vector3;
-    reset(): void;
-    setURL(url1: string): void;
-    makeTextSprite(message: string): void;
-}
 /**
  * Viewer class
  * @class
@@ -71,49 +52,35 @@ export default class Viewer {
     signals: ViewerSignals;
     container: HTMLElement;
     wrapper: HTMLElement;
-    private rendering;
-    private renderPending;
-    private lastRenderedPicking;
-    private isStill;
+    protected rendering: boolean;
+    protected renderPending: boolean;
+    protected lastRenderedPicking: boolean;
+    protected isStill: boolean;
     sampleLevel: number;
     private cDist;
     private bRadius;
-    private parameters;
+    protected parameters: ViewerParameters;
     stats: Stats;
     perspectiveCamera: PerspectiveCamera;
-    private orthographicCamera;
-    private stereoCamera;
+    protected orthographicCamera: OrthographicCamera;
+    protected stereoCamera: StereoCamera;
     camera: PerspectiveCamera | OrthographicCamera;
     width: number;
     height: number;
     scene: Scene;
-    private spotLight;
-    private ambientLight;
+    protected spotLight: SpotLight;
+    protected ambientLight: AmbientLight;
     rotationGroup: Group;
     translationGroup: Group;
-    private modelGroup;
-    private selectGroup;
-    private selectGroup2;
-    private markGroup;
-    private sparkGroup;
-    private sparkSpriteGroup;
-    private pickingGroup;
-    private backgroundGroup;
-    private helperGroup;
+    protected modelGroup: Group;
+    protected pickingGroup: Group;
+    protected backgroundGroup: Group;
+    protected helperGroup: Group;
     renderer: WebGLRenderer;
-    left: number;
-    top: number;
-    composer: EffectComposer;
-    selectOutlinePass: OutlinePass;
-    effectFXAA: ShaderPass;
-    flashCount: number;
-    baseColor: number;
-    ethernaMode: any;
-    spark: Spark;
     private supportsHalfFloat;
-    private pickingTarget;
-    private sampleTarget;
-    private holdTarget;
+    protected pickingTarget: WebGLRenderTarget;
+    protected sampleTarget: WebGLRenderTarget;
+    protected holdTarget: WebGLRenderTarget;
     private compositeUniforms;
     private compositeMaterial;
     private compositeCamera;
@@ -124,28 +91,12 @@ export default class Viewer {
     private boundingBoxLength;
     private info;
     private distVector;
-    private stage;
-    etherna_pairs: number[] | undefined;
-    etherna_sequence: string;
-    fromOuter: boolean;
-    pixiCallback: PixiRenderCallback | undefined;
-    constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined);
-    beginSpark(): void;
-    makeTextSprite(msg: string): void;
-    addSpark(resno: number): void;
-    endSpark(period: number): void;
-    updateSpark(): void;
-    setPosition(x: number, y: number): void;
-    setEthernaPairs(pairs: number[] | undefined): void;
-    setEthernaSequence(sequence: string, num: number): void;
-    setEthernaToolTipMode(mode: boolean): void;
-    setHBondColor(colors: number[]): void;
-    setPixiCallback(callback: PixiRenderCallback): void;
+    constructor(idOrElement: HTMLElement);
     private _initParams;
     private _initCamera;
     private _initStats;
-    private _initScene;
-    private _initRenderer;
+    protected _initScene(): void;
+    protected _initRenderer(): boolean;
     private _initHelper;
     updateHelper(): void;
     /** Distance from origin (lookAt point) */
@@ -153,10 +104,6 @@ export default class Viewer {
     /** Set distance from origin (lookAt point); along the -z axis */
     set cameraDistance(d: number);
     add(buffer: Buffer, instanceList?: BufferInstance[]): void;
-    selectEBaseObject(resno: number, fromViewer?: boolean, color1?: number): void;
-    setBaseColor(color: number): void;
-    selectEBaseObject2(resno: number, bChange?: boolean, color1?: number, color2?: number): void;
-    markEBaseObject(resno: number, color1?: number, color2?: number): void;
     addBuffer(buffer: Buffer, instance?: BufferInstance): void;
     remove(buffer: Buffer): void;
     private _updateBoundingBox;
@@ -220,18 +167,14 @@ export default class Viewer {
      */
     private __updateClipping;
     private __updateCamera;
-    private __setVisibility;
+    protected __setVisibility(model: boolean, picking: boolean, background: boolean, helper: boolean): void;
     private __updateLights;
-    private __renderPickingGroup;
-    private __renderModelGroup;
-    private __renderSuperSample;
+    protected __renderPickingGroup(camera: PerspectiveCamera | OrthographicCamera): void;
+    protected __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
+    protected __renderSuperSample(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
     private __renderStereo;
-    private __render;
+    protected __render(picking: boolean | undefined, camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
     render(picking?: boolean, renderTarget?: WebGLRenderTarget): void;
     clear(): void;
     dispose(): void;
-    getCanvasBoundPoints(): Vector2[];
-    isPointInBoundBox(x: number, y: number, bEulerSys?: boolean): boolean;
-    getWebGLCanvas(): HTMLCanvasElement;
 }
-export {};

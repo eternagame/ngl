@@ -11,6 +11,7 @@ import { Signal } from 'signals'
 import { defaults, createParams } from '../utils'
 import { generateUUID } from '../math/math-utils'
 import Annotation, { AnnotationParams } from '../component/annotation'
+import AnnotationEx from '../eterna-extention/component/annotation-ex'
 import ComponentControls from '../controls/component-controls'
 import { makeRepresentation } from '../representation/representation-utils'
 import RepresentationElement from './representation-element'
@@ -231,6 +232,17 @@ abstract class Component {
     this.annotationList.slice().forEach(callback)
   }
 
+  // added for eterna-extension
+  addAnnotationEx (position: Vector3, content: string, params: AnnotationParams) {
+    const annotation = new AnnotationEx(this, position, content, params)
+    this.annotationList.push(annotation)
+
+    return annotation
+  }
+  eachAnnotationEx (callback: (a: AnnotationEx) => void) {
+    this.annotationList.slice().forEach(callback)
+  }
+
   /**
    * Remove the give annotation from the component
    * @param {Annotation} annotation - the annotation to remove
@@ -409,15 +421,6 @@ abstract class Component {
       this.getZoom(),
       defaults(duration, 0)
     )
-    //kkk add pan auto
-    // var tmpPanVector = new Vector3();
-    // const scaleFactor = this.stage.viewerControls.getCanvasScaleFactor(0)
-    // tmpPanVector.set(this.viewer.width/4, 0, 0)
-    // tmpPanVector.multiplyScalar(this.stage.trackballControls.panSpeed * scaleFactor)
-    // this.stage.animationControls.zoom2(
-    //   tmpPanVector,
-    //   defaults(duration, 0)
-    // )
   }
 }
 

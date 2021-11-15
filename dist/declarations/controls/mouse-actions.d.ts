@@ -133,7 +133,6 @@ declare class MouseActions {
 declare type MouseActionPreset = [string, MouseActionCallback][];
 export declare const MouseActionPresets: {
     default: MouseActionPreset;
-    eterna: MouseActionPreset;
     pymol: MouseActionPreset;
     coot: MouseActionPreset;
     astexviewer: MouseActionPreset;
