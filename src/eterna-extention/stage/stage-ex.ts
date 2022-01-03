@@ -1,7 +1,4 @@
-import {
-  ParserRegistry
-} from '../../globals'
-import { defaults, createParams } from '../../utils'
+import { createParams } from '../../utils'
 import ViewerEx from '../viewer/viewer-ex'
 import MouseObserver from '../../stage/mouse-observer'
 
@@ -15,14 +12,7 @@ import MouseBehavior from '../../stage/mouse-behavior'
 import AnimationBehavior from '../../stage/animation-behavior'
 import KeyBehavior from '../../stage/key-behavior'
 
-import { autoLoad, getFileInfo } from '../../loader/loader-utils'
-// import AtomProxy from '../proxy/atom-proxy'
-// import Animation from '../animation/animation'
-// import Selection from '../selection/selection'
-
 import Structure from '../../structure/structure'
-import Surface from '../../surface/surface'
-import Volume from '../../surface/volume'
 
 import Stage, {StageDefaultParameters, StageParameters, StageLoadFileParams} from "../../stage/stage";
 import ViewerControlsEx from '../controls/viewer-controls-ex'
@@ -42,37 +32,6 @@ StageDefaultParameters.lightColor = 0xffffff;
 StageDefaultParameters.ambientColor = 0xffffff;
       
 class StageEx extends Stage {
-
-    static checkModelFile(path: string | File | Blob, callback: ModelCheckCallback) {
-        var params: Partial<StageLoadFileParams> = {};
-        const p = Object.assign({}, {}, params)
-        // const name = getFileInfo(path).name
-
-        const onLoadFn = (object: Structure | Surface | Volume) => {
-        if(object instanceof Structure)
-            callback(object);
-        else 
-            callback(null);
-        }
-
-        const onErrorFn = (e: Error | string) => {
-        callback(null);
-        }
-
-        const ext = defaults(p.ext, getFileInfo(path).ext)
-        let promise: Promise<any>
-
-        if (ParserRegistry.isTrajectory(ext)) {
-        promise = Promise.reject(
-            new Error(`loadFile: ext '${ext}' is a trajectory and must be loaded into a structure component`)
-        )
-        } else {
-        promise = autoLoad(path, p)
-        }
-
-        return promise.then(onLoadFn, onErrorFn)
-    }
-
     constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}, 
         pixiCallback:PixiRenderCallback|undefined = undefined) {
         super(idOrElement, params as StageParameters);

@@ -3,7 +3,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @private
  */
-// import * as THREE from 'three';
+
 import { Signal } from 'signals'
 import {
   PerspectiveCamera, OrthographicCamera, StereoCamera,
@@ -19,7 +19,6 @@ import {
   LineSegments,
   LinearEncoding, sRGBEncoding, TextureEncoding
 } from 'three'
-
 import '../shader/BasicLine.vert'
 import '../shader/BasicLine.frag'
 import '../shader/Quad.vert'
