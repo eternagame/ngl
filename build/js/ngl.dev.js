@@ -2,7 +2,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.NGL = {}));
-}(this, (function (exports) { 'use strict';
+})(this, (function (exports) { 'use strict';
 
   /**
    * @file shims
@@ -562,6 +562,8 @@
   // Store setTimeout reference so promise-polyfill will be unaffected by
   // other code modifying setTimeout (like sinon.useFakeTimers())
   var setTimeoutFunc = setTimeout;
+  // @ts-ignore
+  var setImmediateFunc = typeof setImmediate !== 'undefined' ? setImmediate : null;
 
   function isArray(x) {
     return Boolean(x && typeof x.length !== 'undefined');
@@ -795,10 +797,10 @@
   // Use polyfill for setImmediate for performance gains
   Promise$1._immediateFn =
     // @ts-ignore
-    (typeof setImmediate === 'function' &&
+    (typeof setImmediateFunc === 'function' &&
       function(fn) {
         // @ts-ignore
-        setImmediate(fn);
+        setImmediateFunc(fn);
       }) ||
     function(fn) {
       setTimeoutFunc(fn, 0);
@@ -59493,13 +59495,12 @@
         this.scene.add(this.spotLight);
         this.ambientLight = new AmbientLight(this.parameters.ambientColor.getHex(), this.parameters.ambientIntensity);
         this.scene.add(this.ambientLight);
-        // const axesHelper = new AxesHelper( 50 );
-        // this.scene.add( axesHelper );
     };
     Viewer.prototype._initRenderer = function _initRenderer () {
         var dpr = window.devicePixelRatio;
-        var width = this.width;
-        var height = this.height;
+        var ref = this;
+          var width = ref.width;
+          var height = ref.height;
         try {
             this.renderer = new WebGLRenderer({
                 preserveDrawingBuffer: true,
@@ -59512,7 +59513,7 @@
             return false;
         }
         this.renderer.setPixelRatio(dpr);
-        this.renderer.setSize(this.width, this.height);
+        this.renderer.setSize(width, height);
         this.renderer.autoClear = false;
         this.renderer.sortObjects = true;
         this.renderer.outputEncoding = this.parameters.rendererEncoding;
@@ -59530,8 +59531,10 @@
         if (!this.renderer.capabilities.isWebGL2) {
             setExtensionFragDepth(this.renderer.extensions.get('EXT_frag_depth'));
             this.renderer.extensions.get('OES_element_index_uint');
-            setSupportsReadPixelsFloat((this.renderer.extensions.get('OES_texture_float') && this.renderer.extensions.get('WEBGL_color_buffer_float')) ||
-                (this.renderer.extensions.get('OES_texture_float') && testTextureSupport(gl.FLOAT)));
+            setSupportsReadPixelsFloat((this.renderer.extensions.get('OES_texture_float') &&
+                this.renderer.extensions.get('WEBGL_color_buffer_float')) ||
+                (this.renderer.extensions.get('OES_texture_float') &&
+                    testTextureSupport(gl.FLOAT)));
             // picking texture
             this.renderer.extensions.get('OES_texture_float');
             this.supportsHalfFloat = (this.renderer.extensions.get('OES_texture_half_float') &&
@@ -59584,6 +59587,10 @@
             magFilter: NearestFilter,
             format: RGBAFormat,
             type: UnsignedByteType
+            // using HalfFloatType or FloatType does not work on some Chrome 61 installations
+            // type: this.supportsHalfFloat ? HalfFloatType : (
+            // SupportsReadPixelsFloat ? FloatType : UnsignedByteType
+            // )
         });
         this.holdTarget.texture.encoding = this.parameters.rendererEncoding;
         this.compositeUniforms = {
@@ -59691,7 +59698,6 @@
         }
         if (exports.Debug)
             { this.updateHelper(); }
-        // console.log(this.pickingGroup);
         // Log.timeEnd( "Viewer.add" );
     };
     Viewer.prototype.addBuffer = function addBuffer (buffer, instance) {
@@ -60698,7 +60704,7 @@
               this.hovering = false;
               this.down.set(event.touches[0].pageX, event.touches[0].pageY);
               this.position.set(event.touches[0].pageX, event.touches[0].pageY);
-              // this._setCanvasPosition(event.touches[0])
+              // this._setCanvasPosition(event.touches[ 0 ])
               break;
           }
           case 2: {
@@ -60737,7 +60743,7 @@
               this.lastMoved = window.performance.now();
               this.prevPosition.copy(this.position);
               this.position.set(event.touches[0].pageX, event.touches[0].pageY);
-              // this._setCanvasPosition(event.touches[0])
+              // this._setCanvasPosition(event.touches[ 0 ])
               var dx = this.prevPosition.x - this.position.x;
               var dy = this.prevPosition.y - this.position.y;
               this.signals.moved.dispatch(dx, dy);
@@ -60931,10 +60937,10 @@
       // rotate around screen X then screen Y
       this._getCameraRotation(tmpRotateMatrix$3);
       tmpRotateVector$3.set(1, 0, 0); // X axis
-      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
+      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3); // screen X
       tmpRotateQuaternion$2.setFromAxisAngle(tmpRotateVector$3, dy);
       tmpRotateVector$3.set(0, 1, 0); // Y axis
-      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
+      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3); // screen Y
       tmpRotateQuaternion2$1.setFromAxisAngle(tmpRotateVector$3, dx);
       tmpRotateQuaternion$2.multiply(tmpRotateQuaternion2$1);
       tmpRotateMatrix$3.makeRotationFromQuaternion(tmpRotateQuaternion$2);
@@ -71839,11 +71845,6 @@
       AnnotationEx.prototype.getContent = function getContent () {
           return this.text;
       };
-      AnnotationEx.prototype._updateViewerPosition = function _updateViewerPosition () {
-          this._viewerPosition
-              .copy(this.position)
-              .applyMatrix4(this.component.matrix);
-      };
       AnnotationEx.prototype._update = function _update () {
           var cp = this._canvasPosition;
           var vp = this._viewerPosition;
@@ -71859,10 +71860,6 @@
           if (this._cameraPosition.z < 0) {
               cp.x = -10000;
           }
-      };
-      AnnotationEx.prototype.dispose = function dispose () {
-          this.viewer.signals.ticked.remove(this._update, this);
-          this.component.signals.matrixChanged.remove(this._updateViewerPosition, this);
       };
 
       return AnnotationEx;
@@ -73911,6 +73908,7 @@
       }
       return connectedAtomIndices;
   };
+  //
   AtomProxy.prototype.qualifiedName = function qualifiedName (noResname) {
           if ( noResname === void 0 ) noResname = false;
 
@@ -87120,7 +87118,6 @@
       PickingProxyEx.prototype.constructor = PickingProxyEx;
       PickingProxyEx.prototype.getLabel = function getLabel () {
           var viewer = this.stage.viewer;
-          var atom = this.atom || this.closeAtom;
           var checkResult = this.checkBase();
           if (viewer.ethernaMode.ethernaPickingMode) {
               if (!checkResult.isBase)
@@ -87134,77 +87131,7 @@
                   return name;
               }
           }
-          var msg = 'nothing';
-          if (this.arrow) {
-              msg = this.arrow.name;
-          }
-          else if (atom) {
-              msg = "atom: " + (atom.qualifiedName()) + " (" + (atom.structure.name) + ")";
-          }
-          else if (this.axes) {
-              msg = 'axes';
-          }
-          else if (this.bond) {
-              msg = "bond: " + (this.bond.atom1.qualifiedName()) + " - " + (this.bond.atom2.qualifiedName()) + " (" + (this.bond.structure.name) + ")";
-          }
-          else if (this.box) {
-              msg = this.box.name;
-          }
-          else if (this.cone) {
-              msg = this.cone.name;
-          }
-          else if (this.clash) {
-              msg = "clash: " + (this.clash.clash.sele1) + " - " + (this.clash.clash.sele2);
-          }
-          else if (this.contact) {
-              msg = (this.contact.type) + ": " + (this.contact.atom1.qualifiedName()) + " - " + (this.contact.atom2.qualifiedName()) + " (" + (this.contact.atom1.structure.name) + ")";
-          }
-          else if (this.cylinder) {
-              msg = this.cylinder.name;
-          }
-          else if (this.distance) {
-              msg = "distance: " + (this.distance.atom1.qualifiedName()) + " - " + (this.distance.atom2.qualifiedName()) + " (" + (this.distance.structure.name) + ")";
-          }
-          else if (this.ellipsoid) {
-              msg = this.ellipsoid.name;
-          }
-          else if (this.octahedron) {
-              msg = this.octahedron.name;
-          }
-          else if (this.point) {
-              msg = this.point.name;
-          }
-          else if (this.mesh) {
-              msg = "mesh: " + (this.mesh.name || this.mesh.serial) + " (" + (this.mesh.shape.name) + ")";
-          }
-          else if (this.slice) {
-              msg = "slice: " + (this.slice.value.toPrecision(3)) + " (" + (this.slice.volume.name) + ")";
-          }
-          else if (this.sphere) {
-              msg = this.sphere.name;
-          }
-          else if (this.surface) {
-              msg = "surface: " + (this.surface.surface.name);
-          }
-          else if (this.tetrahedron) {
-              msg = this.tetrahedron.name;
-          }
-          else if (this.torus) {
-              msg = this.torus.name;
-          }
-          else if (this.unitcell) {
-              msg = "unitcell: " + (this.unitcell.unitcell.spacegroup) + " (" + (this.unitcell.structure.name) + ")";
-          }
-          else if (this.unknown) {
-              msg = 'unknown';
-          }
-          else if (this.volume) {
-              msg = "volume: " + (this.volume.value.toPrecision(3)) + " (" + (this.volume.volume.name) + ")";
-          }
-          else if (this.wideline) {
-              msg = this.wideline.name;
-          }
-          return msg;
+          return PickingProxy.prototype.getLabel.call(this);
       };
       PickingProxyEx.prototype.checkBase = function checkBase () {
           if (this.bond) {
@@ -87257,8 +87184,7 @@
       ViewerControlsEx.prototype.changed = function changed () {
           var viewer = this.viewer;
           viewer.extendHighlightTimer();
-          this.viewer.requestRender();
-          this.signals.changed.dispatch();
+          ViewerControls.prototype.changed.call(this);
       };
 
       return ViewerControlsEx;
@@ -87349,30 +87275,6 @@
       if ( Stage ) StageEx.__proto__ = Stage;
       StageEx.prototype = Object.create( Stage && Stage.prototype );
       StageEx.prototype.constructor = StageEx;
-      StageEx.checkModelFile = function checkModelFile (path, callback) {
-          var params = {};
-          var p = Object.assign({}, {}, params);
-          // const name = getFileInfo(path).name
-          var onLoadFn = function (object) {
-              if (object instanceof Structure)
-                  { callback(object); }
-              else
-                  { callback(null); }
-          };
-          var onErrorFn = function (e) {
-              callback(null);
-          };
-          var ext = defaults(p.ext, getFileInfo(path).ext);
-          var promise;
-          if (ParserRegistry.isTrajectory(ext)) {
-              promise = Promise.reject(new Error(("loadFile: ext '" + ext + "' is a trajectory and must be loaded into a structure component")));
-          }
-          else {
-              promise = autoLoad(path, p);
-          }
-          return promise.then(onLoadFn, onErrorFn);
-      };
-
       StageEx.prototype.loadFile = function loadFile (path, params, etherna_pairs) {
           if ( params === void 0 ) params = {};
           if ( etherna_pairs === void 0 ) etherna_pairs = [];
@@ -109459,7 +109361,7 @@
       ambientIntensity: NumberParam(2, 10, 0),
       hoverTimeout: IntegerParam(10000, -1),
       tooltip: BooleanParam(),
-      mousePreset: SelectParam.apply(void 0, Object.keys(MouseActionPresets)),
+      mousePreset: SelectParam.apply(void 0, Object.keys(MouseActionPresets))
   };
 
   var version = "2.0.0-dev.39";
@@ -109577,5 +109479,5 @@
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));
 //# sourceMappingURL=ngl.dev.js.map

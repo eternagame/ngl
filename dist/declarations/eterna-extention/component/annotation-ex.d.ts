@@ -7,7 +7,5 @@ export default class AnnotationEx extends Annotation {
     constructor(component: Component, position: Vector3, content: string, params?: AnnotationParams);
     getCanvasPosition(): import("three/src/math/Vector2").Vector2;
     getContent(): string;
-    _updateViewerPosition(): void;
     _update(): void;
-    dispose(): void;
 }
