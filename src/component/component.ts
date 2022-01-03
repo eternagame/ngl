@@ -218,7 +218,7 @@ abstract class Component {
    */
   addAnnotation (position: Vector3, content: string, params: AnnotationParams) {
     const annotation = new Annotation(this, position, content, params)
-    this.annotationList.push(annotation) 
+    this.annotationList.push(annotation)
 
     return annotation
   }

@@ -47,7 +47,7 @@ import Volume from '../surface/volume'
 import Shape from '../geometry/shape'
 import Script from '../script'
 
-function matchName(name: string | RegExp, object: { name: string }) {
+function matchName (name: string|RegExp, object: { name: string }) {
   if (name instanceof RegExp) {
     return object.name.match(name) !== null
   } else {
@@ -114,14 +114,14 @@ export interface StageSignals {
   hovered: Signal
 }
 
-export type RenderQualityType = 'auto' | 'low' | 'medium' | 'high'
+export type RenderQualityType = 'auto'|'low'|'medium'|'high'
 
 export const StageDefaultParameters = {
   impostor: true,
   quality: 'medium' as RenderQualityType,
   workerDefault: true,
   sampleLevel: 0,
-  backgroundColor: 'black' as string | number,
+  backgroundColor: 'black' as string|number,
   rotateSpeed: 2.0,
   zoomSpeed: 1.2,
   panSpeed: 1.0,
@@ -134,10 +134,10 @@ export const StageDefaultParameters = {
   fogFar: 100,
   cameraFov: 40,
   cameraEyeSep: 0.3,
-  cameraType: 'perspective' as 'perspective' | 'orthographic' | 'stereo',
-  lightColor: 0xffffff as string | number, 
+  cameraType: 'perspective' as 'perspective'|'orthographic'|'stereo',
+  lightColor: 0xffffff as string|number,
   lightIntensity: 1.0,
-  ambientColor: 0xffffff as string | number, 
+  ambientColor: 0xffffff as string|number,
   ambientIntensity: 0.2,
   hoverTimeout: 0,
   tooltip: true,
@@ -198,7 +198,7 @@ class Stage {
   spinAnimation: Animation
   rockAnimation: Animation
 
-  constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
+  constructor (idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
     this.viewer = new Viewer(idOrElement) 
     if (!this.viewer.renderer) return
 
@@ -229,9 +229,9 @@ class Stage {
     this.animationBehavior = new AnimationBehavior(this)
     this.keyBehavior = new KeyBehavior(this)
 
-    this.spinAnimation = this.animationControls.spin([0, 1, 0], 0.005)
+    this.spinAnimation = this.animationControls.spin([ 0, 1, 0 ], 0.005)
     this.spinAnimation.pause(true)
-    this.rockAnimation = this.animationControls.rock([0, 1, 0], 0.005)
+    this.rockAnimation = this.animationControls.rock([ 0, 1, 0 ], 0.005)
     this.rockAnimation.pause(true)
 
     // must come after the viewer has been instantiated
@@ -244,7 +244,7 @@ class Stage {
   /**
    * Set stage parameters
    */
-  setParameters(params: Partial<StageParameters> = {}) {
+  setParameters (params: Partial<StageParameters> = {}) {
     updateParams(this.parameters, params)
 
     const p = params
@@ -273,7 +273,7 @@ class Stage {
     return this
   }
 
-  log(msg: string) {
+  log (msg: string) {
     // console.log('STAGE LOG', msg)
     this.logList.push(msg)
   }
@@ -281,7 +281,7 @@ class Stage {
   /**
    * Get stage parameters
    */
-  getParameters() {
+  getParameters () {
     return Object.assign({}, this.parameters)
   }
 
@@ -290,7 +290,7 @@ class Stage {
    * @param  {StructureComponent|SurfaceComponent} object - component to create the representations for
    * @return {undefined}
    */
-  defaultFileRepresentation(component: Component) {
+  defaultFileRepresentation (component: Component) {
     if (component instanceof StructureComponent) {
       component.setSelection('/0')
 
@@ -448,14 +448,14 @@ class Stage {
    *                   a {@link SurfaceComponent} or a {@link ScriptComponent} object,
    *                   depending on the type of the loaded file.
    */
-  loadFile(path: string | File | Blob, params: Partial<StageLoadFileParams> = {}) {
+  loadFile (path: string|File|Blob, params: Partial<StageLoadFileParams> = {}) {
     const p = Object.assign({}, this.defaultFileParams, params)
     const name = getFileInfo(path).name
 
     this.tasks.increment()
     this.log(`loading file '${name}'`)
 
-    const onLoadFn = (object: Structure | Surface | Volume) => {
+    const onLoadFn = (object: Structure|Surface|Volume) => {
       this.log(`loaded '${name}'`)
 
       const component = this.addComponentFromObject(object, p)
@@ -467,7 +467,7 @@ class Stage {
       return component
     }
 
-    const onErrorFn = (e: Error | string) => {
+    const onErrorFn = (e: Error|string) => {
       this.tasks.decrement()
       const errorMsg = `error loading file: '${e}'`
       this.log(errorMsg)
@@ -488,7 +488,7 @@ class Stage {
     return promise.then(onLoadFn, onErrorFn)
   }
 
-  loadScript(path: string | File | Blob) {
+  loadScript (path: string|File|Blob) {
     const name = getFileInfo(path).name
 
     this.log(`loading script '${name}'`)
@@ -503,7 +503,7 @@ class Stage {
         })
         this.log(`called script '${name}'`)
       },
-      (error: Error | string) => {
+      (error: Error|string) => {
         this.tasks.decrement()
         const errorMsg = `errored script '${name}' "${error}"`
         this.log(errorMsg)
@@ -517,7 +517,7 @@ class Stage {
    * @param {Component} component - the component to add
    * @return {undefined}
    */
-  addComponent(component: Component) {
+  addComponent (component: Component) {
     if (!component) {
       Log.warn('Stage.addComponent: no component given')
       return
@@ -530,7 +530,7 @@ class Stage {
   /**
    * Create a component from the given object and add to the stage
    */
-  addComponentFromObject(object: Structure | Surface | Volume | Shape, params: Partial<ComponentParameters> = {}): void | Component {
+  addComponentFromObject (object: Structure|Surface|Volume|Shape, params: Partial<ComponentParameters> = {}): void|Component {
     const CompClass = ComponentRegistry.get(object.type)
 
     if (CompClass) {
@@ -547,7 +547,7 @@ class Stage {
    * @param  {Component} component - the component to remove
    * @return {undefined}
    */
-  removeComponent(component: Component) {
+  removeComponent (component: Component) {
     const idx = this.compList.indexOf(component)
     if (idx !== -1) {
       this.compList.splice(idx, 1)
@@ -559,7 +559,7 @@ class Stage {
   /**
    * Remove all components from the stage
    */
-  removeAllComponents() {
+  removeAllComponents () {
     this.compList.slice().forEach(o => this.removeComponent(o))
   }
 
@@ -567,7 +567,7 @@ class Stage {
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  handleResize(width:number=0, height: number=0) {
+  handleResize (width:number=0, height: number=0) {
     this.viewer.handleResize(width, height)
   }
 
@@ -577,7 +577,7 @@ class Stage {
    * @param {String} height - CSS height value
    * @return {undefined}
    */
-  setSize(width: string, height: string) {
+  setSize (width: string, height: string) {
     const container = this.viewer.container
 
     if (container !== document.body) {
@@ -593,9 +593,9 @@ class Stage {
    *                               defaults to the viewer container
    * @return {undefined}
    */
-  toggleFullscreen(element: HTMLElement) {
+  toggleFullscreen (element: HTMLElement) {
     if (!document.fullscreenEnabled && !document.mozFullScreenEnabled &&
-      !(document as any).webkitFullscreenEnabled && !document.msFullscreenEnabled
+        !(document as any).webkitFullscreenEnabled && !document.msFullscreenEnabled
     ) {
       Log.log('fullscreen mode (currently) not possible')
       return
@@ -607,12 +607,12 @@ class Stage {
 
     //
 
-    function getFullscreenElement() {
+    function getFullscreenElement () {
       return document.fullscreenElement || document.mozFullScreenElement ||
         (document as any).webkitFullscreenElement || document.msFullscreenElement
     }
 
-    function resizeElement() {
+    function resizeElement () {
       if (!getFullscreenElement() && self.lastFullscreenElement) {
         const element = self.lastFullscreenElement
         element.style.width = element.dataset.normalWidth || ''
@@ -674,7 +674,7 @@ class Stage {
    * @param {Boolean} flag - if true start rocking and stop spinning
    * @return {undefined}
    */
-  setSpin(flag: boolean) {
+  setSpin (flag: boolean) {
     if (flag) {
       this.spinAnimation.resume(true)
       this.rockAnimation.pause(true)
@@ -688,7 +688,7 @@ class Stage {
    * @param {Boolean} flag - if true start rocking and stop spinning
    * @return {undefined}
    */
-  setRock(flag: boolean) {
+  setRock (flag: boolean) {
     if (flag) {
       this.rockAnimation.resume(true)
       this.spinAnimation.pause(true)
@@ -701,7 +701,7 @@ class Stage {
    * Toggle spin
    * @return {undefined}
    */
-  toggleSpin() {
+  toggleSpin () {
     this.setSpin(this.spinAnimation.paused)
   }
 
@@ -709,7 +709,7 @@ class Stage {
    * Toggle rock
    * @return {undefined}
    */
-  toggleRock() {
+  toggleRock () {
     this.setRock(this.rockAnimation.paused)
   }
 
@@ -722,7 +722,7 @@ class Stage {
    *
    * @return {number} focus
    */
-  getFocus(): number {
+  getFocus () : number {
     const p = this.parameters
     if (p.clipMode !== 'scene') return 0.0
 
@@ -740,7 +740,7 @@ class Stage {
    *
    * @param {number} value focus
    */
-  setFocus(value: number) {
+  setFocus (value: number) {
     if (this.parameters.clipMode !== 'scene') return
 
     let clipNear
@@ -764,7 +764,7 @@ class Stage {
     this.setParameters({ clipNear, clipFar, fogNear, fogFar })
   }
 
-  getZoomForBox(boundingBox: Box3) {
+  getZoomForBox (boundingBox: Box3) {
     const bbSize = boundingBox.getSize(tmpZoomVector)
     const maxSize = Math.max(bbSize.x, bbSize.y, bbSize.z)
     const minSize = Math.min(bbSize.x, bbSize.y, bbSize.z)
@@ -777,21 +777,21 @@ class Stage {
     const aspectFactor = (height < width ? 1 : aspect)
 
     distance = Math.abs(
-      ((distance * 0.5) / aspectFactor) / Math.sin(fov / 2) 
+      ((distance * 0.5) / aspectFactor) / Math.sin(fov / 2)
     )
     distance += this.parameters.clipDist
     return -distance
   }
 
-  getBox() {
+  getBox () {
     return this.viewer.boundingBox
   }
 
-  getZoom() {
+  getZoom () {
     return this.getZoomForBox(this.getBox())
   }
 
-  getCenter(optionalTarget?: Vector3) {
+  getCenter (optionalTarget?: Vector3) {
     return this.getBox().getCenter(optionalTarget || new Vector3())
   }
 
@@ -800,7 +800,7 @@ class Stage {
    * @param  {Integer} duration - animation time in milliseconds
    * @return {undefined}
    */
-  autoView(duration?: number) {
+  autoView (duration?: number) {
     this.animationControls.zoomMove(
       this.getCenter(),
       this.getZoom(),
@@ -811,7 +811,7 @@ class Stage {
   /**
    * Make image from what is shown in a viewer canvas
    */
-  makeImage(params: Partial<ImageParameters> = {}) {
+  makeImage (params: Partial<ImageParameters> = {}) {
     return new Promise<Blob>((resolve, reject) => {
       this.tasks.onZeroOnce(() => {
         this.tasks.increment()
@@ -826,7 +826,7 @@ class Stage {
     })
   }
 
-  setImpostor(value: boolean) {
+  setImpostor (value: boolean) {
     this.parameters.impostor = value
 
     const types = [
@@ -844,7 +844,7 @@ class Stage {
     })
   }
 
-  setQuality(value: RenderQualityType) {
+  setQuality (value: RenderQualityType) {
     this.parameters.quality = value
 
     const types = [
@@ -877,7 +877,7 @@ class Stage {
   /**
    * Iterator over each component and executing the callback
    */
-  eachComponent(callback: (comp: Component) => void, type?: string) {
+  eachComponent (callback: (comp: Component) => void, type?: string) {
     this.compList.slice().forEach(comp => {
       if (type === undefined || type === comp.type) callback(comp)
     })
@@ -886,7 +886,7 @@ class Stage {
   /**
    * Iterator over each representation and executing the callback
    */
-  eachRepresentation(callback: (reprElem: RepresentationElement, comp: Component) => void, type?: string) {
+  eachRepresentation (callback: (reprElem: RepresentationElement, comp: Component) => void, type?: string) {
     this.eachComponent(comp => {
       comp.reprList.slice().forEach(reprElem => {
         if (type === undefined || type === reprElem.getType()) callback(reprElem, comp)
@@ -897,7 +897,7 @@ class Stage {
   /**
    * Get collection of components by name
    */
-  getComponentsByName(name: string | RegExp) {
+  getComponentsByName (name: string|RegExp) {
     const compList: Component[] = []
 
     this.eachComponent(comp => {
@@ -910,7 +910,7 @@ class Stage {
   /**
    * Get collection of components by object
    */
-  getComponentsByObject(object: Structure | Surface | Volume | Shape) {
+  getComponentsByObject (object: Structure|Surface|Volume|Shape) {
     const compList: Component[] = []
 
     this.eachComponent(comp => {
@@ -923,7 +923,7 @@ class Stage {
   /**
    * Get collection of representations by name
    */
-  getRepresentationsByName(name: string | RegExp) {
+  getRepresentationsByName (name: string|RegExp) {
     const reprList: RepresentationElement[] = []
 
     this.eachRepresentation((repr, comp) => {
@@ -933,18 +933,18 @@ class Stage {
     return new RepresentationCollection(reprList)
   }
 
-  measureClear() {
+  measureClear () {
     this.eachComponent((sc: StructureComponent) => sc.measureClear(), 'structure')
   }
 
-  measureUpdate() {
+  measureUpdate () {
     this.eachComponent((sc: StructureComponent) => sc.measureUpdate(), 'structure')
   }
 
   /**
    * Cleanup when disposing of a stage object
    */
-  dispose() {
+  dispose () {
     this.tasks.dispose()
     this.viewer.dispose()
   }

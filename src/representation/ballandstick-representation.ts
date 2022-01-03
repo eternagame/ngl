@@ -86,7 +86,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
    * @param {Viewer} viewer - a viewer object
    * @param {BallAndStickRepresentationParameters} params - ball and stick representation parameters
    */
-  constructor(structure: Structure, viewer: Viewer, params: Partial<BallAndStickRepresentationParameters>) {
+  constructor (structure: Structure, viewer: Viewer, params: Partial<BallAndStickRepresentationParameters>) {
     super(structure, viewer, params)
 
     this.type = 'ball+stick'
@@ -130,7 +130,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
     this.init(params)
   }
 
-  init(params: Partial<BallAndStickRepresentationParameters>) {
+  init (params: Partial<BallAndStickRepresentationParameters>) {
     var p = params || {}
     p.radiusType = defaults(p.radiusType, 'size')
     p.radiusSize = defaults(p.radiusSize, 0.15)
@@ -147,22 +147,22 @@ class BallAndStickRepresentation extends StructureRepresentation {
     super.init(p)
   }
 
-  getAtomRadius(atom: AtomProxy) {
+  getAtomRadius (atom: AtomProxy) {
     return this.aspectRatio * super.getAtomRadius(atom)
   }
 
-  getAtomParams(what?: AtomDataFields, params?: Partial<AtomDataParams>) {
+  getAtomParams (what?: AtomDataFields, params?: Partial<AtomDataParams>) {
     var p = super.getAtomParams(what, params)
     p.radiusParams.scale *= this.aspectRatio
 
     return p
   }
 
-  getAtomData(sview: StructureView, what?: AtomDataFields, params?: Partial<AtomDataParams>): AtomData {
+  getAtomData (sview: StructureView, what?: AtomDataFields, params?: Partial<AtomDataParams>): AtomData {
     return sview.getAtomData(this.getAtomParams(what, params))
   }
 
-  getBondParams(what?: BondDataFields, params?: Partial<BondDataParams>) {
+  getBondParams (what?: BondDataFields, params?: Partial<BondDataParams>) {
     params = Object.assign({
       multipleBond: this.multipleBond,
       bondSpacing: this.bondSpacing,
@@ -172,11 +172,11 @@ class BallAndStickRepresentation extends StructureRepresentation {
     return super.getBondParams(what, params)
   }
 
-  getBondData(sview: StructureView, what?: BondDataFields, params?: Partial<BondDataParams>): BondData {
+  getBondData (sview: StructureView, what?: BondDataFields, params?: Partial<BondDataParams>): BondData {
     return sview.getBondData(this.getBondParams(what, params))
   }
 
-  createData(sview: StructureView) {
+  createData (sview: StructureView) {
     const bufferList: any[] = []
 
     if (this.lineOnly) {
@@ -218,7 +218,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
     }
   }
 
-  updateData(what: BondDataFields | AtomDataFields, data: StructureRepresentationData) {
+  updateData (what: BondDataFields | AtomDataFields, data: StructureRepresentationData) {
     if (this.multipleBond !== 'off' && what && what.radius) {
       what.position = true
     }
@@ -226,7 +226,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
     const bondData = this.getBondData(data.sview as StructureView, what)
 
     if (this.lineOnly) {
-      const lineData: Partial<CylinderBufferData> = {}
+      const lineData:Partial<CylinderBufferData> = {}
 
       if (!what || what.position) {
         Object.assign(lineData, {
@@ -242,7 +242,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
         })
       }
 
-      data.bufferList[0].setAttributes(lineData)
+      data.bufferList[ 0 ].setAttributes(lineData)
     } else {
       var cylinderData: Partial<CylinderBufferData> = {}
 
@@ -266,7 +266,7 @@ class BallAndStickRepresentation extends StructureRepresentation {
         })
       }
 
-      data.bufferList[0].setAttributes(cylinderData)
+      data.bufferList[ 0 ].setAttributes(cylinderData)
 
       if (!this.cylinderOnly) {
         var atomData = this.getAtomData(data.sview as StructureView, what)
@@ -291,17 +291,17 @@ class BallAndStickRepresentation extends StructureRepresentation {
           })
         }
 
-        data.bufferList[1].setAttributes(sphereData)
+        data.bufferList[ 1 ].setAttributes(sphereData)
       }
     }
   }
 
-  setParameters(params: Partial<BallAndStickRepresentationParameters> = {}) {
+  setParameters (params: Partial<BallAndStickRepresentationParameters> = {}) {
     let rebuild = false
     const what: AtomDataFields = {}
 
     if (params.aspectRatio || params.bondSpacing || params.bondScale) {
-      Object.assign(what, { radius: true })
+      Object.assign(what, {radius: true})
       if (!ExtensionFragDepth || this.disableImpostor) {
         rebuild = true
       }

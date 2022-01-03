@@ -49,26 +49,26 @@ class EllipsoidBuffer extends GeometryBuffer {
   _minorAxis: Float32Array
   _radius: Float32Array
 
-  constructor(data: EllipsoidBufferData, params: Partial<EllipsoidBufferParameters> = {}) {
+  constructor (data: EllipsoidBufferData, params: Partial<EllipsoidBufferParameters> = {}) {
     super(data, params, new IcosahedronBufferGeometry(1, defaults(params.sphereDetail, 2)))
 
     this.setAttributes(data, true)
   }
 
-  applyPositionTransform(matrix: Matrix4, i: number, i3: number) {
+  applyPositionTransform (matrix: Matrix4, i: number, i3: number) {
     target.fromArray(this._majorAxis as any, i3)
     up.fromArray(this._minorAxis as any, i3)
     matrix.lookAt(eye, target, up)
 
-    scale.set(this._radius[i], up.length(), target.length())
+    scale.set(this._radius[ i ], up.length(), target.length())
     matrix.scale(scale)
   }
 
-  setAttributes(data: Partial<EllipsoidBufferData> = {}, initNormals?: boolean) {
+  setAttributes (data: Partial<EllipsoidBufferData> = {}, initNormals?: boolean) {
     if (data.radius) this._radius = data.radius
     if (data.majorAxis) this._majorAxis = data.majorAxis
     if (data.minorAxis) this._minorAxis = data.minorAxis
-    
+
     super.setAttributes(data, initNormals)
   }
 }

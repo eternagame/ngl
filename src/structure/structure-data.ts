@@ -61,7 +61,7 @@ export interface BondDataParams {
     radiusParams?: RadiusParams
     bondStore?: BondStore
     bondSet?: BitArray,
-    multipleBond?: 'off' | 'symmetric' | 'offset'
+    multipleBond?: 'off'|'symmetric'|'offset'
     bondScale?: number
     bondSpacing?: number
     radius2?: boolean

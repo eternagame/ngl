@@ -143,11 +143,11 @@ class TrackballControls {
     // rotate around screen X then screen Y
     this._getCameraRotation(tmpRotateMatrix)
     tmpRotateVector.set(1, 0, 0) // X axis
-    tmpRotateVector.applyMatrix4(tmpRotateMatrix) 
+    tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X
     tmpRotateQuaternion.setFromAxisAngle(tmpRotateVector, dy)
 
     tmpRotateVector.set(0, 1, 0) // Y axis
-    tmpRotateVector.applyMatrix4(tmpRotateMatrix) 
+    tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y
     tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector, dx)
 
     tmpRotateQuaternion.multiply(tmpRotateQuaternion2)
