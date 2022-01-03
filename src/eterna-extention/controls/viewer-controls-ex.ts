@@ -9,7 +9,6 @@ export default class ViewerControlsEx extends ViewerControls {
     changed () {
         var viewer = <ViewerEx>this.viewer;
         viewer.extendHighlightTimer();
-        this.viewer.requestRender()
-        this.signals.changed.dispatch()
+        super.changed();
     }
 }

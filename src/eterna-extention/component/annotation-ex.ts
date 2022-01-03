@@ -14,11 +14,6 @@ export default class AnnotationEx extends Annotation {
   getContent() {
     return this.text;
   }
-  _updateViewerPosition () {
-    this._viewerPosition
-      .copy(this.position)
-      .applyMatrix4(this.component.matrix)
-  }
 
   _update () {
     const cp = this._canvasPosition
@@ -38,9 +33,5 @@ export default class AnnotationEx extends Annotation {
     if (this._cameraPosition.z < 0) {
       cp.x = -10000;
     } 
-  }
-  dispose () {
-    this.viewer.signals.ticked.remove(this._update, this)
-    this.component.signals.matrixChanged.remove(this._updateViewerPosition, this)
   }
 }
