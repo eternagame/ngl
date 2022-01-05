@@ -17625,45 +17625,6 @@
       this.component.signals.matrixChanged.remove(this._updateViewerPosition, this);
   };
 
-  var AnnotationEx = /*@__PURE__*/(function (Annotation) {
-      function AnnotationEx(component, position, content, params) {
-          if ( params === void 0 ) params = {};
-
-          Annotation.call(this, component, position, content, params);
-          this.component = component;
-          this.position = position;
-          this.text = content;
-      }
-
-      if ( Annotation ) AnnotationEx.__proto__ = Annotation;
-      AnnotationEx.prototype = Object.create( Annotation && Annotation.prototype );
-      AnnotationEx.prototype.constructor = AnnotationEx;
-      AnnotationEx.prototype.getCanvasPosition = function getCanvasPosition () {
-          return this._canvasPosition;
-      };
-      AnnotationEx.prototype.getContent = function getContent () {
-          return this.text;
-      };
-      AnnotationEx.prototype._update = function _update () {
-          var cp = this._canvasPosition;
-          var vp = this._viewerPosition;
-          if (!this.getVisibility()) {
-              cp.x = -10000;
-              return;
-          }
-          this._cameraPosition.copy(vp)
-              .add(this.viewer.translationGroup.position)
-              .applyMatrix4(this.viewer.rotationGroup.matrix)
-              .sub(this.viewer.camera.position);
-          this.stage.viewerControls.getPositionOnCanvas(vp, cp);
-          if (this._cameraPosition.z < 0) {
-              cp.x = -10000;
-          }
-      };
-
-      return AnnotationEx;
-  }(Annotation));
-
   /**
    * @file Component Controls
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26424,15 +26385,6 @@
    * @return {undefined}
    */
   Component.prototype.eachAnnotation = function eachAnnotation (callback) {
-      this.annotationList.slice().forEach(callback);
-  };
-  // added for eterna-extension
-  Component.prototype.addAnnotationEx = function addAnnotationEx (position, content, params) {
-      var annotation = new AnnotationEx(this, position, content, params);
-      this.annotationList.push(annotation);
-      return annotation;
-  };
-  Component.prototype.eachAnnotationEx = function eachAnnotationEx (callback) {
       this.annotationList.slice().forEach(callback);
   };
   /**

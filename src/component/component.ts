@@ -11,7 +11,6 @@ import { Signal } from 'signals'
 import { defaults, createParams } from '../utils'
 import { generateUUID } from '../math/math-utils'
 import Annotation, { AnnotationParams } from '../component/annotation'
-import AnnotationEx from '../eterna-extention/component/annotation-ex'
 import ComponentControls from '../controls/component-controls'
 import { makeRepresentation } from '../representation/representation-utils'
 import RepresentationElement from './representation-element'
@@ -229,17 +228,6 @@ abstract class Component {
    * @return {undefined}
    */
   eachAnnotation (callback: (a: Annotation) => void) {
-    this.annotationList.slice().forEach(callback)
-  }
-
-  // added for eterna-extension
-  addAnnotationEx (position: Vector3, content: string, params: AnnotationParams) {
-    const annotation = new AnnotationEx(this, position, content, params)
-    this.annotationList.push(annotation)
-
-    return annotation
-  }
-  eachAnnotationEx (callback: (a: AnnotationEx) => void) {
     this.annotationList.slice().forEach(callback)
   }
 

@@ -6,7 +6,6 @@
 import { Vector3, Quaternion, Matrix4, Euler, Box3 } from 'three';
 import { Signal } from 'signals';
 import Annotation, { AnnotationParams } from '../component/annotation';
-import AnnotationEx from '../eterna-extention/component/annotation-ex';
 import ComponentControls from '../controls/component-controls';
 import RepresentationElement from './representation-element';
 import Stage from '../stage/stage';
@@ -127,8 +126,6 @@ declare abstract class Component {
      * @return {undefined}
      */
     eachAnnotation(callback: (a: Annotation) => void): void;
-    addAnnotationEx(position: Vector3, content: string, params: AnnotationParams): AnnotationEx;
-    eachAnnotationEx(callback: (a: AnnotationEx) => void): void;
     /**
      * Remove the give annotation from the component
      * @param {Annotation} annotation - the annotation to remove
