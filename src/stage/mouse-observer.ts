@@ -485,15 +485,15 @@ class MouseObserver {
       width = this.viewer.width;
       height = this.viewer.height;
     }
-    let offsetX = 0, offsetY = 0;
-    if ('offsetX' in event && 'offsetY' in event) {
-      offsetX = event.offsetX
-      offsetY = event.offsetY
-    } 
-    if(offsetX == 0 &&  offsetY == 0) {
+    let offsetX, offsetY;
+    if ('clientX' in event && 'clientY' in event) {
       offsetX = event.clientX - left
       offsetY = event.clientY - top
+    } else {
+      offsetX = event.offsetX
+      offsetY = event.offsetY
     }
+
     this.canvasPosition.set(offsetX, height - offsetY)
   }
 
