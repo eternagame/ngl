@@ -3,7 +3,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @private
  */
-import { Vector2, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import Stage from '../stage/stage';
 import Viewer from '../viewer/viewer';
 import Component from './component';
@@ -24,10 +24,10 @@ export default class Annotation {
     stage: Stage;
     viewer: Viewer;
     element: HTMLElement;
-    protected _viewerPosition: Vector3;
-    protected _canvasPosition: Vector2;
-    protected _cameraPosition: Vector3;
-    protected _clientRect: ClientRect;
+    private _viewerPosition;
+    private _canvasPosition;
+    private _cameraPosition;
+    private _clientRect;
     /**
      * @param {Component} component - the associated component
      * @param {Vector3} position - position in 3d

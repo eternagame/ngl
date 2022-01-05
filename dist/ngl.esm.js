@@ -71756,12 +71756,10 @@
           var content = document.createElement('div');
           content.innerText = value;
           Object.assign(content.style, {
-              backgroundColor: 'rgba( 0, 0, 0, 0.8 )',
-              color: 'white',
+              backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
+              color: 'lightgrey',
               padding: '8px',
               fontFamily: 'sans-serif',
-              textAlign: 'center',
-              borderRadius: '4px',
           });
           this.element.appendChild(content);
       }

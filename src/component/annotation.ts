@@ -30,10 +30,10 @@ export default class Annotation {
   viewer: Viewer
   element: HTMLElement
 
-  protected _viewerPosition: Vector3
-  protected _canvasPosition: Vector2
-  protected _cameraPosition: Vector3
-  protected _clientRect: ClientRect
+  private _viewerPosition: Vector3
+  private _canvasPosition: Vector2
+  private _cameraPosition: Vector3
+  private _clientRect: ClientRect
 
   /**
    * @param {Component} component - the associated component
@@ -91,12 +91,10 @@ export default class Annotation {
       const content = document.createElement('div')
       content.innerText = value
       Object.assign(content.style, {
-        backgroundColor: 'rgba( 0, 0, 0, 0.8 )',
-        color: 'white',
+        backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
+        color: 'lightgrey',
         padding: '8px',
         fontFamily: 'sans-serif',
-        textAlign: 'center',
-        borderRadius: '4px',
       })
       this.element.appendChild(content)
     }
