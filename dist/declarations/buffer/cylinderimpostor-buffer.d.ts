@@ -12,6 +12,17 @@ import { CylinderBufferData } from './cylinder-buffer';
 export declare const CylinderImpostorBufferDefaultParameters: {
     openEnded: boolean;
 } & {
+    /**
+     * make cylinder impostor buffer
+     * @param  {Object} data - attribute object
+     * @param  {Float32Array} data.position1 - from positions
+     * @param  {Float32Array} data.position2 - to positions
+     * @param  {Float32Array} data.color - from colors
+     * @param  {Float32Array} data.color2 - to colors
+     * @param  {Float32Array} data.radius - radii
+     * @param  {Picker} data.picking - picking ids
+     * @param  {BufferParameters} params - parameter object
+     */
     opaqueBack: boolean;
     side: import("./buffer").BufferSide;
     opacity: number;
@@ -112,6 +123,17 @@ declare class CylinderImpostorBuffer extends MappedAlignedBoxBuffer {
     get defaultParameters(): {
         openEnded: boolean;
     } & {
+        /**
+         * make cylinder impostor buffer
+         * @param  {Object} data - attribute object
+         * @param  {Float32Array} data.position1 - from positions
+         * @param  {Float32Array} data.position2 - to positions
+         * @param  {Float32Array} data.color - from colors
+         * @param  {Float32Array} data.color2 - to colors
+         * @param  {Float32Array} data.radius - radii
+         * @param  {Picker} data.picking - picking ids
+         * @param  {BufferParameters} params - parameter object
+         */
         opaqueBack: boolean;
         side: import("./buffer").BufferSide;
         opacity: number;

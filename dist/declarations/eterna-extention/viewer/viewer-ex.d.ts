@@ -58,7 +58,7 @@ export default class ViewerEx extends Viewer {
     endSpark(period: number): void;
     updateSpark(): void;
     setEthernaPairs(pairs: number[] | undefined): void;
-    setEthernaSequence(sequence: string, num: number): void;
+    setEthernaSequence(sequence: string, customNumbers?: (number | null)[] | undefined): void;
     setEthernaToolTipMode(mode: boolean): void;
     setHBondColor(colors: number[]): void;
     getWebGLCanvas(): HTMLCanvasElement;

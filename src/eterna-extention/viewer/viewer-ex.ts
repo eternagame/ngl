@@ -109,7 +109,7 @@ export default class ViewerEx extends Viewer {
     flashCount: number = 0
     ethernaMode:any = {
         ethernaPickingMode:true, 
-        ethernaNucleotideBase: 1,
+        ethernaCustomNumbering: undefined,
         highColor: 0xFFFFFF,
         mediumColor: 0x8F9DB0,
         weakColor: 0x546986,
@@ -637,9 +637,9 @@ export default class ViewerEx extends Viewer {
   setEthernaPairs(pairs: number[] | undefined) {
     this.etherna_pairs = pairs;
   }
-  setEthernaSequence(sequence: string, num: number) {
+  setEthernaSequence(sequence: string, customNumbers: (number|null)[] | undefined = undefined) {
     this.etherna_sequence = sequence;
-    this.ethernaMode.ethernaNucleotideBase = num;
+    this.ethernaMode.ethernaCustomNumbering = customNumbers;
   }
   setEthernaToolTipMode(mode:boolean) {
     this.ethernaMode.ethernaPickingMode = mode; 
