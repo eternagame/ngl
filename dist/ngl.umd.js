@@ -82795,7 +82795,7 @@
           this.flashCount = 0;
           this.ethernaMode = {
               ethernaPickingMode: true,
-              ethernaNucleotideBase: 1,
+              ethernaCustomNumbering: undefined,
               highColor: 0xFFFFFF,
               mediumColor: 0x8F9DB0,
               weakColor: 0x546986,
@@ -83283,9 +83283,11 @@
       ViewerEx.prototype.setEthernaPairs = function setEthernaPairs (pairs) {
           this.etherna_pairs = pairs;
       };
-      ViewerEx.prototype.setEthernaSequence = function setEthernaSequence (sequence, num) {
+      ViewerEx.prototype.setEthernaSequence = function setEthernaSequence (sequence, customNumbers) {
+          if ( customNumbers === void 0 ) customNumbers = undefined;
+
           this.etherna_sequence = sequence;
-          this.ethernaMode.ethernaNucleotideBase = num;
+          this.ethernaMode.ethernaCustomNumbering = customNumbers;
       };
       ViewerEx.prototype.setEthernaToolTipMode = function setEthernaToolTipMode (mode) {
           this.ethernaMode.ethernaPickingMode = mode;
@@ -83368,20 +83370,96 @@
       PickingProxyEx.prototype.constructor = PickingProxyEx;
       PickingProxyEx.prototype.getLabel = function getLabel () {
           var viewer = this.stage.viewer;
+          var atom = this.atom || this.closeAtom;
           var checkResult = this.checkBase();
           if (viewer.ethernaMode.ethernaPickingMode) {
               if (!checkResult.isBase)
                   { return ''; }
               else {
                   var name = '';
-                  if (this.bond.atom1.resno !== undefined)
-                      { name += (this.bond.atom1.resno + viewer.ethernaMode.ethernaNucleotideBase - 1); }
+                  if (this.bond.atom1.resno !== undefined) {
+                      var customNumbers = viewer.ethernaMode.ethernaCustomNumbering;
+                      if (customNumbers && customNumbers.length > 0)
+                          { name += customNumbers[this.bond.atom1.resno - 1]; } //(this.bond.atom1.resno + viewer.ethernaMode.ethernaCustomNumbering-1);
+                      else
+                          { name += this.bond.atom1.resno; }
+                  }
                   if (this.bond.atom1.resname)
                       { name += ': ' + this.bond.atom1.resname; }
                   return name;
               }
           }
-          return PickingProxy.prototype.getLabel.call(this);
+          var msg = 'nothing';
+          if (this.arrow) {
+              msg = this.arrow.name;
+          }
+          else if (atom) {
+              msg = "atom: " + (atom.qualifiedName()) + " (" + (atom.structure.name) + ")";
+          }
+          else if (this.axes) {
+              msg = 'axes';
+          }
+          else if (this.bond) {
+              msg = "bond: " + (this.bond.atom1.qualifiedName()) + " - " + (this.bond.atom2.qualifiedName()) + " (" + (this.bond.structure.name) + ")";
+          }
+          else if (this.box) {
+              msg = this.box.name;
+          }
+          else if (this.cone) {
+              msg = this.cone.name;
+          }
+          else if (this.clash) {
+              msg = "clash: " + (this.clash.clash.sele1) + " - " + (this.clash.clash.sele2);
+          }
+          else if (this.contact) {
+              msg = (this.contact.type) + ": " + (this.contact.atom1.qualifiedName()) + " - " + (this.contact.atom2.qualifiedName()) + " (" + (this.contact.atom1.structure.name) + ")";
+          }
+          else if (this.cylinder) {
+              msg = this.cylinder.name;
+          }
+          else if (this.distance) {
+              msg = "distance: " + (this.distance.atom1.qualifiedName()) + " - " + (this.distance.atom2.qualifiedName()) + " (" + (this.distance.structure.name) + ")";
+          }
+          else if (this.ellipsoid) {
+              msg = this.ellipsoid.name;
+          }
+          else if (this.octahedron) {
+              msg = this.octahedron.name;
+          }
+          else if (this.point) {
+              msg = this.point.name;
+          }
+          else if (this.mesh) {
+              msg = "mesh: " + (this.mesh.name || this.mesh.serial) + " (" + (this.mesh.shape.name) + ")";
+          }
+          else if (this.slice) {
+              msg = "slice: " + (this.slice.value.toPrecision(3)) + " (" + (this.slice.volume.name) + ")";
+          }
+          else if (this.sphere) {
+              msg = this.sphere.name;
+          }
+          else if (this.surface) {
+              msg = "surface: " + (this.surface.surface.name);
+          }
+          else if (this.tetrahedron) {
+              msg = this.tetrahedron.name;
+          }
+          else if (this.torus) {
+              msg = this.torus.name;
+          }
+          else if (this.unitcell) {
+              msg = "unitcell: " + (this.unitcell.unitcell.spacegroup) + " (" + (this.unitcell.structure.name) + ")";
+          }
+          else if (this.unknown) {
+              msg = 'unknown';
+          }
+          else if (this.volume) {
+              msg = "volume: " + (this.volume.value.toPrecision(3)) + " (" + (this.volume.volume.name) + ")";
+          }
+          else if (this.wideline) {
+              msg = this.wideline.name;
+          }
+          return msg;
       };
       PickingProxyEx.prototype.checkBase = function checkBase () {
           if (this.bond) {
