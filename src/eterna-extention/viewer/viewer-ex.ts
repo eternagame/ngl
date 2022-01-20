@@ -16,8 +16,6 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 
 import Viewer from "../../viewer/viewer";
-import PickingProxyEx from '../controls/picking-proxy-ex';
-import { PickingProxy } from '../../ngl';
 
 class Spark {
     sparkArray: Sprite[] = [];
@@ -108,7 +106,6 @@ export default class ViewerEx extends Viewer {
     effectFXAA: ShaderPass
     flashCount: number = 0
     ethernaMode:any = {
-        ethernaPickingMode:true, 
         ethernaCustomNumbering: undefined,
         highColor: 0xFFFFFF,
         mediumColor: 0x8F9DB0,
@@ -637,12 +634,8 @@ export default class ViewerEx extends Viewer {
   setEthernaPairs(pairs: number[] | undefined) {
     this.etherna_pairs = pairs;
   }
-  setEthernaSequence(sequence: string, customNumbers: (number|null)[] | undefined = undefined) {
+  setEthernaSequence(sequence: string) {
     this.etherna_sequence = sequence;
-    this.ethernaMode.ethernaCustomNumbering = customNumbers;
-  }
-  setEthernaToolTipMode(mode:boolean) {
-    this.ethernaMode.ethernaPickingMode = mode; 
   }
   setHBondColor(colors:number[]) {
     this.ethernaMode.highColor = colors[0];
@@ -652,59 +645,6 @@ export default class ViewerEx extends Viewer {
   }
   getWebGLCanvas() {
     return this.renderer.domElement;
-  }
-  static tooltipPick(stage: Stage, pickingProxy0: PickingProxy) {
-    var pickingProxy = <PickingProxyEx>pickingProxy0;
-    var viewer:ViewerEx = <ViewerEx>stage.viewer;
-    stage.tooltip.style.display = 'none';
-    const sp = stage.getParameters() as any
-    if (sp.tooltip && pickingProxy) {
-      const mp = pickingProxy.mouse.position
-      window.dispatchEvent(new CustomEvent('tooltip', {
-        detail: {
-          'x': mp.x,
-          'y': mp.y,
-          'label': pickingProxy.getLabel(),
-        }
-      }));
-
-      var result = pickingProxy.checkBase();
-      if (result.isBase) {
-        viewer.hoverEBaseObject(result.resno - 1, true, viewer.baseColor);
-        window.dispatchEvent(new CustomEvent('picking', {
-          detail: {
-            'resno': result.resno,
-            'resname': result.resname,
-            'action': 'hover',
-          }
-        }));
-      } else
-      viewer.hoverEBaseObject(-1);
-    } else {
-      viewer.hoverEBaseObject(-1);
-      window.dispatchEvent(new CustomEvent('tooltip', {
-        detail: {
-          'x': 0,
-          'y': 0,
-          'label': '',
-        }
-      }));
-    }
-  }
-  static movePick(stage: Stage, pickingProxy0: PickingProxy) {
-    var pickingProxy = <PickingProxyEx>pickingProxy0;
-    if (pickingProxy) {
-      var result = pickingProxy.checkBase();
-      if (result.isBase) {
-        window.dispatchEvent(new CustomEvent('picking', {
-          detail: {
-            'resno': result.resno,
-            'resname': result.resname,
-            'action': 'clicked',
-          }
-        }));
-      }
-    }
   }
 }
 

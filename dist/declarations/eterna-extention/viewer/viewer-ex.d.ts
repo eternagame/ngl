@@ -6,7 +6,6 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import Viewer from "../../viewer/viewer";
-import { PickingProxy } from '../../ngl';
 declare class Spark {
     sparkArray: Sprite[];
     textSprite: Sprite | null;
@@ -58,11 +57,8 @@ export default class ViewerEx extends Viewer {
     endSpark(period: number): void;
     updateSpark(): void;
     setEthernaPairs(pairs: number[] | undefined): void;
-    setEthernaSequence(sequence: string, customNumbers?: (number | null)[] | undefined): void;
-    setEthernaToolTipMode(mode: boolean): void;
+    setEthernaSequence(sequence: string): void;
     setHBondColor(colors: number[]): void;
     getWebGLCanvas(): HTMLCanvasElement;
-    static tooltipPick(stage: Stage, pickingProxy0: PickingProxy): void;
-    static movePick(stage: Stage, pickingProxy0: PickingProxy): void;
 }
 export {};

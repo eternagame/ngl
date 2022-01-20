@@ -60746,6 +60746,7 @@
               // this._setCanvasPosition(event.touches[0])
               var dx = this.prevPosition.x - this.position.x;
               var dy = this.prevPosition.y - this.position.y;
+              console.log(dx, dy, this.pressed);
               this.signals.moved.dispatch(dx, dy);
               if (this.pressed) {
                   this.signals.dragged.dispatch(dx, dy);
@@ -86494,7 +86495,6 @@
           this.spark = new Spark();
           this.flashCount = 0;
           this.ethernaMode = {
-              ethernaPickingMode: true,
               ethernaCustomNumbering: undefined,
               highColor: 0xFFFFFF,
               mediumColor: 0x8F9DB0,
@@ -86983,14 +86983,8 @@
       ViewerEx.prototype.setEthernaPairs = function setEthernaPairs (pairs) {
           this.etherna_pairs = pairs;
       };
-      ViewerEx.prototype.setEthernaSequence = function setEthernaSequence (sequence, customNumbers) {
-          if ( customNumbers === void 0 ) customNumbers = undefined;
-
+      ViewerEx.prototype.setEthernaSequence = function setEthernaSequence (sequence) {
           this.etherna_sequence = sequence;
-          this.ethernaMode.ethernaCustomNumbering = customNumbers;
-      };
-      ViewerEx.prototype.setEthernaToolTipMode = function setEthernaToolTipMode (mode) {
-          this.ethernaMode.ethernaPickingMode = mode;
       };
       ViewerEx.prototype.setHBondColor = function setHBondColor (colors) {
           this.ethernaMode.highColor = colors[0];
@@ -87001,204 +86995,9 @@
       ViewerEx.prototype.getWebGLCanvas = function getWebGLCanvas () {
           return this.renderer.domElement;
       };
-      ViewerEx.tooltipPick = function tooltipPick (stage, pickingProxy0) {
-          var pickingProxy = pickingProxy0;
-          var viewer = stage.viewer;
-          stage.tooltip.style.display = 'none';
-          var sp = stage.getParameters();
-          if (sp.tooltip && pickingProxy) {
-              var mp = pickingProxy.mouse.position;
-              window.dispatchEvent(new CustomEvent('tooltip', {
-                  detail: {
-                      'x': mp.x,
-                      'y': mp.y,
-                      'label': pickingProxy.getLabel(),
-                  }
-              }));
-              var result = pickingProxy.checkBase();
-              if (result.isBase) {
-                  viewer.hoverEBaseObject(result.resno - 1, true, viewer.baseColor);
-                  window.dispatchEvent(new CustomEvent('picking', {
-                      detail: {
-                          'resno': result.resno,
-                          'resname': result.resname,
-                          'action': 'hover',
-                      }
-                  }));
-              }
-              else
-                  { viewer.hoverEBaseObject(-1); }
-          }
-          else {
-              viewer.hoverEBaseObject(-1);
-              window.dispatchEvent(new CustomEvent('tooltip', {
-                  detail: {
-                      'x': 0,
-                      'y': 0,
-                      'label': '',
-                  }
-              }));
-          }
-      };
-      ViewerEx.movePick = function movePick (stage, pickingProxy0) {
-          var pickingProxy = pickingProxy0;
-          if (pickingProxy) {
-              var result = pickingProxy.checkBase();
-              if (result.isBase) {
-                  window.dispatchEvent(new CustomEvent('picking', {
-                      detail: {
-                          'resno': result.resno,
-                          'resname': result.resname,
-                          'action': 'clicked',
-                      }
-                  }));
-              }
-          }
-      };
 
       return ViewerEx;
   }(Viewer));
-
-  var PickingProxyEx = /*@__PURE__*/(function (PickingProxy) {
-      function PickingProxyEx(pickingData, stage) {
-          PickingProxy.call(this, pickingData, stage);
-          this.stage = stage;
-      }
-
-      if ( PickingProxy ) PickingProxyEx.__proto__ = PickingProxy;
-      PickingProxyEx.prototype = Object.create( PickingProxy && PickingProxy.prototype );
-      PickingProxyEx.prototype.constructor = PickingProxyEx;
-      PickingProxyEx.prototype.getLabel = function getLabel () {
-          var viewer = this.stage.viewer;
-          var atom = this.atom || this.closeAtom;
-          var checkResult = this.checkBase();
-          if (viewer.ethernaMode.ethernaPickingMode) {
-              if (!checkResult.isBase)
-                  { return ''; }
-              else {
-                  var name = '';
-                  if (this.bond.atom1.resno !== undefined) {
-                      var customNumbers = viewer.ethernaMode.ethernaCustomNumbering;
-                      if (customNumbers && customNumbers.length > 0)
-                          { name += customNumbers[this.bond.atom1.resno - 1]; } //(this.bond.atom1.resno + viewer.ethernaMode.ethernaCustomNumbering-1);
-                      else
-                          { name += this.bond.atom1.resno; }
-                  }
-                  if (this.bond.atom1.resname)
-                      { name += ': ' + this.bond.atom1.resname; }
-                  return name;
-              }
-          }
-          var msg = 'nothing';
-          if (this.arrow) {
-              msg = this.arrow.name;
-          }
-          else if (atom) {
-              msg = "atom: " + (atom.qualifiedName()) + " (" + (atom.structure.name) + ")";
-          }
-          else if (this.axes) {
-              msg = 'axes';
-          }
-          else if (this.bond) {
-              msg = "bond: " + (this.bond.atom1.qualifiedName()) + " - " + (this.bond.atom2.qualifiedName()) + " (" + (this.bond.structure.name) + ")";
-          }
-          else if (this.box) {
-              msg = this.box.name;
-          }
-          else if (this.cone) {
-              msg = this.cone.name;
-          }
-          else if (this.clash) {
-              msg = "clash: " + (this.clash.clash.sele1) + " - " + (this.clash.clash.sele2);
-          }
-          else if (this.contact) {
-              msg = (this.contact.type) + ": " + (this.contact.atom1.qualifiedName()) + " - " + (this.contact.atom2.qualifiedName()) + " (" + (this.contact.atom1.structure.name) + ")";
-          }
-          else if (this.cylinder) {
-              msg = this.cylinder.name;
-          }
-          else if (this.distance) {
-              msg = "distance: " + (this.distance.atom1.qualifiedName()) + " - " + (this.distance.atom2.qualifiedName()) + " (" + (this.distance.structure.name) + ")";
-          }
-          else if (this.ellipsoid) {
-              msg = this.ellipsoid.name;
-          }
-          else if (this.octahedron) {
-              msg = this.octahedron.name;
-          }
-          else if (this.point) {
-              msg = this.point.name;
-          }
-          else if (this.mesh) {
-              msg = "mesh: " + (this.mesh.name || this.mesh.serial) + " (" + (this.mesh.shape.name) + ")";
-          }
-          else if (this.slice) {
-              msg = "slice: " + (this.slice.value.toPrecision(3)) + " (" + (this.slice.volume.name) + ")";
-          }
-          else if (this.sphere) {
-              msg = this.sphere.name;
-          }
-          else if (this.surface) {
-              msg = "surface: " + (this.surface.surface.name);
-          }
-          else if (this.tetrahedron) {
-              msg = this.tetrahedron.name;
-          }
-          else if (this.torus) {
-              msg = this.torus.name;
-          }
-          else if (this.unitcell) {
-              msg = "unitcell: " + (this.unitcell.unitcell.spacegroup) + " (" + (this.unitcell.structure.name) + ")";
-          }
-          else if (this.unknown) {
-              msg = 'unknown';
-          }
-          else if (this.volume) {
-              msg = "volume: " + (this.volume.value.toPrecision(3)) + " (" + (this.volume.volume.name) + ")";
-          }
-          else if (this.wideline) {
-              msg = this.wideline.name;
-          }
-          return msg;
-      };
-      PickingProxyEx.prototype.checkBase = function checkBase () {
-          if (this.bond) {
-              if ((this.bond.atom1.resno == this.bond.atom2.resno) && this.bond.atom1.atomname.includes("C4'") && (this.bond.atom2.atomname.includes("N1") || this.bond.atom2.atomname.includes("N3"))) {
-                  return { isBase: true, resno: this.bond.atom1.resno, resname: this.bond.atom1.resname };
-              }
-          }
-          return { isBase: false, resno: -1, resname: '' };
-      };
-
-      return PickingProxyEx;
-  }(PickingProxy));
-
-  var PickingControlsEX = /*@__PURE__*/(function (PickingControls) {
-      function PickingControlsEX(stage) {
-          PickingControls.call(this, stage);
-          this.stage = stage;
-      }
-
-      if ( PickingControls ) PickingControlsEX.__proto__ = PickingControls;
-      PickingControlsEX.prototype = Object.create( PickingControls && PickingControls.prototype );
-      PickingControlsEX.prototype.constructor = PickingControlsEX;
-      PickingControlsEX.prototype.pick = function pick (x, y) {
-          var pickingData = this.viewer.pick(x, y);
-          if (pickingData.picker &&
-              pickingData.picker.type !== 'ignore' &&
-              pickingData.pid !== undefined) {
-              var pickerArray = pickingData.picker.array;
-              if (pickerArray && pickingData.pid >= pickerArray.length) {
-                  console.error('pid >= picker.array.length');
-              }
-              else {
-                  return new PickingProxyEx(pickingData, this.stage);
-              }
-          }
-      };
-
-      return PickingControlsEX;
-  }(PickingControls));
 
   var ViewerControlsEx = /*@__PURE__*/(function (ViewerControls) {
       function ViewerControlsEx(stage) {
@@ -87282,7 +87081,7 @@
           this.mouseObserver.viewer = this.viewer;
           this.viewerControls = new ViewerControlsEx(this);
           this.trackballControls = new TrackballControlsEx(this);
-          this.pickingControls = new PickingControlsEX(this);
+          this.pickingControls = new PickingControls(this);
           this.animationControls = new AnimationControls(this);
           this.mouseControls = new MouseControls(this);
           this.keyControls = new KeyControls(this);

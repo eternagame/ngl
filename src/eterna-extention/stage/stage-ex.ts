@@ -2,7 +2,6 @@ import { createParams } from '../../utils'
 import ViewerEx from '../viewer/viewer-ex'
 import MouseObserver from '../../stage/mouse-observer'
 
-import PickingControlsEx from '../controls/picking-controls-ex'
 import AnimationControls from '../../controls/animation-controls'
 import MouseControls from '../../controls/mouse-controls'
 import KeyControls from '../../controls/key-controls'
@@ -19,6 +18,7 @@ import ViewerControlsEx from '../controls/viewer-controls-ex'
 import { Box3, Vector3 } from '../../ngl'
 import { degToRad } from '../../math/math-utils'
 import TrackballControlsEx from '../controls/trackball-controls-ex'
+import PickingControls from '../../controls/picking-controls'
 
 export interface PixiRenderCallback {
     (imgData: HTMLCanvasElement, width:number, height:number): void;
@@ -46,7 +46,7 @@ class StageEx extends Stage {
         this.mouseObserver.viewer = this.viewer; 
         this.viewerControls = new ViewerControlsEx(this)
         this.trackballControls = new TrackballControlsEx(this)
-        this.pickingControls = new PickingControlsEx(this)
+        this.pickingControls = new PickingControls(this)
         this.animationControls = new AnimationControls(this)
         this.mouseControls = new MouseControls(this)
         this.keyControls = new KeyControls(this)

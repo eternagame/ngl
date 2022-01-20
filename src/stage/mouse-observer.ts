@@ -435,6 +435,7 @@ class MouseObserver {
         // this._setCanvasPosition(event.touches[0])
         const dx = this.prevPosition.x - this.position.x
         const dy = this.prevPosition.y - this.position.y
+        console.log(dx, dy, this.pressed);
         this.signals.moved.dispatch(dx, dy)
         if (this.pressed) {
           this.signals.dragged.dispatch(dx, dy)
