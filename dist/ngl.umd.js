@@ -5106,8 +5106,6 @@
   function onBeforeRender(renderer, scene, camera, geometry, material /*, group */) {
       var u = material.uniforms;
       var updateList = [];
-      if (!u)
-          { return; } //KKK
       if (u.objectId) {
           u.objectId.value = SupportsReadPixelsFloat ? this.id : this.id / 255;
           updateList.push('objectId');
@@ -5116,7 +5114,7 @@
           u.modelViewProjectionMatrix || u.modelViewProjectionMatrixInverse) {
           this.modelViewMatrix.multiplyMatrices(camera.matrixWorldInverse, this.matrixWorld);
       }
-      if (u && u.modelViewMatrixInverse) {
+      if (u.modelViewMatrixInverse) {
           u.modelViewMatrixInverse.value.getInverse(this.modelViewMatrix);
           updateList.push('modelViewMatrixInverse');
       }
@@ -5184,13 +5182,33 @@
         this.distVector = new three.Vector3();
         this.signals = {
             ticked: new signalsWrapper.Signal(),
-            rendered: new signalsWrapper.Signal(),
-            nextFrame: new signalsWrapper.Signal()
+            rendered: new signalsWrapper.Signal()
         };
-        this.container = idOrElement;
-        var box = this.container.getBoundingClientRect();
-        this.width = box.width;
-        this.height = box.height;
+        if (typeof idOrElement === 'string') {
+            var elm = document.getElementById(idOrElement);
+            if (elm === null) {
+                this.container = document.createElement('div');
+            }
+            else {
+                this.container = elm;
+            }
+        }
+        else if (idOrElement instanceof HTMLElement) {
+            this.container = idOrElement;
+        }
+        else {
+            this.container = document.createElement('div');
+        }
+        if (this.container === document.body) {
+            this.width = window.innerWidth || 1;
+            this.height = window.innerHeight || 1;
+        }
+        else {
+            var box = this.container.getBoundingClientRect();
+            this.width = box.width || 1;
+            this.height = box.height || 1;
+            this.container.style.overflow = 'hidden';
+        }
         this.wrapper = document.createElement('div');
         this.wrapper.style.position = 'relative';
         this.container.appendChild(this.wrapper);
@@ -5220,7 +5238,7 @@
             cameraType: 'perspective',
             cameraFov: 40,
             cameraEyeSep: 0.3,
-            cameraZ: -800,
+            cameraZ: -80,
             clipNear: 0,
             clipFar: 100,
             clipDist: 10,
@@ -5345,6 +5363,8 @@
             this.supportsHalfFloat = true;
         }
         this.wrapper.appendChild(this.renderer.domElement);
+        var dprWidth = width * dpr;
+        var dprHeight = height * dpr;
         if (exports.Debug) {
             console.log(JSON.stringify({
                 'Browser': Browser,
@@ -5357,8 +5377,6 @@
                 'SupportsReadPixelsFloat': SupportsReadPixelsFloat
             }, null, 2));
         }
-        var dprWidth = width * dpr;
-        var dprHeight = height * dpr;
         this.pickingTarget = new three.WebGLRenderTarget(dprWidth, dprHeight, {
             minFilter: three.NearestFilter,
             magFilter: three.NearestFilter,
@@ -5677,6 +5695,13 @@
         this.requestRender();
     };
     Viewer.prototype.setBackground = function setBackground (color) {
+        var p = this.parameters;
+        if (color)
+            { p.backgroundColor.set(color); } // TODO
+        this.setFog(p.backgroundColor);
+        this.renderer.setClearColor(p.backgroundColor, 0);
+        this.renderer.domElement.style.backgroundColor = p.backgroundColor.getStyle();
+        this.requestRender();
     };
     Viewer.prototype.setSampling = function setSampling (level) {
         if (level !== undefined) {
@@ -5764,8 +5789,8 @@
         this.requestRender();
     };
     Viewer.prototype.setSize = function setSize (width, height) {
-        this.width = width || 0;
-        this.height = height || 0;
+        this.width = width || 1;
+        this.height = height || 1;
         this.perspectiveCamera.aspect = this.width / this.height;
         this.orthographicCamera.left = -this.width / 2;
         this.orthographicCamera.right = this.width / 2;
@@ -5782,13 +5807,14 @@
         this.holdTarget.setSize(dprWidth, dprHeight);
         this.requestRender();
     };
-    Viewer.prototype.handleResize = function handleResize (width, height) {
-        if (width == 0 || height == 0) {
+    Viewer.prototype.handleResize = function handleResize () {
+        if (this.container === document.body) {
+            this.setSize(window.innerWidth, window.innerHeight);
+        }
+        else {
             var box = this.container.getBoundingClientRect();
             this.setSize(box.width, box.height);
         }
-        else
-            { this.setSize(width, height); }
     };
     Viewer.prototype.updateInfo = function updateInfo (reset) {
         var ref = this.info;
@@ -6299,27 +6325,17 @@
       this._onTouchend = this._onTouchend.bind(this);
       this._onTouchmove = this._onTouchmove.bind(this);
       this._listen();
-      // const opt = { passive: false } // treat as 'passive' so preventDefault can be called
-      // document.addEventListener('mousewheel', this._onMousewheel, opt)
-      // document.addEventListener('wheel', this._onMousewheel, opt)
-      // document.addEventListener('MozMousePixelScroll', this._onMousewheel, opt)
-      // document.addEventListener('mousemove', this._onMousemove, opt)
-      // document.addEventListener('mousedown', this._onMousedown, opt)
-      // document.addEventListener('mouseup', this._onMouseup, opt)
-      // document.addEventListener('contextmenu', this._onContextmenu, opt)
-      // document.addEventListener('touchstart', this._onTouchstart, opt)
-      // document.addEventListener('touchend', this._onTouchend, opt)
-      // document.addEventListener('touchmove', this._onTouchmove, opt)
-      this.domElement.addEventListener('mousewheel', this._onMousewheel);
-      this.domElement.addEventListener('wheel', this._onMousewheel);
-      this.domElement.addEventListener('MozMousePixelScroll', this._onMousewheel);
-      this.domElement.addEventListener('mousemove', this._onMousemove);
-      this.domElement.addEventListener('mousedown', this._onMousedown);
-      this.domElement.addEventListener('mouseup', this._onMouseup);
-      this.domElement.addEventListener('contextmenu', this._onContextmenu);
-      this.domElement.addEventListener('touchstart', this._onTouchstart);
-      this.domElement.addEventListener('touchend', this._onTouchend);
-      this.domElement.addEventListener('touchmove', this._onTouchmove);
+      var opt = { passive: false }; // treat as 'passive' so preventDefault can be called
+      document.addEventListener('mousewheel', this._onMousewheel, opt);
+      document.addEventListener('wheel', this._onMousewheel, opt);
+      document.addEventListener('MozMousePixelScroll', this._onMousewheel, opt);
+      document.addEventListener('mousemove', this._onMousemove, opt);
+      document.addEventListener('mousedown', this._onMousedown, opt);
+      document.addEventListener('mouseup', this._onMouseup, opt);
+      document.addEventListener('contextmenu', this._onContextmenu, opt);
+      document.addEventListener('touchstart', this._onTouchstart, opt);
+      document.addEventListener('touchend', this._onTouchend, opt);
+      document.addEventListener('touchmove', this._onTouchmove, opt);
   };
 
   var prototypeAccessors$w = { key: { configurable: true } };
@@ -6417,7 +6433,6 @@
    * @return {undefined}
    */
   MouseObserver.prototype._onMousemove = function _onMousemove (event) {
-      this._setCanvasPosition(event);
       if (event.target === this.domElement) {
           event.preventDefault();
           this.overElement = true;
@@ -6431,6 +6446,7 @@
       this.lastMoved = window.performance.now();
       this.prevPosition.copy(this.position);
       this.position.set(event.clientX, event.clientY);
+      this._setCanvasPosition(event);
       var dx = this.prevPosition.x - this.position.x;
       var dy = this.prevPosition.y - this.position.y;
       this.signals.moved.dispatch(dx, dy);
@@ -6442,7 +6458,6 @@
       if (event.target !== this.domElement) {
           return;
       }
-      this._setCanvasPosition(event);
       event.preventDefault();
       this._setKeys(event);
       this.moving = false;
@@ -6452,6 +6467,7 @@
       this.which = event.which;
       this.buttons = getMouseButtons(event);
       this.pressed = true;
+      this._setCanvasPosition(event);
   };
   /**
    * handle mouse up
@@ -6478,7 +6494,7 @@
       }
       this.which = undefined;
       this.buttons = undefined;
-      this.pressed = false;
+      this.pressed = undefined;
       // if (this._distance() > 3 || event.which === RightMouseButton) {
       //   this.signals.dropped.dispatch();
       // }
@@ -6492,9 +6508,6 @@
       if (event.target !== this.domElement) {
           return;
       }
-      if (event.touches.length == 1) {
-          this._setCanvasPosition(event.touches[0]);
-      }
       event.preventDefault();
       this.pressed = true;
       switch (event.touches.length) {
@@ -6503,7 +6516,7 @@
               this.hovering = false;
               this.down.set(event.touches[0].pageX, event.touches[0].pageY);
               this.position.set(event.touches[0].pageX, event.touches[0].pageY);
-              // this._setCanvasPosition(event.touches[ 0 ])
+              this._setCanvasPosition(event.touches[0]);
               break;
           }
           case 2: {
@@ -6517,14 +6530,13 @@
       if (event.target === this.domElement) {
           event.preventDefault();
       }
+      var cp = this.canvasPosition;
+      this.signals.clicked.dispatch(cp.x, cp.y);
       this.which = undefined;
       this.buttons = undefined;
-      this.pressed = false;
+      this.pressed = undefined;
   };
   MouseObserver.prototype._onTouchmove = function _onTouchmove (event) {
-      if (event.touches.length > 0) {
-          this._setCanvasPosition(event.touches[0]);
-      }
       if (event.target === this.domElement) {
           event.preventDefault();
           this.overElement = true;
@@ -6542,10 +6554,9 @@
               this.lastMoved = window.performance.now();
               this.prevPosition.copy(this.position);
               this.position.set(event.touches[0].pageX, event.touches[0].pageY);
-              // this._setCanvasPosition(event.touches[0])
+              this._setCanvasPosition(event.touches[0]);
               var dx = this.prevPosition.x - this.position.x;
               var dy = this.prevPosition.y - this.position.y;
-              console.log(dx, dy, this.pressed);
               this.signals.moved.dispatch(dx, dy);
               if (this.pressed) {
                   this.signals.dragged.dispatch(dx, dy);
@@ -6582,24 +6593,16 @@
   };
   MouseObserver.prototype._setCanvasPosition = function _setCanvasPosition (event) {
       var box = this.domElement.getBoundingClientRect();
-      var left = box.left;
-      var top = box.top;
-      var width = box.width;
-      var height = box.height;
-      if (width == 0 || height == 0) {
-          width = this.viewer.width;
-          height = this.viewer.height;
-      }
       var offsetX, offsetY;
       if ('clientX' in event && 'clientY' in event) {
-          offsetX = event.clientX - left;
-          offsetY = event.clientY - top;
+          offsetX = event.clientX - box.left;
+          offsetY = event.clientY - box.top;
       }
       else {
           offsetX = event.offsetX;
           offsetY = event.offsetY;
       }
-      this.canvasPosition.set(offsetX, height - offsetY);
+      this.canvasPosition.set(offsetX, box.height - offsetY);
   };
   MouseObserver.prototype._setKeys = function _setKeys (event) {
       this.altKey = event.altKey;
@@ -6608,26 +6611,16 @@
       this.shiftKey = event.shiftKey;
   };
   MouseObserver.prototype.dispose = function dispose () {
-      // document.removeEventListener('mousewheel', this._onMousewheel)
-      // document.removeEventListener('wheel', this._onMousewheel)
-      // document.removeEventListener('MozMousePixelScroll', this._onMousewheel)
-      // document.removeEventListener('mousemove', this._onMousemove)
-      // document.removeEventListener('mousedown', this._onMousedown)
-      // document.removeEventListener('mouseup', this._onMouseup)
-      // document.removeEventListener('contextmenu', this._onContextmenu)
-      // document.removeEventListener('touchstart', this._onTouchstart)
-      // document.removeEventListener('touchend', this._onTouchend)
-      // document.removeEventListener('touchmove', this._onTouchmove)
-      this.domElement.removeEventListener('mousewheel', this._onMousewheel);
-      this.domElement.removeEventListener('wheel', this._onMousewheel);
-      this.domElement.removeEventListener('MozMousePixelScroll', this._onMousewheel);
-      this.domElement.removeEventListener('mousemove', this._onMousemove);
-      this.domElement.removeEventListener('mousedown', this._onMousedown);
-      this.domElement.removeEventListener('mouseup', this._onMouseup);
-      this.domElement.removeEventListener('contextmenu', this._onContextmenu);
-      this.domElement.removeEventListener('touchstart', this._onTouchstart);
-      this.domElement.removeEventListener('touchend', this._onTouchend);
-      this.domElement.removeEventListener('touchmove', this._onTouchmove);
+      document.removeEventListener('mousewheel', this._onMousewheel);
+      document.removeEventListener('wheel', this._onMousewheel);
+      document.removeEventListener('MozMousePixelScroll', this._onMousewheel);
+      document.removeEventListener('mousemove', this._onMousemove);
+      document.removeEventListener('mousedown', this._onMousedown);
+      document.removeEventListener('mouseup', this._onMouseup);
+      document.removeEventListener('contextmenu', this._onContextmenu);
+      document.removeEventListener('touchstart', this._onTouchstart);
+      document.removeEventListener('touchend', this._onTouchend);
+      document.removeEventListener('touchmove', this._onTouchmove);
   };
 
   Object.defineProperties( MouseObserver.prototype, prototypeAccessors$w );
@@ -19120,9 +19113,6 @@
   prototypeAccessors$j.resname.get = function () {
       return this.residueType.resname;
   };
-  prototypeAccessors$j.resname.set = function (name) {
-      this.residueType.resname = name;
-  };
   /**
    * Hetero flag
    */
@@ -29121,9 +29111,9 @@
       cameraFov: 40,
       cameraEyeSep: 0.3,
       cameraType: 'perspective',
-      lightColor: 0xffffff,
+      lightColor: 0xdddddd,
       lightIntensity: 1.0,
-      ambientColor: 0xffffff,
+      ambientColor: 0xdddddd,
       ambientIntensity: 0.2,
       hoverTimeout: 0,
       tooltip: true,
@@ -29170,7 +29160,6 @@
       });
       this.viewer.container.appendChild(this.tooltip);
       this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement);
-      this.mouseObserver.viewer = this.viewer;
       this.viewerControls = new ViewerControls(this);
       this.trackballControls = new TrackballControls(this);
       this.pickingControls = new PickingControls(this);
@@ -29225,7 +29214,7 @@
       return this;
   };
   Stage.prototype.log = function log (msg) {
-      // console.log('STAGE LOG', msg)
+      console.log('STAGE LOG', msg);
       this.logList.push(msg);
   };
   /**
@@ -29492,11 +29481,8 @@
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  Stage.prototype.handleResize = function handleResize (width, height) {
-          if ( width === void 0 ) width = 0;
-          if ( height === void 0 ) height = 0;
-
-      this.viewer.handleResize(width, height);
+  Stage.prototype.handleResize = function handleResize () {
+      this.viewer.handleResize();
   };
   /**
    * Set width and height
@@ -82790,7 +82776,7 @@
       this.textSprite = sprite;
   };
   var ViewerEx = /*@__PURE__*/(function (Viewer) {
-      function ViewerEx(idOrElement, stage, pixiCallback) {
+      function ViewerEx(idOrElement, stage) {
           Viewer.call(this, idOrElement);
           this.spark = new Spark();
           this.flashCount = 0;
@@ -82805,14 +82791,9 @@
           this.etherna_pairs = undefined;
           this.etherna_sequence = '';
           this.fromOuter = false;
-          this.pixiCallback = undefined;
           this.baseColor = 0xFFFF00;
           this.stage = stage;
-          this.wrapper.removeChild(this.renderer.domElement);
-          this.container.removeChild(this.wrapper);
-          this.wrapper = document.createElement('div');
-          this.pixiCallback = pixiCallback;
-          this.signals.nextFrame.add(this.updateSpark, this);
+          this.signals.rendered.add(this.updateSpark, this);
       }
 
       if ( Viewer ) ViewerEx.__proto__ = Viewer;
@@ -82897,52 +82878,10 @@
           this.markGroup.name = 'markGroup';
           this.modelGroup.add(this.markGroup);
       };
-      ViewerEx.prototype.__render = function __render (picking, camera, renderTarget) {
-          if ( picking === void 0 ) picking = false;
-
-          if (picking) {
-              if (!this.lastRenderedPicking)
-                  { this.__renderPickingGroup(camera); }
-          }
-          else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
-              // TODO super sample broken for stereo camera
-              this.__renderSuperSample(camera, renderTarget);
-              this.__renderModelGroup(camera, renderTarget);
-              if (this.pixiCallback) {
-                  this.signals.rendered.dispatch();
-                  this.signals.nextFrame.dispatch();
-                  this.pixiCallback(this.renderer.domElement, this.width, this.height);
-              }
-          }
-          else {
-              this.__renderModelGroup(camera, renderTarget);
-              if (this.pixiCallback) {
-                  this.signals.rendered.dispatch();
-                  this.signals.nextFrame.dispatch();
-                  this.pixiCallback(this.renderer.domElement, this.width, this.height);
-              }
-          }
-      };
       ViewerEx.prototype.setSize = function setSize (width, height) {
-          this.width = width || 0;
-          this.height = height || 0;
-          this.perspectiveCamera.aspect = this.width / this.height;
-          this.orthographicCamera.left = -this.width / 2;
-          this.orthographicCamera.right = this.width / 2;
-          this.orthographicCamera.top = this.height / 2;
-          this.orthographicCamera.bottom = -this.height / 2;
-          this.camera.updateProjectionMatrix();
-          var dpr = window.devicePixelRatio;
-          this.renderer.setPixelRatio(dpr);
-          this.renderer.setSize(width, height);
-          var dprWidth = this.width * dpr;
-          var dprHeight = this.height * dpr;
-          this.pickingTarget.setSize(dprWidth, dprHeight);
-          this.sampleTarget.setSize(dprWidth, dprHeight);
-          this.holdTarget.setSize(dprWidth, dprHeight);
           this.composer.setSize(width, height);
           this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
-          this.requestRender();
+          Viewer.prototype.setSize.call(this, width, height);
       };
       ViewerEx.prototype.__renderModelGroup = function __renderModelGroup (camera, renderTarget) {
           this.renderer.setRenderTarget(renderTarget || null);
@@ -83292,9 +83231,6 @@
           this.ethernaMode.weakColor = colors[2];
           this.ethernaMode.zeroColor = colors[3];
       };
-      ViewerEx.prototype.getWebGLCanvas = function getWebGLCanvas () {
-          return this.renderer.domElement;
-      };
 
       return ViewerEx;
   }(Viewer));
@@ -83367,27 +83303,33 @@
   StageDefaultParameters.lightColor = 0xffffff;
   StageDefaultParameters.ambientColor = 0xffffff;
   var StageEx = /*@__PURE__*/(function (Stage) {
-      function StageEx(idOrElement, params, pixiCallback) {
+      function StageEx(idOrElement, params) {
           if ( params === void 0 ) params = {};
-          if ( pixiCallback === void 0 ) pixiCallback = undefined;
 
           Stage.call(this, idOrElement, params);
+          var oldWrapper = this.viewer.wrapper;
           this.viewer.dispose();
-          this.viewer = new ViewerEx(idOrElement, this, pixiCallback);
+          oldWrapper.remove();
+          this.viewer = new ViewerEx(idOrElement, this);
           if (!this.viewer.renderer)
               { return; }
           this.viewer.container.appendChild(this.tooltip);
+          this.mouseObserver.dispose();
           this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement);
-          this.mouseObserver.viewer = this.viewer;
           this.viewerControls = new ViewerControlsEx(this);
           this.trackballControls = new TrackballControlsEx(this);
           this.pickingControls = new PickingControls(this);
+          this.animationControls.dispose();
           this.animationControls = new AnimationControls(this);
           this.mouseControls = new MouseControls(this);
           this.keyControls = new KeyControls(this);
+          this.pickingBehavior.dispose();
           this.pickingBehavior = new PickingBehavior(this);
+          this.mouseBehavior.dispose();
           this.mouseBehavior = new MouseBehavior(this);
+          this.animationBehavior.dispose();
           this.animationBehavior = new AnimationBehavior(this);
+          this.keyBehavior.dispose();
           this.keyBehavior = new KeyBehavior(this);
           this.spinAnimation = this.animationControls.spin([0, 1, 0], 0.005);
           this.spinAnimation.pause(true);
@@ -95594,7 +95536,7 @@
           var currentName = null;
           var first = null;
           var pointerNames = [];
-          var authAsymId, authSeqId, labelAtomId, labelCompId, labelAsymId, labelEntityId, labelAltId, groupPDB, id, typeSymbol, pdbxPDBmodelNum, pdbxPDBinsCode, CartnX, CartnY, CartnZ, bIsoOrEquiv, occupancy;
+          var authAsymId, authSeqId, labelSeqId, labelAtomId, labelCompId, labelAsymId, labelEntityId, labelAltId, groupPDB, id, typeSymbol, pdbxPDBmodelNum, pdbxPDBinsCode, CartnX, CartnY, CartnZ, bIsoOrEquiv, occupancy;
           //
           var atomMap = s.atomMap;
           var atomStore = s.atomStore;
@@ -95732,8 +95674,8 @@
                               var ls = line.split(reWhitespace$6);
                               if (first) {
                                   authAsymId = pointerNames.indexOf('auth_asym_id');
-                                  // authSeqId = pointerNames.indexOf('auth_seq_id')
-                                  authSeqId = pointerNames.indexOf('label_seq_id');
+                                  authSeqId = pointerNames.indexOf('auth_seq_id');
+                                  labelSeqId = pointerNames.indexOf('label_seq_id');
                                   labelAtomId = pointerNames.indexOf('label_atom_id');
                                   labelCompId = pointerNames.indexOf('label_comp_id');
                                   labelAsymId = pointerNames.indexOf('label_asym_id');
@@ -95790,7 +95732,7 @@
                               }
                               //
                               var resname = ls[labelCompId];
-                              var resno = parseInt(ls[authSeqId]);
+                              var resno = parseInt(ls[authSeqId !== -1 ? authSeqId : labelSeqId]);
                               var inscode = ls[pdbxPDBinsCode];
                               inscode = (inscode === '?') ? '' : inscode;
                               var chainname = ls[authAsymId];

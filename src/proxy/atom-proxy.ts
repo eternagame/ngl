@@ -157,9 +157,6 @@ class AtomProxy {
     return this.residueType.resname
   }
 
-  set resname (name) {
-    this.residueType.resname = name;
-  }
   /**
    * Hetero flag
    */

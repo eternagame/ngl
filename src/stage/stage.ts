@@ -74,6 +74,7 @@ declare global {
     msRequestFullscreen(): void
   }
 }
+
 /**
  * Stage parameter object.
  * @typedef {Object} StageParameters - stage parameters
@@ -135,9 +136,9 @@ export const StageDefaultParameters = {
   cameraFov: 40,
   cameraEyeSep: 0.3,
   cameraType: 'perspective' as 'perspective'|'orthographic'|'stereo',
-  lightColor: 0xffffff as string|number,
+  lightColor: 0xdddddd as string|number,
   lightIntensity: 1.0,
-  ambientColor: 0xffffff as string|number,
+  ambientColor: 0xdddddd as string|number,
   ambientIntensity: 0.2,
   hoverTimeout: 0,
   tooltip: true,
@@ -199,7 +200,7 @@ class Stage {
   rockAnimation: Animation
 
   constructor (idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
-    this.viewer = new Viewer(idOrElement) 
+    this.viewer = new Viewer(idOrElement)
     if (!this.viewer.renderer) return
 
     this.tooltip = document.createElement('div')
@@ -216,7 +217,6 @@ class Stage {
     this.viewer.container.appendChild(this.tooltip)
 
     this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement)
-    this.mouseObserver.viewer = this.viewer; 
     this.viewerControls = new ViewerControls(this)
     this.trackballControls = new TrackballControls(this)
     this.pickingControls = new PickingControls(this)
@@ -274,7 +274,7 @@ class Stage {
   }
 
   log (msg: string) {
-    // console.log('STAGE LOG', msg)
+    console.log('STAGE LOG', msg)
     this.logList.push(msg)
   }
 
@@ -567,8 +567,8 @@ class Stage {
    * Handle any size-changes of the container element
    * @return {undefined}
    */
-  handleResize (width:number=0, height: number=0) {
-    this.viewer.handleResize(width, height)
+  handleResize () {
+    this.viewer.handleResize()
   }
 
   /**

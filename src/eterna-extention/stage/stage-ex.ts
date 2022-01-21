@@ -32,28 +32,35 @@ StageDefaultParameters.lightColor = 0xffffff;
 StageDefaultParameters.ambientColor = 0xffffff;
       
 class StageEx extends Stage {
-    constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}, 
-        pixiCallback:PixiRenderCallback|undefined = undefined) {
+    constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
         super(idOrElement, params as StageParameters);
+        
+        const oldWrapper = this.viewer.wrapper;
         this.viewer.dispose();
+        oldWrapper.remove();
 
-        this.viewer = new ViewerEx(idOrElement, this, pixiCallback) 
+        this.viewer = new ViewerEx(idOrElement, this) 
         if (!this.viewer.renderer) return
 
         this.viewer.container.appendChild(this.tooltip)
 
+        this.mouseObserver.dispose()
         this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement)
-        this.mouseObserver.viewer = this.viewer; 
         this.viewerControls = new ViewerControlsEx(this)
         this.trackballControls = new TrackballControlsEx(this)
         this.pickingControls = new PickingControls(this)
+        this.animationControls.dispose()
         this.animationControls = new AnimationControls(this)
         this.mouseControls = new MouseControls(this)
         this.keyControls = new KeyControls(this)
 
+        this.pickingBehavior.dispose()
         this.pickingBehavior = new PickingBehavior(this)
+        this.mouseBehavior.dispose()
         this.mouseBehavior = new MouseBehavior(this)
+        this.animationBehavior.dispose()
         this.animationBehavior = new AnimationBehavior(this)
+        this.keyBehavior.dispose()
         this.keyBehavior = new KeyBehavior(this)
 
         this.spinAnimation = this.animationControls.spin([0, 1, 0], 0.005)

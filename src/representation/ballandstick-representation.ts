@@ -33,6 +33,7 @@ export interface BallAndStickRepresentationParameters extends StructureRepresent
   multipleBond: 'off' | 'symmetric' | 'offset'
   bondSpacing: number
   bondScale: number
+  linewidth: number
 }
 
 /**

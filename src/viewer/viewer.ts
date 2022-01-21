@@ -58,8 +58,6 @@ function onBeforeRender (this: Object3D, renderer: WebGLRenderer, scene: Scene, 
   const u = material.uniforms
   const updateList = []
 
-  if (!u) return; //KKK
-
   if (u.objectId) {
     u.objectId.value = SupportsReadPixelsFloat ? this.id : this.id / 255
     updateList.push('objectId')
@@ -71,7 +69,7 @@ function onBeforeRender (this: Object3D, renderer: WebGLRenderer, scene: Scene, 
     this.modelViewMatrix.multiplyMatrices(camera.matrixWorldInverse, this.matrixWorld)
   }
 
-  if (u && u.modelViewMatrixInverse) {
+  if (u.modelViewMatrixInverse) {
     u.modelViewMatrixInverse.value.getInverse(this.modelViewMatrix)
     updateList.push('modelViewMatrixInverse')
   }
@@ -136,8 +134,7 @@ export type ColorWorkflow = 'linear' | 'sRGB'
 
 export interface ViewerSignals {
   ticked: Signal,
-  rendered: Signal,
-  nextFrame: Signal
+  rendered: Signal
 }
 
 export interface ViewerParameters {
@@ -251,18 +248,34 @@ export default class Viewer {
 
   private distVector = new Vector3()
 
-  constructor (idOrElement: HTMLElement) {
+  constructor (idOrElement: string|HTMLElement) {
     this.signals = {
       ticked: new Signal(),
-      rendered: new Signal(),
-      nextFrame: new Signal()
+      rendered: new Signal()
     }
 
-    this.container = idOrElement
+    if (typeof idOrElement === 'string') {
+      const elm = document.getElementById(idOrElement)
+      if (elm === null) {
+        this.container = document.createElement('div')
+      }else {
+        this.container = elm
+      }
+    } else if (idOrElement instanceof HTMLElement) {
+      this.container = idOrElement
+    } else {
+      this.container = document.createElement('div')
+    }
 
-    var box = this.container.getBoundingClientRect();
-    this.width = box.width;
-    this.height = box.height;
+    if (this.container === document.body) {
+      this.width = window.innerWidth || 1
+      this.height = window.innerHeight || 1
+    } else {
+      const box = this.container.getBoundingClientRect()
+      this.width = box.width || 1
+      this.height = box.height || 1
+      this.container.style.overflow = 'hidden'
+    }
 
     this.wrapper = document.createElement('div')
     this.wrapper.style.position = 'relative'
@@ -300,7 +313,7 @@ export default class Viewer {
       cameraType: 'perspective',
       cameraFov: 40,
       cameraEyeSep: 0.3,
-      cameraZ: -800, // FIXME initial value should be automatically determined
+      cameraZ: -80, // FIXME initial value should be automatically determined
 
       clipNear: 0,
       clipFar: 100,
@@ -466,6 +479,10 @@ export default class Viewer {
 
     this.wrapper.appendChild(this.renderer.domElement)
 
+    const dprWidth = width * dpr
+    const dprHeight = height * dpr
+
+
     if (Debug) {
       console.log(JSON.stringify({
         'Browser': Browser,
@@ -478,9 +495,6 @@ export default class Viewer {
         'SupportsReadPixelsFloat': SupportsReadPixelsFloat
       }, null, 2))
     }
-
-    const dprWidth = width * dpr
-    const dprHeight = height * dpr
 
     this.pickingTarget = new WebGLRenderTarget(
       dprWidth, dprHeight,
@@ -828,6 +842,15 @@ export default class Viewer {
   }
 
   setBackground (color?: Color | number | string) {
+    const p = this.parameters
+
+    if (color) p.backgroundColor.set(color as string)  // TODO
+
+    this.setFog(p.backgroundColor)
+    this.renderer.setClearColor(p.backgroundColor, 0)
+    this.renderer.domElement.style.backgroundColor = p.backgroundColor.getStyle()
+
+    this.requestRender()
   }
 
   setSampling (level: number) {
@@ -918,8 +941,8 @@ export default class Viewer {
   }
 
   setSize (width: number, height: number) {
-    this.width = width || 0
-    this.height = height || 0
+    this.width = width || 1
+    this.height = height || 1
 
     this.perspectiveCamera.aspect = this.width / this.height
     this.orthographicCamera.left = -this.width / 2
@@ -943,12 +966,13 @@ export default class Viewer {
     this.requestRender()
   }
 
-  handleResize (width:number, height: number) {
-    if (width == 0 || height == 0) {
+  handleResize () {
+    if (this.container === document.body) {
+      this.setSize(window.innerWidth, window.innerHeight)
+    } else {
       const box = this.container.getBoundingClientRect()
       this.setSize(box.width, box.height)
     }
-    else this.setSize(width, height)
   }
 
   updateInfo (reset?: boolean) {

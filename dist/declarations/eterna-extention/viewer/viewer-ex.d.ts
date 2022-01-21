@@ -1,6 +1,5 @@
 /// <reference types="node" />
 import Stage from '../../stage/stage';
-import { PixiRenderCallback } from '../stage/stage-ex';
 import { PerspectiveCamera, OrthographicCamera, Vector3, WebGLRenderTarget, Group, SpriteMaterial, Sprite } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
@@ -38,11 +37,9 @@ export default class ViewerEx extends Viewer {
     etherna_pairs: number[] | undefined;
     etherna_sequence: string;
     fromOuter: boolean;
-    pixiCallback: PixiRenderCallback | undefined;
-    constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined);
+    constructor(idOrElement: HTMLElement, stage: Stage);
     protected _initRenderer(): boolean;
     protected _initScene(): void;
-    protected __render(picking: boolean | undefined, camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
     setSize(width: number, height: number): void;
     protected __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
     hoverEBaseObject(resno: number, fromViewer?: boolean, color1?: number): void;
@@ -59,6 +56,5 @@ export default class ViewerEx extends Viewer {
     setEthernaPairs(pairs: number[] | undefined): void;
     setEthernaSequence(sequence: string): void;
     setHBondColor(colors: number[]): void;
-    getWebGLCanvas(): HTMLCanvasElement;
 }
 export {};

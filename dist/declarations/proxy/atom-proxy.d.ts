@@ -90,7 +90,6 @@ declare class AtomProxy {
      * Residue name
      */
     get resname(): string;
-    set resname(name: string);
     /**
      * Hetero flag
      */

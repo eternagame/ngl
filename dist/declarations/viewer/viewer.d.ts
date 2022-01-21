@@ -17,7 +17,6 @@ export declare type ColorWorkflow = 'linear' | 'sRGB';
 export interface ViewerSignals {
     ticked: Signal;
     rendered: Signal;
-    nextFrame: Signal;
 }
 export interface ViewerParameters {
     fogColor: Color;
@@ -91,7 +90,7 @@ export default class Viewer {
     private boundingBoxLength;
     private info;
     private distVector;
-    constructor(idOrElement: HTMLElement);
+    constructor(idOrElement: string | HTMLElement);
     private _initParams;
     private _initCamera;
     private _initStats;
@@ -137,7 +136,7 @@ export default class Viewer {
     setCamera(type: CameraType, fov?: number, eyeSep?: number): void;
     setClip(near: number, far: number, dist: number, clipMode?: string, clipScale?: string): void;
     setSize(width: number, height: number): void;
-    handleResize(width: number, height: number): void;
+    handleResize(): void;
     updateInfo(reset?: boolean): void;
     animate(): void;
     pick(x: number, y: number): {

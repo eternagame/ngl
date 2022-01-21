@@ -1,5 +1,4 @@
-import Stage from '../../stage/stage' 
-import {PixiRenderCallback} from '../stage/stage-ex' 
+import Stage from '../../stage/stage'
 import {
   PerspectiveCamera, OrthographicCamera, 
   Vector2, Vector3, Matrix4, 
@@ -120,19 +119,12 @@ export default class ViewerEx extends Viewer {
     etherna_sequence: string = '';
     fromOuter: boolean = false;
 
-    pixiCallback: PixiRenderCallback | undefined = undefined;
-
-    constructor(idOrElement: HTMLElement, stage: Stage, pixiCallback: PixiRenderCallback | undefined) {
+    constructor(idOrElement: HTMLElement, stage: Stage) {
         super(idOrElement)
 
         this.stage = stage;
 
-        this.wrapper.removeChild(this.renderer.domElement)
-        this.container.removeChild(this.wrapper)
-        this.wrapper = document.createElement('div');
-        this.pixiCallback = pixiCallback;
-
-        this.signals.nextFrame.add(this.updateSpark, this)
+        this.signals.rendered.add(this.updateSpark, this)
     }
     protected _initRenderer():boolean {
         if(!super._initRenderer()) return false;
@@ -233,61 +225,13 @@ export default class ViewerEx extends Viewer {
       this.markGroup = new Group()
       this.markGroup.name = 'markGroup'
       this.modelGroup.add(this.markGroup);
-    }
-    protected __render(picking = false, camera: PerspectiveCamera | OrthographicCamera, 
-        renderTarget?: WebGLRenderTarget) {
-    if (picking) {
-      if (!this.lastRenderedPicking) this.__renderPickingGroup(camera)
-    } 
-    else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
-      // TODO super sample broken for stereo camera
-      this.__renderSuperSample(camera, renderTarget)
-      this.__renderModelGroup(camera, renderTarget)
-
-      if(this.pixiCallback) {
-        this.signals.rendered.dispatch()
-        this.signals.nextFrame.dispatch() 
-        this.pixiCallback(this.renderer.domElement, this.width, this.height)
-      }
-    } 
-    else {
-      this.__renderModelGroup(camera, renderTarget);
-
-      if(this.pixiCallback) {
-        this.signals.rendered.dispatch()
-        this.signals.nextFrame.dispatch()
-        this.pixiCallback(this.renderer.domElement, this.width, this.height)
-      }
-    }
   }
 
   setSize(width: number, height: number) {
-    this.width = width || 0
-    this.height = height || 0
-
-    this.perspectiveCamera.aspect = this.width / this.height
-    this.orthographicCamera.left = -this.width / 2
-    this.orthographicCamera.right = this.width / 2
-    this.orthographicCamera.top = this.height / 2
-    this.orthographicCamera.bottom = -this.height / 2
-    this.camera.updateProjectionMatrix()
-
-    const dpr = window.devicePixelRatio
-
-    this.renderer.setPixelRatio(dpr)
-    this.renderer.setSize(width, height)
-
-    const dprWidth = this.width * dpr
-    const dprHeight = this.height * dpr
-
-    this.pickingTarget.setSize(dprWidth, dprHeight)
-    this.sampleTarget.setSize(dprWidth, dprHeight)
-    this.holdTarget.setSize(dprWidth, dprHeight)
-
     this.composer.setSize(width, height);
     this.effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
 
-    this.requestRender()
+    super.setSize(width, height);
   }
 
   protected __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget) {
@@ -642,9 +586,6 @@ export default class ViewerEx extends Viewer {
     this.ethernaMode.mediumColor = colors[1];
     this.ethernaMode.weakColor = colors[2];
     this.ethernaMode.zeroColor = colors[3];
-  }
-  getWebGLCanvas() {
-    return this.renderer.domElement;
   }
 }
 

@@ -23,6 +23,7 @@ export interface BallAndStickRepresentationParameters extends StructureRepresent
     multipleBond: 'off' | 'symmetric' | 'offset';
     bondSpacing: number;
     bondScale: number;
+    linewidth: number;
 }
 /**
  * Ball And Stick representation parameter object. Extends {@link RepresentationParameters} and

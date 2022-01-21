@@ -253,7 +253,7 @@ declare class Stage {
      * Handle any size-changes of the container element
      * @return {undefined}
      */
-    handleResize(width?: number, height?: number): void;
+    handleResize(): void;
     /**
      * Set width and height
      * @param {String} width - CSS width value
