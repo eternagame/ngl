@@ -304,7 +304,7 @@ export default class Viewer {
 
   private _initParams () {
     this.parameters = {
-      fogColor: new Color(0x222222),
+      fogColor: new Color(0x000000),
       fogNear: 50,
       fogFar: 100,
 
@@ -841,7 +841,7 @@ export default class Viewer {
     this.requestRender()
   }
 
-  setBackground (color?: Color | number | string) {
+  setBackground (color?: Color|number|string) {
     const p = this.parameters
 
     if (color) p.backgroundColor.set(color as string)  // TODO
@@ -1009,7 +1009,6 @@ export default class Viewer {
       this.sampleLevel = 3
       this.renderPending = true
       this.render()
-
       this.isStill = true
       this.sampleLevel = currentSampleLevel
       if (Debug) Log.log('rendered still frame')

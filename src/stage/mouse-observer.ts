@@ -474,7 +474,7 @@ class MouseObserver {
     this.shiftKey = event.shiftKey
   }
 
-  dispose() {
+  dispose () {
     document.removeEventListener('mousewheel', this._onMousewheel)
     document.removeEventListener('wheel', this._onMousewheel)
     document.removeEventListener('MozMousePixelScroll', this._onMousewheel)

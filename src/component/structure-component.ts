@@ -334,6 +334,7 @@ class StructureComponent extends Component {
       duration = sele
       sele = ''
     }
+
     this.stage.animationControls.zoomMove(
       this.getCenter(sele),
       this.getZoom(sele),

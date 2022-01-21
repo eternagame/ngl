@@ -150,6 +150,7 @@ export interface StageLoadFileParams extends LoaderParameters {
   defaultRepresentation: boolean,
   assembly: string
 }
+
 /**
  * Stage class, central for creating molecular scenes with NGL.
  *
@@ -199,7 +200,7 @@ class Stage {
   spinAnimation: Animation
   rockAnimation: Animation
 
-  constructor (idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
+  constructor (idOrElement: string|HTMLElement, params: Partial<StageParameters> = {}) {
     this.viewer = new Viewer(idOrElement)
     if (!this.viewer.renderer) return
 
