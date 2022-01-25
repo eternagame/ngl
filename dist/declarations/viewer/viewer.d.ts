@@ -55,6 +55,7 @@ export default class Viewer {
     private renderPending;
     private lastRenderedPicking;
     private isStill;
+    private frameRequest;
     sampleLevel: number;
     private cDist;
     private bRadius;

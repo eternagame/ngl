@@ -25,7 +25,6 @@ declare class ViewerControls {
      * @type {Vector3}
      */
     get position(): Vector3;
-    get rotationPosition(): Vector3;
     /**
      * scene rotation
      * @type {Quaternion}

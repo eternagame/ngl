@@ -89,7 +89,7 @@ declare class ColormakerRegistry {
      * @param {Colormaker} scheme - the colormaker
      * @return {undefined}
      */
-    add(id: string, scheme: Colormaker): void;
+    add(id: string, scheme: Colormaker | typeof Colormaker): void;
     /**
      * Register a custom scheme
      *

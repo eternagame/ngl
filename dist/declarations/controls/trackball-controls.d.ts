@@ -3,7 +3,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @private
  */
-import { Matrix4 } from 'three';
 import Stage from '../stage/stage';
 import MouseObserver from '../stage/mouse-observer';
 import Viewer from '../viewer/viewer';
@@ -29,10 +28,10 @@ declare class TrackballControls {
     constructor(stage: Stage, params?: TrackballControlsParams);
     get component(): Component | undefined;
     get atom(): AtomProxy | undefined;
-    protected _setPanVector(x: number, y: number, z?: number): void;
-    protected _getRotateXY(x: number, y: number): number[];
-    protected _getCameraRotation(m: Matrix4): Matrix4;
-    protected _transformPanVector(): void;
+    private _setPanVector;
+    private _getRotateXY;
+    private _getCameraRotation;
+    private _transformPanVector;
     zoom(delta: number): void;
     pan(x: number, y: number): void;
     panComponent(x: number, y: number): void;

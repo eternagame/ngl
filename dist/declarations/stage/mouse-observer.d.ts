@@ -77,6 +77,7 @@ declare class MouseObserver {
     lastClicked: number;
     overElement: boolean;
     lastTouchDistance: number;
+    private frameRequest;
     /**
      * @param  {Element} domElement - the dom element to observe mouse events in
      * @param  {Object} params - parameters object

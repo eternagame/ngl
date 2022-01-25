@@ -84,6 +84,7 @@ declare class BallAndStickRepresentation extends StructureRepresentation {
             scheme: string;
             volume?: Volume | undefined;
             surface?: Surface | undefined;
+            data?: import("../color/colormaker").ColorData | undefined;
             scale: string | string[];
             mode: import("../color/colormaker").ColorMode;
             domain: number[];
@@ -107,6 +108,7 @@ declare class BallAndStickRepresentation extends StructureRepresentation {
             scheme: string;
             volume?: Volume | undefined;
             surface?: Surface | undefined;
+            data?: import("../color/colormaker").ColorData | undefined;
             scale: string | string[];
             mode: import("../color/colormaker").ColorMode;
             domain: number[];

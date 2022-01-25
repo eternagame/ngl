@@ -25,10 +25,15 @@ export declare const ScaleDefaultParameters: {
     reverse: boolean;
 };
 export declare type ScaleParameters = typeof ScaleDefaultParameters;
+export interface ColorData {
+    atomData?: number[];
+    bondData?: number[];
+}
 export interface ColormakerParameters extends ScaleParameters {
     structure?: Structure;
     volume?: Volume;
     surface?: Surface;
+    data?: ColorData;
 }
 export declare type StuctureColormakerParams = {
     structure: Structure;
@@ -38,7 +43,7 @@ export declare type VolumeColormakerParams = {
 } & Partial<ColormakerParameters>;
 export declare type ColormakerScale = (v: number) => number;
 /** Decorator for optionally linearizing a numeric color */
-declare type colorFuncType = (value: any) => number;
+declare type colorFuncType = (value: any, fromTo?: boolean) => number;
 export declare function manageColor<T extends {
     parameters: ColormakerParameters;
 }>(_target: Object, _name: string | symbol, descriptor: TypedPropertyDescriptor<colorFuncType>): PropertyDescriptor;

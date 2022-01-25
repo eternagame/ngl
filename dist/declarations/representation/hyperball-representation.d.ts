@@ -31,6 +31,7 @@ declare class HyperballRepresentation extends LicoriceRepresentation {
             scheme: string;
             volume?: Volume | undefined;
             surface?: Surface | undefined;
+            data?: import("../color/colormaker").ColorData | undefined;
             scale: string | string[];
             mode: import("../color/colormaker").ColorMode;
             domain: number[];
