@@ -464,7 +464,6 @@ class MouseObserver {
       offsetX = event.offsetX
       offsetY = event.offsetY
     }
-
     this.canvasPosition.set(offsetX, box.height - offsetY)
   }
 
