@@ -119,7 +119,7 @@ declare abstract class Component {
      * @param {Integer} params.offsetY - 2d offset in y direction
      * @return {Annotation} the added annotation object
      */
-    addAnnotation(position: Vector3, content: string, params: AnnotationParams): Annotation;
+    addAnnotation(position: Vector3, content: string | HTMLElement, params: AnnotationParams): Annotation;
     /**
      * Iterator over each annotation and executing the callback
      * @param  {Function} callback - function to execute

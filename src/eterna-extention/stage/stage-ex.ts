@@ -1,83 +1,15 @@
-import { createParams } from '../../utils'
-import ViewerEx from '../viewer/viewer-ex'
-import MouseObserver from '../../stage/mouse-observer'
-
-import AnimationControls from '../../controls/animation-controls'
-import MouseControls from '../../controls/mouse-controls'
-import KeyControls from '../../controls/key-controls'
-
-import PickingBehavior from '../../stage/picking-behavior'
-import MouseBehavior from '../../stage/mouse-behavior'
-import AnimationBehavior from '../../stage/animation-behavior'
-import KeyBehavior from '../../stage/key-behavior'
-
-import Structure from '../../structure/structure'
-
-import Stage, {StageDefaultParameters, StageParameters, StageLoadFileParams} from "../../stage/stage";
-import ViewerControlsEx from '../controls/viewer-controls-ex'
+import Stage, {StageParameters} from "../../stage/stage";
 import { Box3, Vector3 } from '../../ngl'
 import { degToRad } from '../../math/math-utils'
 import TrackballControlsEx from '../controls/trackball-controls-ex'
-import PickingControls from '../../controls/picking-controls'
-
-export interface PixiRenderCallback {
-    (imgData: HTMLCanvasElement, width:number, height:number): void;
-}
-  
-export interface ModelCheckCallback {
-    (component: Structure | null): void;
-}
-
-StageDefaultParameters.lightColor = 0xffffff;
-StageDefaultParameters.ambientColor = 0xffffff;
       
 class StageEx extends Stage {
     constructor(idOrElement: HTMLElement, params: Partial<StageParameters> = {}) {
         super(idOrElement, params as StageParameters);
-        
-        const oldWrapper = this.viewer.wrapper;
-        this.viewer.dispose();
-        oldWrapper.remove();
 
-        this.viewer = new ViewerEx(idOrElement, this) 
-        if (!this.viewer.renderer) return
-
-        this.viewer.container.appendChild(this.tooltip)
-
-        this.mouseObserver.dispose()
-        this.mouseObserver = new MouseObserver(this.viewer.renderer.domElement)
-        this.viewerControls = new ViewerControlsEx(this)
         this.trackballControls = new TrackballControlsEx(this)
-        this.pickingControls = new PickingControls(this)
-        this.animationControls.dispose()
-        this.animationControls = new AnimationControls(this)
-        this.mouseControls = new MouseControls(this)
-        this.keyControls = new KeyControls(this)
-
-        this.pickingBehavior.dispose()
-        this.pickingBehavior = new PickingBehavior(this)
-        this.mouseBehavior.dispose()
-        this.mouseBehavior = new MouseBehavior(this)
-        this.animationBehavior.dispose()
-        this.animationBehavior = new AnimationBehavior(this)
-        this.keyBehavior.dispose()
-        this.keyBehavior = new KeyBehavior(this)
-
-        this.spinAnimation = this.animationControls.spin([0, 1, 0], 0.005)
-        this.spinAnimation.pause(true)
-        this.rockAnimation = this.animationControls.rock([0, 1, 0], 0.005)
-        this.rockAnimation.pause(true)
-
-        // must come after the viewer has been instantiated
-        this.parameters = createParams(params, StageDefaultParameters)
-        this.setParameters(this.parameters)
-
-        this.viewer.animate()
     }
-    loadFile(path: string | File | Blob, params: Partial<StageLoadFileParams> = {}, etherna_pairs: number[] = []) {
-        (<ViewerEx>this.viewer).setEthernaPairs(etherna_pairs);
-        return super.loadFile(path, params); 
-    }
+
     getZoomForBox(boundingBox: Box3) {
         const tmpZoomVector = new Vector3()
         const bbSize = boundingBox.getSize(tmpZoomVector)

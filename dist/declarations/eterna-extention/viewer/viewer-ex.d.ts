@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import Stage from '../../stage/stage';
-import { PerspectiveCamera, OrthographicCamera, Vector3, WebGLRenderTarget, Group, SpriteMaterial, Sprite } from 'three';
+import { Vector3, Group, SpriteMaterial, Sprite } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
@@ -36,25 +36,7 @@ export default class ViewerEx extends Viewer {
     protected stage: Stage;
     etherna_pairs: number[] | undefined;
     etherna_sequence: string;
-    fromOuter: boolean;
     constructor(idOrElement: HTMLElement, stage: Stage);
-    protected _initRenderer(): boolean;
     protected _initScene(): void;
-    setSize(width: number, height: number): void;
-    protected __renderModelGroup(camera: PerspectiveCamera | OrthographicCamera, renderTarget?: WebGLRenderTarget): void;
-    hoverEBaseObject(resno: number, fromViewer?: boolean, color1?: number): void;
-    baseColor: number;
-    setBaseColor(color: number): void;
-    extendHighlightTimer(): void;
-    selectEBaseObject(resno: number, bChange?: boolean, timeOut?: number, color1?: number, color2?: number): void;
-    markEBaseObject(resno: number, color1?: number, color2?: number): void;
-    beginSpark(): void;
-    makeTextSprite(msg: string): void;
-    addSpark(resno: number): void;
-    endSpark(period: number): void;
-    updateSpark(): void;
-    setEthernaPairs(pairs: number[] | undefined): void;
-    setEthernaSequence(sequence: string): void;
-    setHBondColor(colors: number[]): void;
 }
 export {};

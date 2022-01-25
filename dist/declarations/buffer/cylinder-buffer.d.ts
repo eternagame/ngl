@@ -4,6 +4,8 @@
  * @private
  */
 import { Vector3, Matrix4 } from 'three';
+import CylinderGeometryBuffer from './cylindergeometry-buffer';
+import CylinderImpostorBuffer from './cylinderimpostor-buffer';
 import { BufferData } from './buffer';
 export interface CylinderBufferData extends BufferData {
     position1: Float32Array;
@@ -42,22 +44,8 @@ export declare const CylinderBufferDefaultParameters: {
     openEnded: boolean;
 };
 export declare type CylinderBufferParameters = typeof CylinderBufferDefaultParameters;
-/**
- * Cylinder buffer. Depending on the value {@link ExtensionFragDepth} and
- * `params.disableImpostor` the constructor returns either a
- * {@link CylinderGeometryBuffer} or a {@link CylinderImpostorBuffer}
- * @implements {Buffer}
- *
- * @example
- * var cylinderBuffer = new CylinderBuffer({
- *   position1: new Float32Array([ 0, 0, 0 ]),
- *   position2: new Float32Array([ 1, 1, 1 ]),
- *   color: new Float32Array([ 1, 0, 0 ]),
- *   color2: new Float32Array([ 0, 1, 0 ]),
- *   radius: new Float32Array([ 1 ])
- * });
- */
-declare class CylinderBuffer {
-    constructor(data: CylinderBufferData, params?: Partial<CylinderBufferParameters>);
-}
+declare const CylinderBuffer: {
+    new (data: CylinderBufferData, params: Partial<CylinderBufferParameters>): CylinderGeometryBuffer | CylinderImpostorBuffer;
+};
+declare type CylinderBuffer = CylinderGeometryBuffer | CylinderImpostorBuffer;
 export default CylinderBuffer;

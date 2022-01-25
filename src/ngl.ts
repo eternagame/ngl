@@ -27,9 +27,8 @@ import PdbWriter from './writer/pdb-writer'
 import SdfWriter from './writer/sdf-writer'
 import StlWriter from './writer/stl-writer'
 import Stage from './stage/stage'
-import StageEx, {PixiRenderCallback, ModelCheckCallback} from './eterna-extention/stage/stage-ex'
+import StageEx from './eterna-extention/stage/stage-ex'
 import Viewer from './viewer/viewer'
-import ViewerEx from './eterna-extention/viewer/viewer-ex'
 import Collection from './component/collection'
 import ComponentCollection from './component/component-collection'
 import Component from './component/component'
@@ -37,7 +36,6 @@ import ShapeComponent from './component/shape-component'
 import StructureComponent, {StructureRepresentationType} from './component/structure-component'
 import SurfaceComponent from './component/surface-component'
 import VolumeComponent, {VolumeRepresentationType} from './component/volume-component'
-import Representation from './representation/representation'
 import RepresentationCollection from './component/representation-collection'
 import RepresentationElement from './component/representation-element'
 import Assembly from './symmetry/assembly'
@@ -89,36 +87,32 @@ import './component/volume-component'
 
 //
 
-import './representation/angle-representation'
-import './representation/axes-representation'
-import './representation/backbone-representation'
-import './representation/ballandstick-representation'
-import './representation/base-representation'
-
-// added for eterna-extension
-import './eterna-extention/representation/ebase-representation' 
-import EBaseRepresentation, {DivAnnotation} from './eterna-extention/representation/ebase-representation'
-
-import './representation/cartoon-representation'
-import './representation/contact-representation'
-import './representation/dihedral-representation'
-import './representation/dihedral-histogram-representation'
-import './representation/distance-representation'
-import './representation/helixorient-representation'
-import './representation/hyperball-representation'
-import './representation/label-representation'
-import './representation/licorice-representation'
-import './representation/line-representation'
-import './representation/molecularsurface-representation'
-import './representation/point-representation'
-import './representation/ribbon-representation'
-import './representation/rocket-representation'
-import './representation/rope-representation'
-import './representation/spacefill-representation'
-import './representation/trace-representation'
-import './representation/tube-representation'
-import './representation/unitcell-representation'
-import './representation/validation-representation'
+import AngleRepresentation, {AngleRepresentationParameters} from './representation/angle-representation'
+import AxesRepresentation, {AxesRepresentationParameters} from './representation/axes-representation'
+import BackboneRepresentation from './representation/backbone-representation'
+import BallAndStickRepresentation, {BallAndStickRepresentationParameters} from './representation/ballandstick-representation'
+import BaseRepresentation from './representation/base-representation'
+import CartoonRepresentation, {CartoonRepresentationParameters} from './representation/cartoon-representation'
+import ContactRepresentation, {ContactRepresentationParameters} from './representation/contact-representation'
+import DihedralRepresentation, {DihedralRepresentationParameters} from './representation/dihedral-representation'
+import DihedralHistogramRepresentation, {DihedralHistogramRepresentationParameters} from './representation/dihedral-histogram-representation'
+import DistanceRepresentation, {DistanceRepresentationParameters} from './representation/distance-representation'
+import HelixorientRepresentation from './representation/helixorient-representation'
+import HyperballRepresentation, {HyperballRepresentationParameters} from './representation/hyperball-representation'
+import LabelRepresentation, {LabelRepresentationParameters} from './representation/label-representation'
+import LicoriceRepresentation from './representation/licorice-representation'
+import LineRepresentation, {LineRepresentationParameters} from './representation/line-representation'
+import MolecularSurfaceRepresentation, {MolecularSurfaceRepresentationParameters} from './representation/molecularsurface-representation'
+import PointRepresentation, {PointRepresentationParameters} from './representation/point-representation'
+import RibbonRepresentation, {RibbonRepresentationParameters} from './representation/ribbon-representation'
+import RocketRepresentation, {RocketRepresentationParameters} from './representation/rocket-representation'
+import RopeRepresentation from './representation/rope-representation'
+import SpacefillRepresentation from './representation/spacefill-representation'
+import StructureRepresentation, {StructureRepresentationParameters} from './representation/structure-representation'
+import TraceRepresentation, {TraceRepresentationParameters} from './representation/trace-representation'
+import TubeRepresentation from './representation/tube-representation'
+import UnitcellRepresentation, {UnitcellRepresentationParameters} from './representation/unitcell-representation'
+import ValidationRepresentation from './representation/validation-representation'
 
 import BufferRepresentation from './representation/buffer-representation'
 import ArrowBuffer from './buffer/arrow-buffer'
@@ -259,6 +253,51 @@ export {
   Queue,
   Counter,
 
+  AngleRepresentation,
+  AngleRepresentationParameters,
+  AxesRepresentation,
+  AxesRepresentationParameters,
+  BackboneRepresentation,
+  BallAndStickRepresentation,
+  BallAndStickRepresentationParameters,
+  BaseRepresentation,
+  CartoonRepresentation,
+  CartoonRepresentationParameters,
+  ContactRepresentation,
+  ContactRepresentationParameters,
+  DihedralRepresentation,
+  DihedralRepresentationParameters,
+  DihedralHistogramRepresentation,
+  DihedralHistogramRepresentationParameters,
+  DistanceRepresentation,
+  DistanceRepresentationParameters,
+  HelixorientRepresentation,
+  HyperballRepresentation,
+  HyperballRepresentationParameters,
+  LabelRepresentation,
+  LabelRepresentationParameters,
+  LicoriceRepresentation,
+  LineRepresentation,
+  LineRepresentationParameters,
+  MolecularSurfaceRepresentation,
+  MolecularSurfaceRepresentationParameters,
+  PointRepresentation,
+  PointRepresentationParameters,
+  RibbonRepresentation,
+  RibbonRepresentationParameters,
+  RocketRepresentation,
+  RocketRepresentationParameters,
+  RopeRepresentation,
+  SpacefillRepresentation,
+  StructureRepresentation,
+  StructureRepresentationParameters,
+  TraceRepresentation,
+  TraceRepresentationParameters,
+  TubeRepresentation,
+  UnitcellRepresentation,
+  UnitcellRepresentationParameters,
+  ValidationRepresentation,
+
   BufferRepresentation,
   ArrowBuffer,
   BoxBuffer,
@@ -288,11 +327,5 @@ export {
 
   // added for eterna-extension
   StageEx,
-  ViewerEx,
   AtomProxy,
-  Representation, 
-  EBaseRepresentation, 
-  DivAnnotation,
-  PixiRenderCallback,
-  ModelCheckCallback,
 }

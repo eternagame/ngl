@@ -151,7 +151,7 @@ declare class Stage {
     keyBehavior: KeyBehavior;
     spinAnimation: Animation;
     rockAnimation: Animation;
-    constructor(idOrElement: HTMLElement, params?: Partial<StageParameters>);
+    constructor(idOrElement: string | HTMLElement, params?: Partial<StageParameters>);
     /**
      * Set stage parameters
      */

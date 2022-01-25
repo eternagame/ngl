@@ -19,18 +19,6 @@ export interface DivAnnotation {
 export interface EBaseRepresentationParameters extends BallAndStickRepresentationParameters {
     vScale: number;
 }
-/**
- * Base representation. Show cylinders for RNA/DNA ladders.
- *
- * __Name:__ _base_
- *
- * @example
- * stage.loadFile( "rcsb://1d66" ).then( function( o ){
- *     o.addRepresentation( "cartoon", { sele: "nucleic" } );
- *     o.addRepresentation( "base", { color: "resname" } );
- *     o.autoView( "nucleic" );
- * } );
- */
 declare class EBaseRepresentation extends BallAndStickRepresentation {
     static divAnnotations: DivAnnotation[];
     constructor(structure: Structure, viewer: Viewer, params: Partial<EBaseRepresentationParameters>);
