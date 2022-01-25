@@ -5199,7 +5199,6 @@ var Viewer = function Viewer(idOrElement) {
           Log.error('Viewer: could not initialize renderer');
           return;
       }
-      this.setSize(this.width, this.height);
       this._initHelper();
       // fog & background
       this.setBackground();
@@ -5407,7 +5406,6 @@ var prototypeAccessors$x = { cameraDistance: { configurable: true } };
       this.compositeScene = new Scene();
       this.compositeScene.name = 'compositeScene';
       this.compositeScene.add(new Mesh(new PlaneGeometry(2, 2), this.compositeMaterial));
-      return true;
   };
   Viewer.prototype._initHelper = function _initHelper () {
       var indices = new Uint16Array([
@@ -6122,7 +6120,6 @@ var prototypeAccessors$x = { cameraDistance: { configurable: true } };
       else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
           // TODO super sample broken for stereo camera
           this.__renderSuperSample(camera, renderTarget);
-          this.__renderModelGroup(camera, renderTarget);
       }
       else {
           this.__renderModelGroup(camera, renderTarget);

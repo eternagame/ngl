@@ -195,7 +195,7 @@ export default class Viewer {
   perspectiveCamera: PerspectiveCamera
   private orthographicCamera: OrthographicCamera
   private stereoCamera: StereoCamera
-  camera: PerspectiveCamera | OrthographicCamera
+  camera: PerspectiveCamera|OrthographicCamera
 
   width: number
   height: number
@@ -211,7 +211,6 @@ export default class Viewer {
   private helperGroup: Group
 
   renderer: WebGLRenderer
-
   private supportsHalfFloat: boolean
 
   private pickingTarget: WebGLRenderTarget
@@ -289,7 +288,6 @@ export default class Viewer {
       Log.error('Viewer: could not initialize renderer')
       return
     }
-    this.setSize(this.width, this.height)
 
     this._initHelper()
 
@@ -299,7 +297,6 @@ export default class Viewer {
 
     this.animate = this.animate.bind(this)
   }
-
 
   private _initParams () {
     this.parameters = {
@@ -414,7 +411,7 @@ export default class Viewer {
     this.scene.add(this.ambientLight)
   }
 
-  private _initRenderer (): boolean {
+  private _initRenderer () {
     const dpr = window.devicePixelRatio
     const {width, height} = this
 
@@ -428,7 +425,6 @@ export default class Viewer {
       this.wrapper.innerHTML = WebglErrorMessage
       return false
     }
-
     this.renderer.setPixelRatio(dpr)
     this.renderer.setSize(width, height)
     this.renderer.autoClear = false
@@ -564,8 +560,6 @@ export default class Viewer {
     this.compositeScene.add(new Mesh(
       new PlaneGeometry(2, 2), this.compositeMaterial
     ))
-
-    return true;
   }
 
   private _initHelper () {
@@ -1239,7 +1233,7 @@ export default class Viewer {
     this.ambientLight.intensity = this.parameters.ambientIntensity
   }
 
-  private __renderPickingGroup (camera: PerspectiveCamera | OrthographicCamera) {
+  private __renderPickingGroup (camera: PerspectiveCamera|OrthographicCamera) {
     this.renderer.setRenderTarget(this.pickingTarget || null)
     this.renderer.clear()
     this.__setVisibility(false, true, false, false)
@@ -1259,7 +1253,6 @@ export default class Viewer {
   private __renderModelGroup (camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     this.renderer.setRenderTarget(renderTarget || null)
     this.renderer.clear()
-
     this.__setVisibility(false, false, true, false)
     this.renderer.render(this.scene, camera)
     this.renderer.clear(false, true, true)
@@ -1359,7 +1352,6 @@ export default class Viewer {
     } else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
       // TODO super sample broken for stereo camera
       this.__renderSuperSample(camera, renderTarget)
-      this.__renderModelGroup(camera, renderTarget)
     } else {
       this.__renderModelGroup(camera, renderTarget);
     }
