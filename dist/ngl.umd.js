@@ -5106,8 +5106,6 @@
   function onBeforeRender(renderer, scene, camera, geometry, material /*, group */) {
       var u = material.uniforms;
       var updateList = [];
-      if (!u)
-          { return; }
       if (u.objectId) {
           u.objectId.value = SupportsReadPixelsFloat ? this.id : this.id / 255;
           updateList.push('objectId');
