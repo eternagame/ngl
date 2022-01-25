@@ -6064,7 +6064,7 @@
         this.renderer.render(this.scene, camera);
         this.renderer.clear(false, true, true);
         this.updateInfo();
-        this.__setVisibility(true, false, false, true);
+        this.__setVisibility(true, false, false, exports.Debug);
         this.renderer.render(this.scene, camera);
         this.renderer.setRenderTarget(null); // set back to default canvas
         this.updateInfo();

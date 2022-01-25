@@ -182,44 +182,43 @@ export default class Viewer {
   container: HTMLElement
   wrapper: HTMLElement
 
-  protected rendering: boolean
-  protected renderPending: boolean
-  protected lastRenderedPicking: boolean
-  protected isStill: boolean
+  private rendering: boolean
+  private renderPending: boolean
+  private lastRenderedPicking: boolean
+  private isStill: boolean
 
   sampleLevel: number
   private cDist: number
   private bRadius: number
 
-  protected parameters: ViewerParameters
+  private parameters: ViewerParameters
   stats: Stats
 
   perspectiveCamera: PerspectiveCamera
-  protected orthographicCamera: OrthographicCamera
-  protected stereoCamera: StereoCamera
+  private orthographicCamera: OrthographicCamera
+  private stereoCamera: StereoCamera
   camera: PerspectiveCamera | OrthographicCamera
 
   width: number
   height: number
 
   scene: Scene
-  protected spotLight: SpotLight
-  protected ambientLight: AmbientLight
+  private spotLight: SpotLight
+  private ambientLight: AmbientLight
   rotationGroup: Group
   translationGroup: Group
-  protected modelGroup: Group
-
-  protected pickingGroup: Group
-  protected backgroundGroup: Group
-  protected helperGroup: Group
+  private modelGroup: Group
+  private pickingGroup: Group
+  private backgroundGroup: Group
+  private helperGroup: Group
 
   renderer: WebGLRenderer
 
   private supportsHalfFloat: boolean
 
-  protected pickingTarget: WebGLRenderTarget
-  protected sampleTarget: WebGLRenderTarget
-  protected holdTarget: WebGLRenderTarget
+  private pickingTarget: WebGLRenderTarget
+  private sampleTarget: WebGLRenderTarget
+  private holdTarget: WebGLRenderTarget
 
   private compositeUniforms: {
     tForeground: Uniform
@@ -370,7 +369,7 @@ export default class Viewer {
     this.stats = new Stats()
   }
 
-  protected _initScene () {
+  private _initScene () {
     if (!this.scene) {
       this.scene = new Scene()
       this.scene.name = 'scene'
@@ -417,7 +416,7 @@ export default class Viewer {
     this.scene.add(this.ambientLight)
   }
 
-  protected _initRenderer (): boolean {
+  private _initRenderer (): boolean {
     const dpr = window.devicePixelRatio
     const {width, height} = this
 
@@ -1224,7 +1223,7 @@ export default class Viewer {
     sortProjectedPosition(this.scene, camera)
   }
 
-  protected __setVisibility (model: boolean, picking: boolean, background: boolean, helper: boolean) {
+  private __setVisibility (model: boolean, picking: boolean, background: boolean, helper: boolean) {
     this.modelGroup.visible = model
     this.pickingGroup.visible = picking
     this.backgroundGroup.visible = background
@@ -1242,7 +1241,7 @@ export default class Viewer {
     this.ambientLight.intensity = this.parameters.ambientIntensity
   }
 
-  protected __renderPickingGroup (camera: PerspectiveCamera | OrthographicCamera) {
+  private __renderPickingGroup (camera: PerspectiveCamera | OrthographicCamera) {
     this.renderer.setRenderTarget(this.pickingTarget || null)
     this.renderer.clear()
     this.__setVisibility(false, true, false, false)
@@ -1259,7 +1258,7 @@ export default class Viewer {
     // }
   }
 
-  protected __renderModelGroup (camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
+  private __renderModelGroup (camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     this.renderer.setRenderTarget(renderTarget || null)
     this.renderer.clear()
 
@@ -1268,13 +1267,13 @@ export default class Viewer {
     this.renderer.clear(false, true, true)
     this.updateInfo()
 
-    this.__setVisibility(true, false, false, true)
+    this.__setVisibility(true, false, false, Debug)
     this.renderer.render(this.scene, camera)
     this.renderer.setRenderTarget(null) // set back to default canvas
     this.updateInfo()
   }
 
-  protected __renderSuperSample (camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
+  private __renderSuperSample (camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     // based on the Supersample Anti-Aliasing Render Pass
     // contributed to three.js by bhouston / http://clara.io/
     //
@@ -1356,7 +1355,7 @@ export default class Viewer {
     renderer.setViewport(0, 0, size.width, size.height)
   }
 
-  protected __render(picking = false, camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
+  private __render(picking = false, camera: PerspectiveCamera|OrthographicCamera, renderTarget?: WebGLRenderTarget) {
     if (picking) {
       if (!this.lastRenderedPicking) this.__renderPickingGroup(camera)
     } else if (this.sampleLevel > 0 && this.parameters.cameraType !== 'stereo') {
