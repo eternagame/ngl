@@ -10,6 +10,8 @@ import CylinderBuffer from '../buffer/cylinder-buffer';
 import { Structure } from '../ngl';
 import Viewer from '../viewer/viewer';
 import StructureView from '../structure/structure-view';
+import CylinderGeometryBuffer from '../buffer/cylindergeometry-buffer';
+import CylinderImpostorBuffer from '../buffer/cylinderimpostor-buffer';
 export interface RocketRepresentationParameters extends StructureRepresentationParameters {
     localAngle: number;
     centerDist: number;
@@ -38,7 +40,7 @@ declare class RocketRepresentation extends StructureRepresentation {
     constructor(structure: Structure, viewer: Viewer, params: Partial<RocketRepresentationParameters>);
     init(params: Partial<RocketRepresentationParameters>): void;
     createData(sview: StructureView): {
-        bufferList: CylinderBuffer[];
+        bufferList: (CylinderGeometryBuffer | CylinderImpostorBuffer)[];
         axisList: Axis[];
         helixbundleList: Helixbundle[];
         axisData: {

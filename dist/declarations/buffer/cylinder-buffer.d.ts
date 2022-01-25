@@ -44,6 +44,21 @@ export declare const CylinderBufferDefaultParameters: {
     openEnded: boolean;
 };
 export declare type CylinderBufferParameters = typeof CylinderBufferDefaultParameters;
+/**
+ * Cylinder buffer. Depending on the value {@link ExtensionFragDepth} and
+ * `params.disableImpostor` the constructor returns either a
+ * {@link CylinderGeometryBuffer} or a {@link CylinderImpostorBuffer}
+ * @implements {Buffer}
+ *
+ * @example
+ * var cylinderBuffer = new CylinderBuffer({
+ *   position1: new Float32Array([ 0, 0, 0 ]),
+ *   position2: new Float32Array([ 1, 1, 1 ]),
+ *   color: new Float32Array([ 1, 0, 0 ]),
+ *   color2: new Float32Array([ 0, 1, 0 ]),
+ *   radius: new Float32Array([ 1 ])
+ * });
+ */
 declare const CylinderBuffer: {
     new (data: CylinderBufferData, params: Partial<CylinderBufferParameters>): CylinderGeometryBuffer | CylinderImpostorBuffer;
 };

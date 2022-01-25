@@ -384,15 +384,15 @@ export default class Viewer {
 
     this.pickingGroup = new Group()
     this.pickingGroup.name = 'pickingGroup'
-    this.rotationGroup.add(this.pickingGroup)
+    this.translationGroup.add(this.pickingGroup)
 
     this.backgroundGroup = new Group()
     this.backgroundGroup.name = 'backgroundGroup'
-    this.rotationGroup.add(this.backgroundGroup)
+    this.translationGroup.add(this.backgroundGroup)
 
     this.helperGroup = new Group()
     this.helperGroup.name = 'helperGroup'
-    this.rotationGroup.add(this.helperGroup)
+    this.translationGroup.add(this.helperGroup)
 
     // fog
 
@@ -695,7 +695,7 @@ export default class Viewer {
   }
 
   remove (buffer: Buffer) {
-    this.rotationGroup.children.forEach(function (group) { 
+    this.translationGroup.children.forEach(function (group) {
       group.remove(buffer.group)
       group.remove(buffer.wireframeGroup)
     })
@@ -1353,7 +1353,7 @@ export default class Viewer {
       // TODO super sample broken for stereo camera
       this.__renderSuperSample(camera, renderTarget)
     } else {
-      this.__renderModelGroup(camera, renderTarget);
+      this.__renderModelGroup(camera, renderTarget)
     }
   }
 

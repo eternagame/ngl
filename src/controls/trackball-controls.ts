@@ -62,27 +62,27 @@ class TrackballControls {
     return this.stage.transformAtom
   }
 
-  protected _setPanVector (x: number, y: number, z = 0) {
+  private _setPanVector (x: number, y: number, z = 0) {
     const scaleFactor = this.controls.getCanvasScaleFactor(z)
     tmpPanVector.set(x, y, 0)
     tmpPanVector.multiplyScalar(this.panSpeed * scaleFactor)
   }
 
-  protected _getRotateXY (x: number, y: number) {
+  private _getRotateXY (x: number, y: number) {
     return [
       this.rotateSpeed * -x * 0.01,
       this.rotateSpeed * y * 0.01
     ]
   }
 
-  protected _getCameraRotation(m: Matrix4) {
+  private _getCameraRotation(m: Matrix4) {
     m.extractRotation(this.viewer.camera.matrixWorld)
     m.multiply(tmpRotateYMatrix.makeRotationY(Math.PI))
 
     return m
   }
 
-  protected _transformPanVector () {
+  private _transformPanVector () {
     if (!this.component) return
 
     // Adjust for component and scene rotation
@@ -152,15 +152,14 @@ class TrackballControls {
 
     tmpRotateQuaternion.multiply(tmpRotateQuaternion2)
     tmpRotateMatrix.makeRotationFromQuaternion(tmpRotateQuaternion)
-
-    this.controls.applyRotateMatrix(tmpRotateMatrix);
+    this.controls.applyMatrix(tmpRotateMatrix)
   }
 
   zRotate (x: number, y: number) {
     const dz = this.rotateSpeed * ((-x + y) / -2) * 0.01
 
     tmpRotateZMatrix.makeRotationZ(dz)
-    this.controls.applyRotateMatrix(tmpRotateZMatrix)
+    this.controls.applyMatrix(tmpRotateZMatrix)
   }
 
   rotateComponent (x: number, y: number) {

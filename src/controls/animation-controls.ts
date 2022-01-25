@@ -142,7 +142,7 @@ class AnimationControls {
    * @return {MoveAnimation} the animation
    */
   move (moveTo: Vector3|number[], duration?: number) {
-    const moveFrom = this.controls.rotationPosition.clone().negate()
+    const moveFrom = this.controls.position.clone().negate()
 
     return this.add(
       new MoveAnimation(duration, this.controls, moveFrom, moveTo)

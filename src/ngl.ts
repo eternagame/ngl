@@ -27,7 +27,6 @@ import PdbWriter from './writer/pdb-writer'
 import SdfWriter from './writer/sdf-writer'
 import StlWriter from './writer/stl-writer'
 import Stage from './stage/stage'
-import StageEx from './eterna-extention/stage/stage-ex'
 import Viewer from './viewer/viewer'
 import Collection from './component/collection'
 import ComponentCollection from './component/component-collection'
@@ -326,6 +325,5 @@ export {
   PickingProxy,
 
   // added for eterna-extension
-  StageEx,
   AtomProxy,
 }

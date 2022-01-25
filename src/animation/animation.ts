@@ -227,7 +227,7 @@ export class MoveAnimation extends Animation {
   }
 
   _tick (/* stats */) {
-    this.controls.rotationPosition.lerpVectors( 
+    this.controls.position.lerpVectors(
       this.moveFrom, this.moveTo, this.alpha
     ).negate()
     this.controls.changed()

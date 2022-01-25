@@ -5297,13 +5297,13 @@
         this.translationGroup.add(this.modelGroup);
         this.pickingGroup = new three.Group();
         this.pickingGroup.name = 'pickingGroup';
-        this.rotationGroup.add(this.pickingGroup);
+        this.translationGroup.add(this.pickingGroup);
         this.backgroundGroup = new three.Group();
         this.backgroundGroup.name = 'backgroundGroup';
-        this.rotationGroup.add(this.backgroundGroup);
+        this.translationGroup.add(this.backgroundGroup);
         this.helperGroup = new three.Group();
         this.helperGroup.name = 'helperGroup';
-        this.rotationGroup.add(this.helperGroup);
+        this.translationGroup.add(this.helperGroup);
         // fog
         this.scene.fog = new three.Fog(this.parameters.fogColor.getHex());
         // light
@@ -5564,7 +5564,7 @@
         // Log.timeEnd( "Viewer.addBuffer" );
     };
     Viewer.prototype.remove = function remove (buffer) {
-        this.rotationGroup.children.forEach(function (group) {
+        this.translationGroup.children.forEach(function (group) {
             group.remove(buffer.group);
             group.remove(buffer.wireframeGroup);
         });
@@ -6628,13 +6628,13 @@
   var tmpRotateXMatrix = new three.Matrix4();
   var tmpRotateYMatrix = new three.Matrix4();
   var tmpRotateZMatrix = new three.Matrix4();
-  var tmpRotateMatrix$3 = new three.Matrix4();
+  var tmpRotateMatrix$2 = new three.Matrix4();
   var tmpRotateCameraMatrix = new three.Matrix4();
-  var tmpRotateVector$3 = new three.Vector3();
-  var tmpRotateQuaternion$2 = new three.Quaternion();
-  var tmpRotateQuaternion2$1 = new three.Quaternion();
+  var tmpRotateVector$2 = new three.Vector3();
+  var tmpRotateQuaternion$1 = new three.Quaternion();
+  var tmpRotateQuaternion2 = new three.Quaternion();
   var tmpPanMatrix = new three.Matrix4();
-  var tmpPanVector$1 = new three.Vector3();
+  var tmpPanVector = new three.Vector3();
   var tmpAtomVector = new three.Vector3();
   /**
    * Trackball controls
@@ -6662,8 +6662,8 @@
           if ( z === void 0 ) z = 0;
 
       var scaleFactor = this.controls.getCanvasScaleFactor(z);
-      tmpPanVector$1.set(x, y, 0);
-      tmpPanVector$1.multiplyScalar(this.panSpeed * scaleFactor);
+      tmpPanVector.set(x, y, 0);
+      tmpPanVector.multiplyScalar(this.panSpeed * scaleFactor);
   };
   TrackballControls.prototype._getRotateXY = function _getRotateXY (x, y) {
       return [
@@ -6684,8 +6684,8 @@
       tmpPanMatrix.premultiply(this.viewer.rotationGroup.matrix);
       tmpPanMatrix.getInverse(tmpPanMatrix);
       // Adjust for camera rotation
-      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$3));
-      tmpPanVector$1.applyMatrix4(tmpPanMatrix);
+      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$2));
+      tmpPanVector.applyMatrix4(tmpPanMatrix);
   };
   TrackballControls.prototype.zoom = function zoom (delta) {
       this.controls.zoom(this.zoomSpeed * delta * 0.02);
@@ -6695,16 +6695,16 @@
       // Adjust for scene rotation
       tmpPanMatrix.getInverse(this.viewer.rotationGroup.matrix);
       // Adjust for camera rotation
-      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$3));
-      tmpPanVector$1.applyMatrix4(tmpPanMatrix);
-      this.controls.translate(tmpPanVector$1);
+      tmpPanMatrix.multiply(this._getCameraRotation(tmpRotateMatrix$2));
+      tmpPanVector.applyMatrix4(tmpPanMatrix);
+      this.controls.translate(tmpPanVector);
   };
   TrackballControls.prototype.panComponent = function panComponent (x, y) {
       if (!this.component)
           { return; }
       this._setPanVector(x, y);
       this._transformPanVector();
-      this.component.position.add(tmpPanVector$1);
+      this.component.position.add(tmpPanVector);
       this.component.updateMatrix();
   };
   TrackballControls.prototype.panAtom = function panAtom (x, y) {
@@ -6715,7 +6715,7 @@
       tmpAtomVector.applyMatrix4(this.viewer.rotationGroup.matrix);
       this._setPanVector(x, y, tmpAtomVector.z);
       this._transformPanVector();
-      this.atom.positionAdd(tmpPanVector$1);
+      this.atom.positionAdd(tmpPanVector);
       this.component.updateRepresentations({ 'position': true });
   };
   TrackballControls.prototype.rotate = function rotate (x, y) {
@@ -6723,21 +6723,21 @@
           var dx = ref[0];
           var dy = ref[1];
       // rotate around screen X then screen Y
-      this._getCameraRotation(tmpRotateMatrix$3);
-      tmpRotateVector$3.set(1, 0, 0); // X axis
-      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3); // screen X
-      tmpRotateQuaternion$2.setFromAxisAngle(tmpRotateVector$3, dy);
-      tmpRotateVector$3.set(0, 1, 0); // Y axis
-      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3); // screen Y
-      tmpRotateQuaternion2$1.setFromAxisAngle(tmpRotateVector$3, dx);
-      tmpRotateQuaternion$2.multiply(tmpRotateQuaternion2$1);
-      tmpRotateMatrix$3.makeRotationFromQuaternion(tmpRotateQuaternion$2);
-      this.controls.applyRotateMatrix(tmpRotateMatrix$3);
+      this._getCameraRotation(tmpRotateMatrix$2);
+      tmpRotateVector$2.set(1, 0, 0); // X axis
+      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2); // screen X
+      tmpRotateQuaternion$1.setFromAxisAngle(tmpRotateVector$2, dy);
+      tmpRotateVector$2.set(0, 1, 0); // Y axis
+      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2); // screen Y
+      tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector$2, dx);
+      tmpRotateQuaternion$1.multiply(tmpRotateQuaternion2);
+      tmpRotateMatrix$2.makeRotationFromQuaternion(tmpRotateQuaternion$1);
+      this.controls.applyMatrix(tmpRotateMatrix$2);
   };
   TrackballControls.prototype.zRotate = function zRotate (x, y) {
       var dz = this.rotateSpeed * ((-x + y) / -2) * 0.01;
       tmpRotateZMatrix.makeRotationZ(dz);
-      this.controls.applyRotateMatrix(tmpRotateZMatrix);
+      this.controls.applyMatrix(tmpRotateZMatrix);
   };
   TrackballControls.prototype.rotateComponent = function rotateComponent (x, y) {
       if (!this.component)
@@ -6746,19 +6746,19 @@
           var dx = ref[0];
           var dy = ref[1];
       this._getCameraRotation(tmpRotateCameraMatrix);
-      tmpRotateMatrix$3.extractRotation(this.component.transform);
-      tmpRotateMatrix$3.premultiply(this.viewer.rotationGroup.matrix);
-      tmpRotateMatrix$3.getInverse(tmpRotateMatrix$3);
-      tmpRotateMatrix$3.premultiply(tmpRotateCameraMatrix);
-      tmpRotateVector$3.set(1, 0, 0);
-      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
-      tmpRotateXMatrix.makeRotationAxis(tmpRotateVector$3, dy);
-      tmpRotateVector$3.set(0, 1, 0);
-      tmpRotateVector$3.applyMatrix4(tmpRotateMatrix$3);
-      tmpRotateYMatrix.makeRotationAxis(tmpRotateVector$3, dx);
+      tmpRotateMatrix$2.extractRotation(this.component.transform);
+      tmpRotateMatrix$2.premultiply(this.viewer.rotationGroup.matrix);
+      tmpRotateMatrix$2.getInverse(tmpRotateMatrix$2);
+      tmpRotateMatrix$2.premultiply(tmpRotateCameraMatrix);
+      tmpRotateVector$2.set(1, 0, 0);
+      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2);
+      tmpRotateXMatrix.makeRotationAxis(tmpRotateVector$2, dy);
+      tmpRotateVector$2.set(0, 1, 0);
+      tmpRotateVector$2.applyMatrix4(tmpRotateMatrix$2);
+      tmpRotateYMatrix.makeRotationAxis(tmpRotateVector$2, dx);
       tmpRotateXMatrix.multiply(tmpRotateYMatrix);
-      tmpRotateQuaternion$2.setFromRotationMatrix(tmpRotateXMatrix);
-      this.component.quaternion.premultiply(tmpRotateQuaternion$2);
+      tmpRotateQuaternion$1.setFromRotationMatrix(tmpRotateXMatrix);
+      this.component.quaternion.premultiply(tmpRotateQuaternion$1);
       this.component.quaternion.normalize();
       this.component.updateMatrix();
   };
@@ -7119,8 +7119,8 @@
   var tmpS = new three.Vector3();
   var tmpCanvasVector = new three.Vector3();
   var tmpScaleVector = new three.Vector3();
-  var tmpRotateMatrix$2 = new three.Matrix4();
-  var tmpRotateVector$2 = new three.Vector3();
+  var tmpRotateMatrix$1 = new three.Matrix4();
+  var tmpRotateVector$1 = new three.Vector3();
   var tmpAlignMatrix = new three.Matrix4();
   /**
    * Viewer controls
@@ -7164,8 +7164,8 @@
       var canvasPosition = ensureVector2(optionalTarget);
       var viewer = this.viewer;
       tmpCanvasVector.copy(position)
-          .applyMatrix4(viewer.rotationGroup.matrix)
           .add(viewer.translationGroup.position)
+          .applyMatrix4(viewer.rotationGroup.matrix)
           .project(viewer.camera);
       return canvasPosition.set((tmpCanvasVector.x + 1) * viewer.width / 2, (tmpCanvasVector.y + 1) * viewer.height / 2);
   };
@@ -7221,10 +7221,6 @@
           .add(ensureVector3(vector));
       this.changed();
   };
-  ViewerControls.prototype.intranslate = function intranslate (vector) {
-      this.viewer.translationGroup.position
-          .add(ensureVector3(vector));
-  };
   /**
    * center scene
    * @param  {Vector3|Array} position - center position
@@ -7268,10 +7264,10 @@
    * @return {undefined}
    */
   ViewerControls.prototype.spin = function spin (axis, angle) {
-      tmpRotateMatrix$2.getInverse(this.viewer.rotationGroup.matrix);
-      tmpRotateVector$2
-          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix$2);
-      this.viewer.rotationGroup.rotateOnAxis(tmpRotateVector$2, angle);
+      tmpRotateMatrix$1.getInverse(this.viewer.rotationGroup.matrix);
+      tmpRotateVector$1
+          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix$1);
+      this.viewer.rotationGroup.rotateOnAxis(tmpRotateVector$1, angle);
       this.changed();
   };
   /**
@@ -7299,12 +7295,9 @@
    * @param  {Matrix4|Array} matrix - rotation matrix
    * @return {undefined}
    */
-  ViewerControls.prototype.applyRotateMatrix = function applyRotateMatrix (matrix) {
+  ViewerControls.prototype.applyMatrix = function applyMatrix (matrix) {
       this.viewer.rotationGroup.applyMatrix4(ensureMatrix4(matrix));
       this.changed();
-  };
-  ViewerControls.prototype.inApplyRotateMatrix = function inApplyRotateMatrix (matrix) {
-      this.viewer.rotationGroup.applyMatrix4(ensureMatrix4(matrix));
   };
 
   Object.defineProperties( ViewerControls.prototype, prototypeAccessors$t );
@@ -7506,7 +7499,7 @@
           this.moveTo = ensureVector3(defaults(moveTo, new three.Vector3()));
       };
       MoveAnimation.prototype._tick = function _tick ( /* stats */) {
-          this.controls.rotationPosition.lerpVectors(this.moveFrom, this.moveTo, this.alpha).negate();
+          this.controls.position.lerpVectors(this.moveFrom, this.moveTo, this.alpha).negate();
           this.controls.changed();
       };
 
@@ -7758,7 +7751,7 @@
    * @return {MoveAnimation} the animation
    */
   AnimationControls.prototype.move = function move (moveTo, duration) {
-      var moveFrom = this.controls.rotationPosition.clone().negate();
+      var moveFrom = this.controls.position.clone().negate();
       return this.add(new MoveAnimation(duration, this.controls, moveFrom, moveTo));
   };
   /**
@@ -17613,9 +17606,9 @@
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
    * @private
    */
-  var tmpRotateMatrix$1 = new three.Matrix4();
-  var tmpRotateVector$1 = new three.Vector3();
-  var tmpRotateQuaternion$1 = new three.Quaternion();
+  var tmpRotateMatrix = new three.Matrix4();
+  var tmpRotateVector = new three.Vector3();
+  var tmpRotateQuaternion = new three.Quaternion();
   /**
    * Component controls
    */
@@ -17660,17 +17653,17 @@
    * @return {undefined}
    */
   ComponentControls.prototype.spin = function spin (axis, angle) {
-      tmpRotateMatrix$1.getInverse(this.viewer.rotationGroup.matrix);
-      tmpRotateVector$1
-          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix$1);
-      tmpRotateMatrix$1.extractRotation(this.component.transform);
-      tmpRotateMatrix$1.premultiply(this.viewer.rotationGroup.matrix);
-      tmpRotateMatrix$1.getInverse(tmpRotateMatrix$1);
-      tmpRotateVector$1.copy(ensureVector3(axis));
-      tmpRotateVector$1.applyMatrix4(tmpRotateMatrix$1);
-      tmpRotateMatrix$1.makeRotationAxis(tmpRotateVector$1, angle);
-      tmpRotateQuaternion$1.setFromRotationMatrix(tmpRotateMatrix$1);
-      this.component.quaternion.premultiply(tmpRotateQuaternion$1);
+      tmpRotateMatrix.getInverse(this.viewer.rotationGroup.matrix);
+      tmpRotateVector
+          .copy(ensureVector3(axis)).applyMatrix4(tmpRotateMatrix);
+      tmpRotateMatrix.extractRotation(this.component.transform);
+      tmpRotateMatrix.premultiply(this.viewer.rotationGroup.matrix);
+      tmpRotateMatrix.getInverse(tmpRotateMatrix);
+      tmpRotateVector.copy(ensureVector3(axis));
+      tmpRotateVector.applyMatrix4(tmpRotateMatrix);
+      tmpRotateMatrix.makeRotationAxis(tmpRotateVector, angle);
+      tmpRotateQuaternion.setFromRotationMatrix(tmpRotateMatrix);
+      this.component.quaternion.premultiply(tmpRotateQuaternion);
       this.changed();
   };
 
@@ -29812,83 +29805,6 @@
       this.viewer.dispose();
   };
 
-  var tmpRotateMatrix = new three.Matrix4();
-  var tmpRotateVector = new three.Vector3();
-  var tmpRotateQuaternion = new three.Quaternion();
-  var tmpRotateQuaternion2 = new three.Quaternion();
-  var tmpPanVector = new three.Vector3();
-  var TrackballControlsEx = /*@__PURE__*/(function (TrackballControls) {
-      function TrackballControlsEx(stage, params) {
-          if ( params === void 0 ) params = {};
-
-          TrackballControls.call(this, stage, params);
-          this.stage = stage;
-      }
-
-      if ( TrackballControls ) TrackballControlsEx.__proto__ = TrackballControls;
-      TrackballControlsEx.prototype = Object.create( TrackballControls && TrackballControls.prototype );
-      TrackballControlsEx.prototype.constructor = TrackballControlsEx;
-      TrackballControlsEx.prototype._setPanVector = function _setPanVector (x, y, z) {
-          if ( z === void 0 ) z = 0;
-
-          var scaleFactor = this.controls.getCanvasScaleFactor(z);
-          tmpPanVector.set(x, y, 0);
-          tmpPanVector.multiplyScalar(this.panSpeed * scaleFactor);
-      };
-      TrackballControlsEx.prototype.pan = function pan (x, y) {
-          this._setPanVector(x, y);
-          this.controls.translate(tmpPanVector);
-      };
-      TrackballControlsEx.prototype.rotate = function rotate (x, y) {
-          var ref = this._getRotateXY(x, y);
-          var dx = ref[0];
-          var dy = ref[1];
-          // rotate around screen X then screen Y
-          this._getCameraRotation(tmpRotateMatrix);
-          tmpRotateVector.set(1, 0, 0); // X axis
-          // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen X 
-          tmpRotateQuaternion.setFromAxisAngle(tmpRotateVector, dy);
-          tmpRotateVector.set(0, 1, 0); // Y axis
-          // tmpRotateVector.applyMatrix4(tmpRotateMatrix) // screen Y 
-          tmpRotateQuaternion2.setFromAxisAngle(tmpRotateVector, dx);
-          tmpRotateQuaternion.multiply(tmpRotateQuaternion2);
-          tmpRotateMatrix.makeRotationFromQuaternion(tmpRotateQuaternion);
-          this.controls.applyRotateMatrix(tmpRotateMatrix);
-      };
-
-      return TrackballControlsEx;
-  }(TrackballControls));
-
-  var StageEx = /*@__PURE__*/(function (Stage) {
-      function StageEx(idOrElement, params) {
-          if ( params === void 0 ) params = {};
-
-          Stage.call(this, idOrElement, params);
-          this.trackballControls = new TrackballControlsEx(this);
-      }
-
-      if ( Stage ) StageEx.__proto__ = Stage;
-      StageEx.prototype = Object.create( Stage && Stage.prototype );
-      StageEx.prototype.constructor = StageEx;
-      StageEx.prototype.getZoomForBox = function getZoomForBox (boundingBox) {
-          var tmpZoomVector = new three.Vector3();
-          var bbSize = boundingBox.getSize(tmpZoomVector);
-          var maxSize = Math.max(bbSize.x, bbSize.y, bbSize.z);
-          var minSize = Math.min(bbSize.x, bbSize.y, bbSize.z);
-          var distance = maxSize + Math.sqrt(minSize);
-          var fov = degToRad(this.viewer.perspectiveCamera.fov);
-          var width = this.viewer.width;
-          var height = this.viewer.height;
-          var aspect = width / height;
-          var aspectFactor = (height < width ? 1 : aspect);
-          distance = Math.abs(((distance * 0.5) / aspectFactor) / Math.sin(fov / 2));
-          distance += this.parameters.clipDist;
-          return -distance;
-      };
-
-      return StageEx;
-  }(Stage));
-
   /**
    * @file Shape Component
    * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -33195,6 +33111,18 @@
   Object.assign({
       disableImpostor: false
   }, CylinderGeometryBufferDefaultParameters, CylinderImpostorBufferDefaultParameters);
+  var CylinderBufferImpl = function CylinderBufferImpl(data, params) {
+      if ( params === void 0 ) params = {};
+
+      if (!data.color2 && data.color)
+          { data.color2 = data.color; }
+      if (!ExtensionFragDepth || (params && params.disableImpostor)) {
+          return new CylinderGeometryBuffer(data, params);
+      }
+      else {
+          return new CylinderImpostorBuffer(data, params);
+      }
+  };
   /**
    * Cylinder buffer. Depending on the value {@link ExtensionFragDepth} and
    * `params.disableImpostor` the constructor returns either a
@@ -33210,18 +33138,7 @@
    *   radius: new Float32Array([ 1 ])
    * });
    */
-  var CylinderBufferImpl = function CylinderBufferImpl(data, params) {
-      if ( params === void 0 ) params = {};
-
-      if (!data.color2 && data.color)
-          { data.color2 = data.color; }
-      if (!ExtensionFragDepth || (params && params.disableImpostor)) {
-          return new CylinderGeometryBuffer(data, params);
-      }
-      else {
-          return new CylinderImpostorBuffer(data, params);
-      }
-  };
+  //@ts-expect-error Incompatible constructor signatures
   var CylinderBuffer = CylinderBufferImpl;
   BufferRegistry.add('cylinder', CylinderBuffer);
 
@@ -51653,7 +51570,6 @@
   exports.SpatialHash = SpatialHash;
   exports.SphereBuffer = SphereBuffer;
   exports.Stage = Stage;
-  exports.StageEx = StageEx;
   exports.StaticDatasource = StaticDatasource;
   exports.StlWriter = StlWriter;
   exports.Structure = Structure;
