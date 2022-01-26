@@ -199,7 +199,6 @@ export {MouseActionCallback} from './controls/mouse-actions'
 import MouseActions from './controls/mouse-actions'
 import KeyActions from './controls/key-actions'
 import PickingProxy from './controls/picking-proxy'
-import AtomProxy from './proxy/atom-proxy'
 
 //
 
@@ -323,8 +322,5 @@ export {
 
   MouseActions,
   KeyActions,
-  PickingProxy,
-
-  // added for eterna-extension
-  AtomProxy,
+  PickingProxy
 }
